@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#8fd8f5">
+<meta name="description" content="Stone Hopper - charge your leap and hop a kitten across the stones without falling in.">
+<title>Stone Hopper</title>
+<style>
+/* ==========================================================================
+   Stone Hopper - a single-file browser game.
+   One committed daylight palette (this is a world, not a document), so every
+   colour is painted explicitly and no theme media query is used.
+   ========================================================================== */
+
+:root{
+  --sky-hi:#8fd8f5;
+  --water-deep:#0e4a72;
+  --ink:#173a52;          /* blue-biased near-black, not a default grey */
+  --ink-soft:#4a7590;
+  --cream:#fff6e8;        /* warm ground for panels */
+  --coral:#ff7e6b;        /* the one loud colour */
+  --coral-dk:#d9503d;
+  --gold:#ffc247;
+  --font: "Avenir Next Rounded", "Trebuchet MS", "Segoe UI", -apple-system,
+          BlinkMacSystemFont, system-ui, "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{
+  height:100%;
+  overflow:hidden;
+  background:var(--water-deep);
+  font-family:var(--font);
+  color:var(--ink);
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;
+  overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+}
+
+#app{position:fixed;inset:0;cursor:pointer}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+
+/* ---------- heads-up display ---------- */
+.hud{
+  position:absolute;top:0;left:0;right:0;
+  display:flex;align-items:center;gap:8px;
+  padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+          10px calc(12px + env(safe-area-inset-left));
+  pointer-events:none;
+}
+.pill{
+  display:flex;align-items:baseline;gap:7px;
+  background:rgba(255,246,232,.85);
+  border-radius:999px;
+  padding:6px 14px 7px;
+  box-shadow:0 3px 0 rgba(14,74,114,.16);
+  font-variant-numeric:tabular-nums;
+}
+.pill .lbl{
+  font-size:10px;font-weight:800;letter-spacing:.14em;
+  color:var(--ink-soft);text-transform:uppercase;
+}
+.pill .val{font-size:20px;font-weight:800;line-height:1;color:var(--ink)}
+.spacer{flex:1}
+
+.iconbtn{
+  pointer-events:auto;
+  width:40px;height:40px;flex:0 0 40px;
+  border:0;border-radius:999px;
+  background:rgba(255,246,232,.85);
+  box-shadow:0 3px 0 rgba(14,74,114,.16);
+  font-size:17px;line-height:1;cursor:pointer;
+  display:grid;place-items:center;
+  transition:transform .12s ease;
+  font-family:var(--font);
+}
+.iconbtn:hover{transform:translateY(-1px)}
+.iconbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(14,74,114,.16)}
+.iconbtn:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+
+/* ---------- overlays ---------- */
+.overlay{
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  padding:24px;
+  pointer-events:none;              /* the whole screen is the hit area */
+  background:radial-gradient(120% 90% at 50% 45%, rgba(14,74,114,.05), rgba(14,74,114,.34));
+}
+.overlay.hidden{display:none}
+
+.card{
+  width:min(360px,90vw);
+  text-align:center;
+  background:var(--cream);
+  border-radius:28px;
+  padding:26px 26px 24px;
+  box-shadow:0 20px 0 -6px rgba(14,74,114,.22), 0 26px 46px rgba(14,74,114,.34);
+  animation:pop .32s cubic-bezier(.2,1.5,.4,1) both;
+}
+@keyframes pop{from{transform:scale(.86) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+.paw{font-size:34px;line-height:1;display:block;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-7px) rotate(6deg)}}
+
+h1{
+  font-size:clamp(30px,8.5vw,44px);
+  line-height:.98;font-weight:800;letter-spacing:-.02em;
+  margin:10px 0 4px;text-wrap:balance;
+  color:var(--ink);
+}
+h1 em{font-style:normal;color:var(--coral)}
+h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+
+.blurb{
+  margin:8px auto 0;max-width:26ch;
+  font-size:14px;line-height:1.5;font-weight:600;color:var(--ink-soft);
+  text-wrap:balance;
+}
+
+/* score readout on the game-over card */
+.final{margin:14px 0 2px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
+.final .num{
+  font-size:64px;font-weight:800;line-height:.86;letter-spacing:-.04em;
+  color:var(--coral);font-variant-numeric:tabular-nums;
+}
+.final .unit{font-size:12px;font-weight:800;letter-spacing:.14em;color:var(--ink-soft);
+  text-transform:uppercase;padding-bottom:6px}
+.bestline{
+  font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+.badge{
+  display:inline-block;margin-top:10px;
+  background:var(--gold);color:#5a3b00;
+  font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 12px;border-radius:999px;
+  animation:wiggle 1.1s ease-in-out infinite;
+}
+.badge.hidden{display:none}
+@keyframes wiggle{0%,100%{transform:rotate(-3deg) scale(1)}50%{transform:rotate(3deg) scale(1.05)}}
+
+.btn{
+  margin-top:18px;width:100%;
+  border:0;border-radius:16px;
+  background:var(--coral);color:#fff;
+  font-family:var(--font);font-size:18px;font-weight:800;letter-spacing:.02em;
+  padding:14px 20px;
+  box-shadow:0 5px 0 var(--coral-dk);
+  animation:pulse 1.8s ease-in-out infinite;
+}
+@keyframes pulse{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+
+.keys{
+  margin-top:12px;
+  font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.keys kbd{
+  font-family:var(--font);font-size:11px;
+  background:rgba(23,58,82,.09);border-radius:6px;padding:3px 7px;margin:0 1px;
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="pill"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+    <div class="pill"><span class="lbl">Best</span><span class="val" id="best">0</span></div>
+    <div class="spacer"></div>
+    <button class="iconbtn" id="mute" aria-label="Mute sound">&#128266;</button>
+  </div>
+
+  <div class="overlay" id="menu">
+    <div class="card">
+      <span class="paw">&#128062;</span>
+      <h1>Stone <em>Hopper</em></h1>
+      <p class="blurb">Hold to wind up the leap, let go to fly. Watch the crumbling stones &mdash; they don't wait.</p>
+      <button class="btn" id="playBtn" tabindex="-1">Start hopping</button>
+      <p class="keys"><kbd>Space</kbd> &middot; <kbd>Click</kbd> &middot; <kbd>Tap</kbd></p>
+    </div>
+  </div>
+
+  <div class="overlay hidden" id="over">
+    <div class="card">
+      <span class="paw">&#128032;</span>
+      <h2>Splash!</h2>
+      <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Stones</span></div>
+      <p class="bestline">Best &middot; <span id="finalBest">0</span></p>
+      <div class="badge hidden" id="newbest">New best!</div>
+      <button class="btn" id="againBtn" tabindex="-1">Hop again</button>
+      <p class="keys">Press <kbd>Space</kbd> to retry</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ==========================================================================
+   0. Helpers
+   ========================================================================== */
+var TAU = Math.PI * 2;
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+/* ==========================================================================
+   1. DOM handles
+   ========================================================================== */
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d', { alpha: false });
+var elScore = document.getElementById('score');
+var elBest = document.getElementById('best');
+var elMenu = document.getElementById('menu');
+var elOver = document.getElementById('over');
+var elFinal = document.getElementById('finalScore');
+var elFinalBest = document.getElementById('finalBest');
+var elNewBest = document.getElementById('newbest');
+var elMute = document.getElementById('mute');
+
+/* ==========================================================================
+   2. Persistent high score (localStorage may be unavailable - never throw)
+   ========================================================================== */
+var LS_BEST = 'stoneHopper.best.v1';
+var LS_MUTE = 'stoneHopper.muted.v1';
+var best = 0;
+try { best = parseInt(localStorage.getItem(LS_BEST) || '0', 10) || 0; } catch (e) { best = 0; }
+function saveBest() { try { localStorage.setItem(LS_BEST, String(best)); } catch (e) {} }
+
+/* ==========================================================================
+   3. Audio - every sound is synthesised, no files.
+      The context is created on the first user gesture (browser autoplay rules).
+   ========================================================================== */
+var A = { ctx: null, master: null, noise: null, muted: false, osc: null, oscGain: null };
+try { A.muted = localStorage.getItem(LS_MUTE) === '1'; } catch (e) {}
+
+function audioInit() {
+  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  A.ctx = new AC();
+  A.master = A.ctx.createGain();
+  A.master.gain.value = A.muted ? 0 : 0.5;
+  A.master.connect(A.ctx.destination);
+  // One second of white noise, reused for every splash / scuff.
+  var buf = A.ctx.createBuffer(1, A.ctx.sampleRate, A.ctx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  A.noise = buf;
+}
+
+/** A short pitched blip; f1 lets the tone glide. */
+function tone(type, f0, f1, dur, vol, delay) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime + (delay || 0);
+  var o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t0);
+  if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(A.master);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+
+/** Filtered noise - water, grit, impact. */
+function noiseBurst(dur, vol, f0, f1) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime;
+  var src = A.ctx.createBufferSource(); src.buffer = A.noise;
+  var flt = A.ctx.createBiquadFilter(); flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(f0, t0);
+  flt.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t0 + dur);
+  var g = A.ctx.createGain();
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(flt); flt.connect(g); g.connect(A.master);
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+
+/* A held oscillator whose pitch tracks the charge meter. */
+function chargeStart() {
+  if (!A.ctx || A.muted || A.osc) return;
+  var o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = 'triangle';
+  o.frequency.value = 170;
+  g.gain.value = 0.0001;
+  g.gain.linearRampToValueAtTime(0.07, A.ctx.currentTime + 0.07);
+  o.connect(g); g.connect(A.master); o.start();
+  A.osc = o; A.oscGain = g;
+}
+function chargeUpdate(p) {
+  if (A.osc) A.osc.frequency.setTargetAtTime(170 + p * 440, A.ctx.currentTime, 0.03);
+}
+function chargeStop() {
+  if (!A.osc) return;
+  try {
+    var t = A.ctx.currentTime;
+    A.oscGain.gain.cancelScheduledValues(t);
+    A.oscGain.gain.setValueAtTime(Math.max(0.0001, A.oscGain.gain.value), t);
+    A.oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    A.osc.stop(t + 0.09);
+  } catch (e) {}
+  A.osc = null; A.oscGain = null;
+}
+
+function sndJump(p)   { tone('sine', 380 + p * 150, 780 + p * 400, 0.16, 0.20); }
+function sndLand()    { tone('triangle', 190, 115, 0.10, 0.16); noiseBurst(0.06, 0.05, 1400, 300); }
+function sndScore()   { tone('sine', 920, 920, 0.09, 0.14); tone('sine', 1380, 1380, 0.10, 0.10, 0.06); }
+function sndPerfect() { tone('sine', 880, 880, 0.09, 0.14); tone('sine', 1175, 1175, 0.09, 0.13, 0.07);
+                        tone('sine', 1568, 1568, 0.18, 0.12, 0.14); }
+function sndSplash()  { noiseBurst(0.55, 0.30, 3800, 200); tone('sine', 300, 90, 0.35, 0.09); }
+function sndOver()    { tone('triangle', 440, 440, 0.16, 0.13, 0.06);
+                        tone('triangle', 330, 330, 0.16, 0.13, 0.22);
+                        tone('triangle', 233, 233, 0.36, 0.13, 0.38); }
+function sndCrack()   { noiseBurst(0.13, 0.10, 2600, 500); }
+
+function setMuted(m) {
+  A.muted = m;
+  if (A.master) A.master.gain.value = m ? 0 : 0.5;
+  if (m) chargeStop();
+  elMute.innerHTML = m ? '&#128263;' : '&#128266;';
+  elMute.setAttribute('aria-label', m ? 'Unmute sound' : 'Mute sound');
+  try { localStorage.setItem(LS_MUTE, m ? '1' : '0'); } catch (e) {}
+}
+
+/* ==========================================================================
+   4. Viewport-derived layout. Every gameplay constant scales with the screen
+      so a phone and a desktop play the same game.
+   ========================================================================== */
+var VW = 0, VH = 0, DPR = 1, waterY = 0;
+var KW = 0;        // kitten width
+var MIN_D = 0;     // shortest possible jump (a tap)
+var MAX_D = 0;     // longest possible jump (full charge)
+var gSky = null, gWater = null, gVign = null;
+
+/* World state (declared before layout(), which touches it on resize) */
+var stones = [], parts = [], ripples = [], pops = [], clouds = [];
+var camX = 0, camLo = 0, T = 0, score = 0;
+var mode = 'menu';     // 'menu' | 'play' | 'over'
+var phase = 'stand';   // 'stand' | 'charge' | 'air' | 'fall'
+var charge = 0, fallT = 0, overT = 0, shake = 0;
+var stoneId = 0, lastX = 0, lastWasCrumble = false;
+var CHARGE_TIME = 0.85;    // seconds from tap to full power
+var CRUMBLE_FUSE = 1.0;    // seconds on a crumbling stone before it gives way
+
+var kit = {
+  x: 0, y: 0, vx: 0, vy: 0, g: 2000,
+  rot: 0, rotV: 0, sqz: 0, sqzV: 0,
+  onStone: null, offset: 0,
+  blink: 0, blinkT: 2.5, alpha: 1
+};
+
+function layout() {
+  var prevWater = waterY;
+  VW = Math.max(300, window.innerWidth);
+  VH = Math.max(380, window.innerHeight);
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+
+  canvas.width = Math.round(VW * DPR);
+  canvas.height = Math.round(VH * DPR);
+  canvas.style.width = VW + 'px';
+  canvas.style.height = VH + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  waterY = Math.round(VH * 0.72);
+  KW = clamp(VW * 0.075, 30, 58);
+  MIN_D = VW * 0.20;
+  MAX_D = VW * 0.60;
+
+  // Keep an in-progress run consistent when the window changes height.
+  if (prevWater) {
+    var dy = waterY - prevWater;
+    for (var i = 0; i < stones.length; i++) stones[i].baseY += dy;
+    kit.y += dy;
+  }
+  makeGradients();
+  buildClouds();
+}
+
+function makeGradients() {
+  gSky = ctx.createLinearGradient(0, 0, 0, waterY);
+  gSky.addColorStop(0, '#63c4ee');
+  gSky.addColorStop(0.55, '#a5e2f8');
+  gSky.addColorStop(1, '#dff4ff');
+
+  gWater = ctx.createLinearGradient(0, waterY, 0, VH);
+  gWater.addColorStop(0, '#7fd7ef');
+  gWater.addColorStop(0.35, '#3fa9d4');
+  gWater.addColorStop(1, '#0e4a72');
+
+  gVign = ctx.createRadialGradient(VW * 0.5, VH * 0.45, Math.min(VW, VH) * 0.30,
+                                   VW * 0.5, VH * 0.5, Math.max(VW, VH) * 0.78);
+  gVign.addColorStop(0, 'rgba(14,74,114,0)');
+  gVign.addColorStop(1, 'rgba(14,74,114,0.26)');
+}
+
+function buildClouds() {
+  clouds.length = 0;
+  for (var i = 0; i < 12; i++) {
+    clouds.push({
+      x: rand(-260, VW * 2.4),
+      y: rand(VH * 0.05, VH * 0.45),
+      s: rand(0.5, 1.35),
+      p: rand(0.06, 0.28),   // parallax factor
+      spd: rand(2, 9),       // own slow drift
+      a: rand(0.5, 0.95)
+    });
+  }
+  clouds.sort(function (a, b) { return a.p - b.p; });
+}
+
+/* ==========================================================================
+   5. Stones
+   ========================================================================== */
+function makeStone(x, baseY, w, type) {
+  return {
+    id: ++stoneId,
+    ax: x, x: x,          // ax = anchor, x = live position (moving stones drift)
+    baseY: baseY,         // top surface, before bob / sink
+    w: w, type: type,
+    amp: 0, msp: 0, mph: 0,                 // horizontal drift
+    bsp: rand(1.1, 2.0), bph: rand(0, TAU), // vertical bob
+    visited: false, trig: false, tt: 0, sink: 0, sinkV: 0, dead: false,
+    moss: [rand(-0.3, 0.3), rand(-0.28, 0.28)]
+  };
+}
+function stoneX(s) { return s.amp ? s.ax + Math.sin(T * s.msp + s.mph) * s.amp : s.ax; }
+function stoneTop(s) { return s.baseY + Math.sin(T * s.bsp + s.bph) * 2.5 + s.sink; }
+function stoneH(s) { return Math.max(28, s.w * 0.5); }
+
+/**
+ * Append one stone ahead of the last. Gaps are clamped so that even the worst
+ * phase of two drifting stones stays inside the kitten's jump envelope.
+ */
+function spawnStone() {
+  var diff = clamp(score / 30, 0, 1);
+  var maxAmp = VW * 0.05;
+  var r = Math.random();
+  var pC = (score >= 5 && !lastWasCrumble) ? 0.05 + 0.20 * diff : 0;
+  var pM = (score >= 3) ? 0.12 + 0.30 * diff : 0;
+  var type = r < pC ? 'crumble' : (r < pC + pM ? 'moving' : 'normal');
+
+  var gap = rand(VW * (0.28 + 0.10 * diff), VW * (0.34 + 0.20 * diff));
+  var lo = MIN_D + 2 * maxAmp + 10;                                  // always > a tap
+  var hi = (type === 'moving' ? MAX_D * 0.72 : MAX_D * 0.88);        // always < full charge
+  gap = clamp(gap, lo, Math.max(lo + 6, hi));
+
+  var w = clamp(VW * (0.155 - 0.062 * diff) * rand(0.86, 1.14), 46, 260);
+  var rise = rand(8, 30) * clamp(VW / 900, 0.65, 1.15);
+
+  var s = makeStone(lastX + gap, waterY - rise, w, type);
+  if (type === 'moving') {
+    s.amp = rand(maxAmp * 0.55, maxAmp);
+    s.msp = rand(0.7, 1.4);
+    s.mph = rand(0, TAU);
+  }
+  stones.push(s);
+  lastX = s.ax;
+  lastWasCrumble = (type === 'crumble');
+}
+
+/* ==========================================================================
+   6. Effects
+   ========================================================================== */
+function splash(x, y) {
+  for (var i = 0; i < 20; i++) {
+    var a = rand(-2.5, -0.65);
+    var sp = rand(90, 300);
+    parts.push({ x: x + rand(-10, 10), y: y, vx: Math.cos(a) * sp * rand(-1, 1),
+      vy: Math.sin(a) * sp, g: 900, r: rand(2, 5.5), life: rand(0.4, 0.95),
+      max: 1, c: '#d9f4ff' });
+  }
+  for (var j = 0; j < 3; j++) ripples.push({ x: x, y: y + 2, r: 6 + j * 8, life: 0.9 + j * 0.25, max: 1.4 });
+}
+function dust(x, y) {
+  for (var i = 0; i < 9; i++) {
+    parts.push({ x: x + rand(-8, 8), y: y, vx: rand(-70, 70), vy: rand(-90, -20),
+      g: 420, r: rand(2, 4.5), life: rand(0.24, 0.46), max: 0.46, c: '#ffeccd' });
+  }
+}
+function sparkle(x, y) {
+  for (var i = 0; i < 12; i++) {
+    var a = rand(0, TAU), sp = rand(60, 190);
+    parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+      g: 260, r: rand(1.6, 3.4), life: rand(0.35, 0.7), max: 0.7, c: '#ffc247' });
+  }
+}
+function popup(x, y, text, color) {
+  pops.push({ x: x, y: y, t: text, c: color, life: 0.95, max: 0.95 });
+}
+
+/* ==========================================================================
+   7. Game flow
+   ========================================================================== */
+function updateHud() {
+  elScore.textContent = score;
+  elBest.textContent = Math.max(best, score);
+}
+
+function reset() {
+  stones.length = 0; parts.length = 0; ripples.length = 0; pops.length = 0;
+  score = 0; T = 0; stoneId = 0; lastWasCrumble = false;
+  fallT = 0; overT = 0; shake = 0; charge = 0;
+
+  var start = makeStone(VW * 0.26, waterY - Math.max(12, VH * 0.035),
+                        Math.max(120, VW * 0.30), 'start');
+  start.visited = true;
+  stones.push(start);
+  lastX = start.ax;
+
+  kit.x = start.ax; kit.y = stoneTop(start);
+  kit.vx = 0; kit.vy = 0; kit.rot = 0; kit.rotV = 0;
+  kit.sqz = 0; kit.sqzV = 0; kit.alpha = 1;
+  kit.onStone = start; kit.offset = 0;
+
+  camLo = start.ax - VW * 0.30;
+  camX = camLo;
+  phase = 'stand';
+
+  for (var i = 0; i < 6; i++) spawnStone();
+  updateHud();
+}
+
+function startGame() {
+  reset();
+  mode = 'play';
+  elMenu.classList.add('hidden');
+  elOver.classList.add('hidden');
+}
+
+function gameOver() {
+  mode = 'over';
+  overT = 0;
+  chargeStop();
+  var isNew = score > best;
+  if (isNew) { best = score; saveBest(); }
+  elFinal.textContent = score;
+  elFinalBest.textContent = best;
+  elNewBest.classList.toggle('hidden', !isNew);
+  elOver.classList.remove('hidden');
+  updateHud();
+  sndOver();
+}
+
+function drown() {
+  if (phase === 'fall') return;
+  chargeStop();
+  phase = 'fall';
+  fallT = 0;
+  kit.rotV = rand(-5, 5);
+  kit.onStone = null;
+  splash(kit.x, waterY);
+  sndSplash();
+  shake = 9;
+}
+
+function land(s, top) {
+  phase = 'stand';
+  kit.onStone = s;
+  kit.y = top;
+  kit.vy = 0;
+  kit.rot = 0;
+  kit.sqz = -0.34; kit.sqzV = 0;
+
+  var off = kit.x - s.x;
+  dust(kit.x, top);
+
+  if (!s.visited) {
+    s.visited = true;
+    var acc = 1 - Math.min(1, Math.abs(off) / (s.w * 0.5));
+    if (acc > 0.72) {
+      score += 2;
+      popup(kit.x, top - KW * 2.0, 'PURR-FECT +2', '#ffc247');
+      sparkle(kit.x, top - KW * 0.6);
+      sndPerfect();
+    } else {
+      score += 1;
+      popup(kit.x, top - KW * 1.9, '+1', '#ffffff');
+      sndScore();
+    }
+    updateHud();
+  } else {
+    sndLand();
+  }
+
+  // Settle the kitten onto the stone so it never hangs off the edge.
+  kit.offset = clamp(off, -s.w * 0.5 + KW * 0.22, s.w * 0.5 - KW * 0.22);
+  kit.x = s.x + kit.offset;
+
+  if (s.type === 'crumble' && !s.trig) { s.trig = true; s.tt = 0; sndCrack(); }
+}
+
+function doJump() {
+  var p = clamp(charge, 0.04, 1);
+  var d = MIN_D + p * (MAX_D - MIN_D);      // horizontal reach
+  var apex = VH * (0.13 + 0.10 * p);        // arc height
+  var t = 0.60 + 0.30 * p;                  // flight time
+
+  kit.g = 8 * apex / (t * t);
+  kit.vy = -4 * apex / t;
+  kit.vx = d / t;
+  kit.onStone = null;
+  kit.sqz = 0.24; kit.sqzV = 0;
+  phase = 'air';
+  charge = 0;
+  chargeStop();
+  sndJump(p);
+}
+
+/* ==========================================================================
+   8. Input - one press/release model shared by pointer and keyboard
+   ========================================================================== */
+function press() {
+  audioInit();
+  if (mode === 'menu') { startGame(); }
+  else if (mode === 'over') { if (overT > 0.45) startGame(); return; }
+  if (mode === 'play' && phase === 'stand') {
+    phase = 'charge';
+    charge = 0;
+    chargeStart();
+  }
+}
+function release() {
+  if (mode === 'play' && phase === 'charge') doJump();
+  else chargeStop();
+}
+function cancelPress() {
+  if (mode === 'play' && phase === 'charge') { phase = 'stand'; charge = 0; }
+  chargeStop();
+}
+
+window.addEventListener('pointerdown', function (e) { e.preventDefault(); press(); }, { passive: false });
+window.addEventListener('pointerup', function (e) { e.preventDefault(); release(); }, { passive: false });
+window.addEventListener('pointercancel', cancelPress);
+window.addEventListener('blur', cancelPress);
+window.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+window.addEventListener('keydown', function (e) {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+    e.preventDefault();
+    if (!e.repeat) press();
+  } else if (e.key === 'm' || e.key === 'M') {
+    audioInit(); setMuted(!A.muted);
+  }
+});
+window.addEventListener('keyup', function (e) {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+    e.preventDefault(); release();
+  }
+});
+
+// The mute button is the one control that must not also trigger a jump.
+elMute.addEventListener('pointerdown', function (e) {
+  e.stopPropagation(); e.preventDefault();
+  audioInit(); setMuted(!A.muted);
+});
+elMute.addEventListener('click', function (e) { e.stopPropagation(); });
+
+document.addEventListener('visibilitychange', function () { if (document.hidden) cancelPress(); });
+window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+
+/* ==========================================================================
+   9. Simulation
+   ========================================================================== */
+function update(dt) {
+  T += dt;
+  shake = Math.max(0, shake - dt * 26);
+
+  for (var i = 0; i < clouds.length; i++) clouds[i].x -= clouds[i].spd * dt;
+
+  // --- stones ---
+  for (var i2 = 0; i2 < stones.length; i2++) {
+    var s = stones[i2];
+    s.x = stoneX(s);
+    if (s.trig && !s.dead) {
+      s.tt += dt;
+      if (s.tt > CRUMBLE_FUSE) {
+        s.sinkV += 340 * dt;
+        s.sink += s.sinkV * dt;
+        if (s.baseY + s.sink > waterY + stoneH(s) + 20) s.dead = true;
+      }
+    }
+  }
+
+  if (mode === 'play') {
+    if (phase === 'charge') {
+      charge = Math.min(1, charge + dt / CHARGE_TIME);
+      chargeUpdate(charge);
+    }
+
+    if (phase === 'stand' || phase === 'charge') {
+      var st = kit.onStone;
+      if (st) {
+        kit.x = st.x + kit.offset;
+        kit.y = stoneTop(st);
+        if (kit.y > waterY - 1) drown();       // rode a crumbling stone under
+      }
+    } else if (phase === 'air') {
+      var prevY = kit.y;
+      kit.vy += kit.g * dt;
+      kit.x += kit.vx * dt;
+      kit.y += kit.vy * dt;
+      kit.rot = clamp(Math.atan2(kit.vy, kit.vx) * 0.34, -0.5, 0.5);
+
+      if (kit.vy > 0) {                        // only land while descending
+        for (var k = 0; k < stones.length; k++) {
+          var c = stones[k];
+          if (c.dead) continue;
+          var top = stoneTop(c);
+          if (top > waterY - 1) continue;      // already sunk - not a landing pad
+          if (prevY <= top && kit.y >= top && Math.abs(kit.x - c.x) <= c.w * 0.5 + 3) {
+            land(c, top);
+            break;
+          }
+        }
+      }
+      if (phase === 'air' && kit.y > waterY) drown();
+    } else if (phase === 'fall') {
+      fallT += dt;
+      kit.y += (18 + fallT * 46) * dt;
+      kit.rot += kit.rotV * dt;
+      kit.alpha = clamp(1 - fallT * 0.95, 0, 1);
+      if (fallT > 0.85) gameOver();
+    }
+
+    while (lastX < camX + VW * 1.9) spawnStone();
+
+    if (stones.length > 26) {
+      var keep = [];
+      for (var m = 0; m < stones.length; m++) {
+        if (stones[m] === kit.onStone || stones[m].ax > camX - VW * 0.7) keep.push(stones[m]);
+      }
+      stones = keep;
+    }
+  } else if (mode === 'over') {
+    overT += dt;
+  }
+
+  // --- camera ---
+  var tgt = Math.max(camLo, kit.x - VW * 0.30);
+  camX += (tgt - camX) * (1 - Math.exp(-9 * dt));
+
+  // --- kitten squash spring & idle ---
+  kit.sqzV += (-kit.sqz * 260 - kit.sqzV * 16) * dt;
+  kit.sqz += kit.sqzV * dt;
+  kit.blinkT -= dt;
+  if (kit.blinkT <= 0) { kit.blink = 0.13; kit.blinkT = rand(2.2, 5.5); }
+  if (kit.blink > 0) kit.blink -= dt;
+
+  // --- particles ---
+  for (var p = parts.length - 1; p >= 0; p--) {
+    var q = parts[p];
+    q.life -= dt;
+    if (q.life <= 0) { parts.splice(p, 1); continue; }
+    q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+  }
+  for (var r = ripples.length - 1; r >= 0; r--) {
+    var rp = ripples[r];
+    rp.life -= dt; rp.r += 46 * dt;
+    if (rp.life <= 0) ripples.splice(r, 1);
+  }
+  for (var o = pops.length - 1; o >= 0; o--) {
+    pops[o].life -= dt; pops[o].y -= 42 * dt;
+    if (pops[o].life <= 0) pops.splice(o, 1);
+  }
+}
+
+/* ==========================================================================
+   10. Rendering
+   ========================================================================== */
+function ell(x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, TAU); ctx.fill(); }
+
+function drawSky() {
+  ctx.fillStyle = gSky;
+  ctx.fillRect(0, 0, VW, waterY + 1);
+  // sun with a soft halo
+  var sx = VW * 0.82, sy = VH * 0.14, sr = Math.max(26, VW * 0.045);
+  var halo = ctx.createRadialGradient(sx, sy, sr * 0.6, sx, sy, sr * 3.4);
+  halo.addColorStop(0, 'rgba(255,240,190,0.55)');
+  halo.addColorStop(1, 'rgba(255,240,190,0)');
+  ctx.fillStyle = halo; ell(sx, sy, sr * 3.4, sr * 3.4);
+  ctx.fillStyle = '#fff3c4'; ell(sx, sy, sr, sr);
+}
+
+function drawClouds() {
+  var span = VW * 2.6;
+  for (var i = 0; i < clouds.length; i++) {
+    var c = clouds[i];
+    var x = c.x - camX * c.p;
+    x = ((x + 300) % span + span) % span - 300;      // seamless wrap
+    var s = c.s, w = 46 * s;
+    if (x < -220 || x > VW + 220) continue;
+    ctx.fillStyle = 'rgba(255,255,255,' + c.a + ')';
+    ell(x, c.y, w, w * 0.62);
+    ell(x + w * 0.78, c.y + w * 0.16, w * 0.68, w * 0.46);
+    ell(x - w * 0.72, c.y + w * 0.2, w * 0.58, w * 0.4);
+    ell(x + w * 0.24, c.y - w * 0.36, w * 0.56, w * 0.44);
+  }
+}
+
+function drawHills(par, amp, base, color, seed) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, VH);
+  for (var sx = 0; sx <= VW + 18; sx += 18) {
+    var wx = (camX * par + sx) * 0.0042 + seed;
+    var y = base - amp * (0.52 + 0.32 * Math.sin(wx) + 0.16 * Math.sin(wx * 2.7 + seed));
+    ctx.lineTo(sx, y);
+  }
+  ctx.lineTo(VW, VH);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawWater() {
+  ctx.fillStyle = gWater;
+  ctx.fillRect(0, waterY, VW, VH - waterY);
+}
+
+/** Wobbly mirrored smudge under each stone. */
+function drawReflection(px, top, w, h, color) {
+  var depth = waterY - top;
+  ctx.save();
+  ctx.globalAlpha = 0.20;
+  ctx.fillStyle = color;
+  var wob = Math.sin(T * 2.2 + px * 0.02) * 3;
+  ell(px + wob, waterY + depth * 0.55 + h * 0.3, w * 0.44, h * 0.34);
+  ctx.restore();
+}
+
+function stonePath(px, top, w, h) {
+  var r = Math.min(w * 0.26, h * 0.55);
+  ctx.beginPath();
+  ctx.moveTo(px - w / 2 + r, top);
+  ctx.lineTo(px + w / 2 - r, top);
+  ctx.quadraticCurveTo(px + w / 2, top, px + w / 2, top + r);
+  ctx.lineTo(px + w / 2 - w * 0.05, top + h - r * 0.35);
+  ctx.quadraticCurveTo(px + w * 0.30, top + h, px, top + h);
+  ctx.quadraticCurveTo(px - w * 0.30, top + h, px - w / 2 + w * 0.05, top + h - r * 0.35);
+  ctx.lineTo(px - w / 2, top + r);
+  ctx.quadraticCurveTo(px - w / 2, top, px - w / 2 + r, top);
+  ctx.closePath();
+}
+
+function drawStone(s) {
+  var px = s.x - camX;
+  var top = stoneTop(s);
+  var w = s.w, h = stoneH(s);
+  if (px + w < -60 || px - w > VW + 60) return;
+
+  // A crumbling stone rattles harder as its fuse runs down.
+  if (s.trig && s.sink < 2) {
+    var prog = clamp(s.tt / CRUMBLE_FUSE, 0, 1);
+    px += Math.sin(T * (28 + prog * 34)) * 3 * prog;
+  }
+
+  var body, cap, edge;
+  if (s.type === 'start')        { body = '#8a5a3b'; cap = '#6cc06a'; edge = '#a97148'; }
+  else if (s.type === 'moving')  { body = '#5f76ad'; cap = '#8ba3d8'; edge = '#7189c4'; }
+  else if (s.type === 'crumble') { body = '#a3785a'; cap = '#c9a179'; edge = '#b98d68'; }
+  else                           { body = '#71849a'; cap = '#9cb0c1'; edge = '#8397a9'; }
+
+  drawReflection(px, top, w, h, body);
+
+  // body + flat landing cap
+  ctx.fillStyle = body;
+  stonePath(px, top, w, h);
+  ctx.fill();
+  ctx.fillStyle = edge;
+  ctx.save(); stonePath(px, top, w, h); ctx.clip();
+  ctx.fillRect(px - w / 2, top, w, h * 0.20);
+  ctx.restore();
+  ctx.fillStyle = cap;
+  ell(px, top + 2, w * 0.5 - 1, Math.max(4, w * 0.075));
+
+  if (s.type === 'start') {
+    // grassy dock: blades on the cap, two posts in the water
+    ctx.fillStyle = '#4d9c52';
+    for (var g = 0; g < 7; g++) {
+      var gx = px - w * 0.38 + (w * 0.76 / 6) * g;
+      var sway = Math.sin(T * 1.6 + g) * 2;
+      ctx.beginPath();
+      ctx.moveTo(gx - 3, top);
+      ctx.quadraticCurveTo(gx + sway, top - 11, gx + 3 + sway, top);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = '#734a30';
+    ctx.fillRect(px - w * 0.34, top + h * 0.5, 8, h * 0.7);
+    ctx.fillRect(px + w * 0.26, top + h * 0.5, 8, h * 0.7);
+  } else if (s.type === 'moving') {
+    // drift arrows + a bow wave, so the hazard reads before you land on it
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    var dir = Math.cos(T * s.msp + s.mph) >= 0 ? 1 : -1;
+    for (var a = 0; a < 2; a++) {
+      var ax = px + dir * (w * 0.16 + a * 9);
+      ctx.beginPath();
+      ctx.moveTo(ax, top + h * 0.34 - 5);
+      ctx.lineTo(ax + dir * 6, top + h * 0.34);
+      ctx.lineTo(ax, top + h * 0.34 + 5);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(px, waterY + 1, w * 0.55, 5, 0, 0, Math.PI);
+    ctx.stroke();
+  } else if (s.type === 'crumble') {
+    ctx.strokeStyle = 'rgba(60,32,16,0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px - w * 0.22, top + 3);
+    ctx.lineTo(px - w * 0.08, top + h * 0.34);
+    ctx.lineTo(px - w * 0.20, top + h * 0.56);
+    ctx.moveTo(px + w * 0.18, top + 3);
+    ctx.lineTo(px + w * 0.26, top + h * 0.40);
+    ctx.stroke();
+    if (s.trig) {                                   // fuse ring on the cap
+      var left = clamp(1 - s.tt / CRUMBLE_FUSE, 0, 1);
+      ctx.strokeStyle = left > 0.35 ? '#ffc247' : '#ff7e6b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(px, top - 13, 8, -Math.PI / 2, -Math.PI / 2 + TAU * left);
+      ctx.stroke();
+    }
+  } else {
+    ctx.fillStyle = '#6cc06a';                      // moss
+    ell(px + s.moss[0] * w, top + 3, w * 0.16, Math.max(3, w * 0.05));
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ell(px + s.moss[1] * w, top + h * 0.5, w * 0.1, h * 0.14);
+  }
+}
+
+/** Blue veil over everything below the waterline - submerged bits go under it. */
+function drawWaterTint() {
+  ctx.fillStyle = 'rgba(47,158,203,0.42)';
+  ctx.fillRect(0, waterY, VW, VH - waterY);
+}
+
+function drawWaves() {
+  // foam edge
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.beginPath();
+  ctx.moveTo(0, waterY + 8);
+  for (var x = 0; x <= VW; x += 8) {
+    ctx.lineTo(x, waterY + Math.sin((x + camX * 0.6) * 0.02 + T * 1.7) * 2.6);
+  }
+  ctx.lineTo(VW, waterY + 8);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.lineCap = 'round';
+  for (var k = 0; k < 3; k++) {
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.24 - k * 0.06) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    var yb = waterY + 14 + k * 16;
+    for (var sx = 0; sx <= VW; sx += 8) {
+      var y = yb + Math.sin((sx + camX * 0.55) * 0.018 + T * (1.4 + k * 0.32) + k) * (3 + k);
+      if (sx === 0) ctx.moveTo(sx, y); else ctx.lineTo(sx, y);
+    }
+    ctx.stroke();
+  }
+}
+
+/* --- the kitten ------------------------------------------------------- */
+var FUR = '#f7c98b', FUR_D = '#e5a95f', PINK = '#ff9fb2', DARK = '#3d2a1d', CREAM = '#fff3e2';
+
+function drawKitten() {
+  var px = kit.x - camX, py = kit.y;
+
+  // contact shadow on the stone
+  if (kit.onStone && phase !== 'fall') {
+    ctx.fillStyle = 'rgba(23,58,82,0.18)';
+    ell(px, py + 3, KW * 0.42, KW * 0.11);
+  }
+
+  ctx.save();
+  ctx.globalAlpha = kit.alpha;
+  ctx.translate(px, py);
+  ctx.rotate(kit.rot);
+
+  var idle = (phase === 'stand' && mode === 'play') ? Math.sin(T * 2.6) * 0.022 : 0;
+  var sy = 1 + kit.sqz + idle;
+  var sx = 1 - kit.sqz * 0.72 - idle;
+  ctx.scale(sx, sy);
+
+  var W = KW, H = KW * 1.02;
+  var airborne = (phase === 'air' || phase === 'fall');
+
+  // tail - wags at rest, streams out in flight
+  var wag = airborne ? -0.5 : Math.sin(T * 3.4) * 0.55;
+  ctx.strokeStyle = FUR;
+  ctx.lineWidth = W * 0.15;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(-W * 0.34, -H * 0.30);
+  ctx.quadraticCurveTo(-W * 0.92, -H * (0.30 - wag * 0.16), -W * 0.70, -H * (0.78 + wag * 0.10));
+  ctx.stroke();
+
+  // paws
+  var legY = airborne ? -H * 0.17 : -H * 0.045;
+  ctx.fillStyle = FUR_D;
+  ell(-W * 0.21, legY, W * 0.145, H * 0.075);
+  ell(W * 0.20, legY, W * 0.145, H * 0.075);
+
+  // body
+  ctx.fillStyle = FUR;
+  ell(0, -H * 0.36, W * 0.43, H * 0.34);
+  ctx.fillStyle = CREAM;                       // belly
+  ell(W * 0.06, -H * 0.28, W * 0.24, H * 0.19);
+  ctx.fillStyle = FUR_D;                       // stripes
+  ell(-W * 0.20, -H * 0.50, W * 0.10, H * 0.045);
+  ell(-W * 0.05, -H * 0.56, W * 0.10, H * 0.045);
+
+  var hx = W * 0.06, hy = -H * 0.78, hr = W * 0.36;
+
+  // ears (behind the head fill so the bases disappear)
+  ctx.fillStyle = FUR;
+  ctx.beginPath();
+  ctx.moveTo(hx - W * 0.30, hy - hr * 0.52);
+  ctx.lineTo(hx - W * 0.36, hy - hr * 1.34);
+  ctx.lineTo(hx - W * 0.03, hy - hr * 0.92);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(hx + W * 0.28, hy - hr * 0.52);
+  ctx.lineTo(hx + W * 0.34, hy - hr * 1.34);
+  ctx.lineTo(hx + W * 0.02, hy - hr * 0.92);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = PINK;
+  ctx.beginPath();
+  ctx.moveTo(hx - W * 0.26, hy - hr * 0.66);
+  ctx.lineTo(hx - W * 0.30, hy - hr * 1.12);
+  ctx.lineTo(hx - W * 0.10, hy - hr * 0.88);
+  ctx.closePath(); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(hx + W * 0.24, hy - hr * 0.66);
+  ctx.lineTo(hx + W * 0.28, hy - hr * 1.12);
+  ctx.lineTo(hx + W * 0.09, hy - hr * 0.88);
+  ctx.closePath(); ctx.fill();
+
+  // head
+  ctx.fillStyle = FUR;
+  ell(hx, hy, hr, hr * 0.93);
+  ctx.fillStyle = FUR_D;                       // forehead stripes
+  ell(hx - W * 0.03, hy - hr * 0.62, W * 0.035, hr * 0.16);
+  ell(hx + W * 0.09, hy - hr * 0.60, W * 0.035, hr * 0.16);
+
+  // face
+  var eyeY = hy - hr * 0.06, e1 = hx - W * 0.13, e2 = hx + W * 0.16;
+  if (phase === 'fall') {
+    ctx.strokeStyle = DARK; ctx.lineWidth = W * 0.055; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(e1 - W * 0.06, eyeY - W * 0.06); ctx.lineTo(e1 + W * 0.06, eyeY + W * 0.06);
+    ctx.moveTo(e1 + W * 0.06, eyeY - W * 0.06); ctx.lineTo(e1 - W * 0.06, eyeY + W * 0.06);
+    ctx.moveTo(e2 - W * 0.06, eyeY - W * 0.06); ctx.lineTo(e2 + W * 0.06, eyeY + W * 0.06);
+    ctx.moveTo(e2 + W * 0.06, eyeY - W * 0.06); ctx.lineTo(e2 - W * 0.06, eyeY + W * 0.06);
+    ctx.stroke();
+    ctx.fillStyle = DARK;                       // gasping mouth
+    ell(hx + W * 0.03, hy + hr * 0.40, W * 0.07, W * 0.085);
+  } else if (kit.blink > 0) {
+    ctx.strokeStyle = DARK; ctx.lineWidth = W * 0.05; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(e1 - W * 0.055, eyeY); ctx.lineTo(e1 + W * 0.055, eyeY);
+    ctx.moveTo(e2 - W * 0.055, eyeY); ctx.lineTo(e2 + W * 0.055, eyeY);
+    ctx.stroke();
+  } else {
+    var sq = phase === 'charge' ? 0.55 : 1;     // squint while winding up
+    ctx.fillStyle = DARK;
+    ell(e1, eyeY, W * 0.058, W * 0.070 * sq);
+    ell(e2, eyeY, W * 0.058, W * 0.070 * sq);
+    ctx.fillStyle = '#ffffff';
+    ell(e1 + W * 0.022, eyeY - W * 0.026 * sq, W * 0.020, W * 0.022 * sq);
+    ell(e2 + W * 0.022, eyeY - W * 0.026 * sq, W * 0.020, W * 0.022 * sq);
+  }
+
+  ctx.fillStyle = 'rgba(255,159,178,0.5)';      // blush
+  ell(hx - W * 0.24, hy + hr * 0.26, W * 0.07, W * 0.045);
+  ell(hx + W * 0.27, hy + hr * 0.26, W * 0.07, W * 0.045);
+
+  ctx.fillStyle = PINK;                          // nose
+  ctx.beginPath();
+  ctx.moveTo(hx + W * 0.015, hy + hr * 0.16);
+  ctx.lineTo(hx + W * 0.075, hy + hr * 0.16);
+  ctx.lineTo(hx + W * 0.045, hy + hr * 0.32);
+  ctx.closePath(); ctx.fill();
+
+  ctx.strokeStyle = 'rgba(61,42,29,0.5)';        // whiskers
+  ctx.lineWidth = Math.max(1, W * 0.022);
+  ctx.beginPath();
+  ctx.moveTo(hx - W * 0.14, hy + hr * 0.22); ctx.lineTo(hx - W * 0.42, hy + hr * 0.12);
+  ctx.moveTo(hx - W * 0.14, hy + hr * 0.30); ctx.lineTo(hx - W * 0.41, hy + hr * 0.36);
+  ctx.moveTo(hx + W * 0.21, hy + hr * 0.22); ctx.lineTo(hx + W * 0.48, hy + hr * 0.12);
+  ctx.moveTo(hx + W * 0.21, hy + hr * 0.30); ctx.lineTo(hx + W * 0.47, hy + hr * 0.36);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/* --- charge feedback: dotted arc, landing ring, power meter ------------ */
+function drawAim() {
+  if (phase !== 'charge') return;
+  var p = clamp(charge, 0.04, 1);
+  var d = MIN_D + p * (MAX_D - MIN_D);
+  var apex = VH * (0.13 + 0.10 * p);
+  var t = 0.60 + 0.30 * p;
+  var g = 8 * apex / (t * t), v0 = -4 * apex / t, vx = d / t;
+
+  ctx.save();
+  for (var i = 1; i <= 16; i++) {
+    var tt = t * i / 16;
+    var x = kit.x + vx * tt - camX;
+    var y = kit.y + v0 * tt + 0.5 * g * tt * tt;
+    ctx.globalAlpha = 0.6 - i * 0.022;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(1.7, 3.4 - i * 0.09), 0, TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(kit.x + d - camX, kit.y + 4, 15, 5.5, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+
+  var bw = Math.max(56, KW * 1.5), bh = 9;
+  var bx = kit.x - camX - bw / 2, by = kit.y - KW * 2.15;
+  ctx.fillStyle = 'rgba(14,74,114,0.32)';
+  roundRect(bx - 2, by - 2, bw + 4, bh + 4, (bh + 4) / 2); ctx.fill();
+  ctx.fillStyle = 'hsl(' + Math.round(lerp(132, 6, charge)) + ',85%,55%)';
+  roundRect(bx, by, Math.max(bh, bw * charge), bh, bh / 2); ctx.fill();
+}
+
+function roundRect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function drawEffects() {
+  for (var i = 0; i < ripples.length; i++) {
+    var rp = ripples[i];
+    ctx.globalAlpha = clamp(rp.life / rp.max, 0, 1) * 0.6;
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(rp.x - camX, rp.y, rp.r, rp.r * 0.32, 0, 0, TAU);
+    ctx.stroke();
+  }
+  for (var j = 0; j < parts.length; j++) {
+    var q = parts[j];
+    ctx.globalAlpha = clamp(q.life / q.max, 0, 1);
+    ctx.fillStyle = q.c;
+    ctx.beginPath();
+    ctx.arc(q.x - camX, q.y, q.r, 0, TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  for (var k = 0; k < pops.length; k++) {
+    var o = pops[k];
+    var a = clamp(o.life / o.max, 0, 1);
+    ctx.globalAlpha = a;
+    ctx.font = '800 ' + Math.round(Math.max(15, KW * 0.42)) + 'px ' +
+      '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(14,74,114,0.55)';
+    ctx.strokeText(o.t, o.x - camX, o.y);
+    ctx.fillStyle = o.c;
+    ctx.fillText(o.t, o.x - camX, o.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+function render() {
+  ctx.save();
+  if (shake > 0.2) ctx.translate(rand(-shake, shake), rand(-shake, shake));
+
+  drawSky();
+  drawClouds();
+  drawHills(0.10, VH * 0.10, waterY + 2, '#a8d8c6', 0.8);
+  drawHills(0.22, VH * 0.065, waterY + 2, '#7fbfae', 2.6);
+  drawWater();
+
+  for (var i = 0; i < stones.length; i++) drawStone(stones[i]);
+  drawKitten();                 // drawn before the tint, so a sinking kitten goes under it
+  drawWaterTint();
+  drawWaves();
+  drawEffects();
+  drawAim();
+
+  ctx.fillStyle = gVign;
+  ctx.fillRect(0, 0, VW, VH);
+  ctx.restore();
+}
+
+/* ==========================================================================
+   11. Main loop - fixed-step physics, rendered every animation frame
+   ========================================================================== */
+var lastT = 0, acc = 0, STEP = 1 / 120;
+
+function frame(ts) {
+  requestAnimationFrame(frame);
+  if (!lastT) lastT = ts;
+  var dt = (ts - lastT) / 1000;
+  lastT = ts;
+  if (dt > 0.25) dt = 0.25;      // tab was hidden - don't teleport the kitten
+  acc += dt;
+
+  var steps = 0;
+  while (acc >= STEP && steps < 40) { update(STEP); acc -= STEP; steps++; }
+  if (steps >= 40) acc = 0;
+
+  render();
+}
+
+/* ==========================================================================
+   12. Boot
+   ========================================================================== */
+layout();
+reset();
+setMuted(A.muted);
+updateHud();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

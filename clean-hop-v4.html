@@ -1,0 +1,3833 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#4fbfec">
+<meta name="description" content="Чистый Прыжок — помоги зверёнку перепрыгнуть по чистым камням и вернуть земле чистоту, прыжок за прыжком.">
+<title>Чистый Прыжок</title>
+<style>
+/* ==========================================================================
+   CLEAN HOP - a single-file browser game.
+   One committed bright palette: this is a game world, not a document, so
+   every colour is painted explicitly and no theme media query is used.
+   ========================================================================== */
+
+:root{
+  --ink:#20303a;          /* green-biased near-black, chosen not inherited */
+  --ink-soft:#5d7a83;
+  --cream:#fffaf0;
+  --leaf:#4fbf5f;
+  --leaf-dk:#2f8f43;
+  --sun:#ffc84a;
+  --sky:#4fbfec;
+  --grime:#3a3226;
+  --font:"Avenir Next Rounded","Trebuchet MS","Segoe UI",-apple-system,
+         BlinkMacSystemFont,system-ui,"Helvetica Neue",Arial,sans-serif;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+
+html,body{
+  height:100%;overflow:hidden;
+  background:var(--grime);
+  font-family:var(--font);color:var(--ink);
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;
+}
+
+#app{position:fixed;inset:0}
+canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointer}
+
+/* ---------------- heads-up display ---------------- */
+.hud{
+  position:absolute;top:0;left:0;right:0;
+  padding:calc(10px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right))
+          0 calc(12px + env(safe-area-inset-left));
+  display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;
+}
+.hud-row{display:flex;align-items:center;gap:8px}
+.pill{
+  display:flex;align-items:baseline;gap:7px;
+  background:rgba(255,250,240,.88);border-radius:999px;
+  padding:6px 14px 7px;box-shadow:0 3px 0 rgba(32,48,58,.16);
+  font-variant-numeric:tabular-nums;
+}
+.pill .lbl{font-size:10px;font-weight:800;letter-spacing:.14em;
+  color:var(--ink-soft);text-transform:uppercase}
+.pill .val{font-size:20px;font-weight:800;line-height:1;color:var(--ink)}
+.pill.pop{animation:pillpop .34s cubic-bezier(.2,1.5,.4,1)}
+@keyframes pillpop{0%{transform:scale(1)}42%{transform:scale(1.17)}100%{transform:scale(1)}}
+.spacer{flex:1}
+
+.iconbtn{
+  pointer-events:auto;width:40px;height:40px;flex:0 0 40px;
+  border:0;border-radius:999px;background:rgba(255,250,240,.88);
+  box-shadow:0 3px 0 rgba(32,48,58,.16);
+  font-size:17px;line-height:1;cursor:pointer;display:grid;place-items:center;
+  font-family:var(--font);transition:transform .12s ease;
+}
+.iconbtn:hover{transform:translateY(-1px)}
+.iconbtn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(32,48,58,.16)}
+.iconbtn:focus-visible{outline:3px solid var(--leaf);outline-offset:2px}
+.iconbtn[hidden]{display:none}
+
+/* cleanliness restored - the run's real progress bar */
+.meter-wrap{
+  display:flex;align-items:center;gap:9px;
+  background:rgba(255,250,240,.88);border-radius:999px;
+  padding:6px 13px;box-shadow:0 3px 0 rgba(32,48,58,.16);
+  align-self:flex-start;max-width:min(340px,72vw);
+}
+.meter-wrap .cap{
+  font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-soft);white-space:nowrap;
+}
+.meter{
+  position:relative;width:clamp(70px,26vw,150px);height:9px;
+  background:rgba(32,48,58,.14);border-radius:999px;overflow:hidden;
+}
+.meter-fill{
+  position:absolute;inset:0 auto 0 0;width:0%;
+  background:linear-gradient(90deg,var(--leaf),#8fe06a);
+  border-radius:999px;transition:width .35s ease;
+}
+.meter-pct{font-size:12px;font-weight:800;color:var(--leaf-dk);
+  font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+
+/* ---------------- overlays ---------------- */
+.overlay{
+  position:absolute;inset:0;display:flex;padding:20px;
+  pointer-events:none;overflow:auto;
+  background:radial-gradient(120% 90% at 50% 45%,rgba(32,48,58,.06),rgba(32,48,58,.42));
+}
+.overlay.hidden{display:none}
+
+.card{
+  width:min(400px,92vw);margin:auto;text-align:center;background:var(--cream);
+  border-radius:30px;padding:24px 22px 22px;pointer-events:auto;
+  box-shadow:0 20px 0 -6px rgba(32,48,58,.2),0 26px 46px rgba(32,48,58,.34);
+  animation:pop .34s cubic-bezier(.2,1.5,.4,1) both;
+}
+@keyframes pop{from{transform:scale(.88) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+
+h1{font-size:clamp(30px,8.4vw,42px);line-height:.98;font-weight:800;
+  letter-spacing:-.025em;text-wrap:balance;color:var(--ink)}
+h1 em{font-style:normal;color:var(--leaf-dk)}
+h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+
+.tagline{
+  margin:9px auto 0;max-width:30ch;font-size:13.5px;line-height:1.5;
+  font-weight:600;color:var(--ink-soft);text-wrap:balance;
+}
+.sectionlabel{
+  margin:18px 0 9px;font-size:10px;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+
+/* ---------------- character select ---------------- */
+.picker{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pick{
+  position:relative;pointer-events:auto;cursor:pointer;
+  border:3px solid transparent;border-radius:20px;
+  background:#eef4e6;padding:8px 4px 7px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-family:var(--font);transition:transform .14s ease,background .14s ease;
+}
+.pick:hover{transform:translateY(-3px)}
+.pick canvas{width:52px;height:52px;display:block}
+.pick .nm{font-size:10.5px;font-weight:800;color:var(--ink-soft);letter-spacing:.01em}
+.pick[aria-checked="true"]{
+  background:#dcf3d4;border-color:var(--leaf);
+  box-shadow:0 4px 0 var(--leaf-dk);
+}
+.pick[aria-checked="true"] .nm{color:var(--leaf-dk)}
+.pick:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+@media (max-width:340px){ .pick canvas{width:44px;height:44px} }
+
+/* ---------------- difficulty dial ---------------- */
+.dial{pointer-events:auto;padding:2px 2px 0;--dialc:var(--leaf-dk)}
+.dial-readout{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.dial-name{font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--dialc);transition:color .15s ease}
+.dial-path{font-size:12px;font-weight:800;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.dial-range{
+  -webkit-appearance:none;appearance:none;display:block;width:100%;height:34px;margin:0;
+  background:transparent;cursor:grab;touch-action:none;
+}
+.dial-range:active{cursor:grabbing}
+.dial-range::-webkit-slider-runnable-track{
+  height:12px;border-radius:999px;
+  background:linear-gradient(90deg,#7ee06a 0%,#ffd44a 45%,#ff9f43 72%,#ff6b5b 100%);
+  box-shadow:inset 0 2px 0 rgba(32,48,58,.14);
+}
+.dial-range::-moz-range-track{
+  height:12px;border-radius:999px;
+  background:linear-gradient(90deg,#7ee06a 0%,#ffd44a 45%,#ff9f43 72%,#ff6b5b 100%);
+  box-shadow:inset 0 2px 0 rgba(32,48,58,.14);
+}
+.dial-range::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:28px;height:28px;margin-top:-8px;
+  border-radius:50%;background:#fff;border:4px solid var(--dialc);
+  box-shadow:0 3px 0 rgba(32,48,58,.22);transition:transform .12s ease;
+}
+.dial-range:active::-webkit-slider-thumb{transform:scale(1.12)}
+.dial-range::-moz-range-thumb{
+  box-sizing:border-box;width:28px;height:28px;border-radius:50%;background:#fff;
+  border:4px solid var(--dialc);box-shadow:0 3px 0 rgba(32,48,58,.22);
+}
+.dial-range:focus-visible{outline:none}
+.dial-range:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px var(--sun),0 3px 0 rgba(32,48,58,.22)}
+.dial-range:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px var(--sun),0 3px 0 rgba(32,48,58,.22)}
+.dial-ticks{position:relative;height:8px;margin:0 14px}
+.dial-ticks i{position:absolute;top:0;width:5px;height:5px;border-radius:50%;
+  background:rgba(32,48,58,.28);transform:translateX(-50%)}
+
+.lvlchip{
+  display:inline-block;margin-top:8px;padding:4px 11px;border-radius:999px;
+  background:rgba(32,48,58,.08);color:var(--ink-soft);
+  font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+}
+
+/* ---------------- game over readout ---------------- */
+.final{margin:12px 0 2px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
+.final .num{font-size:62px;font-weight:800;line-height:.86;letter-spacing:-.04em;
+  color:var(--leaf-dk);font-variant-numeric:tabular-nums}
+.final .unit{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);padding-bottom:6px}
+.stats{
+  display:flex;justify-content:center;gap:18px;margin-top:8px;
+  font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft);font-variant-numeric:tabular-nums;
+}
+.badge{
+  display:inline-block;margin-top:10px;background:var(--sun);color:#5a3b00;
+  font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  padding:5px 12px;border-radius:999px;animation:wiggle 1.1s ease-in-out infinite;
+}
+.badge.hidden{display:none}
+@keyframes wiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+.ecomsg{
+  margin:12px auto 0;max-width:28ch;font-size:13px;line-height:1.45;
+  font-weight:700;color:var(--leaf-dk);text-wrap:balance;
+}
+
+/* victory: the same card, dressed for sunshine */
+.overlay.win{background:radial-gradient(120% 90% at 50% 40%,rgba(255,236,160,.28),rgba(32,48,58,.34))}
+.overlay.win .card{
+  background:linear-gradient(180deg,#fffdf2,#fff6e2);
+  box-shadow:0 0 0 3px var(--sun) inset,0 20px 0 -6px rgba(32,48,58,.2),
+             0 26px 46px rgba(32,48,58,.34);
+}
+.overlay.win h2{color:var(--leaf-dk)}
+.overlay.win .final .num{color:var(--sun)}
+
+/* ---------------- buttons ---------------- */
+.btn{
+  pointer-events:auto;margin-top:16px;width:100%;border:0;border-radius:18px;
+  background:var(--leaf);color:#fff;font-family:var(--font);
+  font-size:18px;font-weight:800;letter-spacing:.02em;padding:14px 20px;cursor:pointer;
+  box-shadow:0 5px 0 var(--leaf-dk);
+}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--leaf-dk)}
+.btn:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.btn.ghost{
+  margin-top:9px;background:transparent;color:var(--ink-soft);
+  box-shadow:none;font-size:14px;padding:9px;
+}
+.btn.ghost:active{transform:none}
+.keys{margin-top:11px;font-size:10.5px;font-weight:800;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-soft)}
+.keys kbd{font-family:var(--font);font-size:10.5px;background:rgba(32,48,58,.09);
+  border-radius:6px;padding:3px 7px;margin:0 1px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important}
+}
+
+/* ---------------- no-script screen ----------------
+   File previews in messengers and on iPhone/iPad show the page without
+   running any code, so the game can't start there. Instead of dead buttons,
+   those viewers get this card explaining how to open the game properly. */
+.nojs{
+  position:fixed;inset:0;overflow:auto;display:flex;padding:24px;
+  background:radial-gradient(120% 90% at 50% 30%,#4a5e3a,var(--grime));
+  font-family:var(--font);color:var(--ink);
+}
+.nojs-card{
+  margin:auto;width:min(420px,100%);background:var(--cream);border-radius:30px;
+  padding:28px 24px 24px;text-align:center;
+  box-shadow:0 20px 0 -6px rgba(32,48,58,.25),0 26px 46px rgba(0,0,0,.35);
+}
+.nojs-card h1{font-size:34px;line-height:1;font-weight:800;letter-spacing:-.02em}
+.nojs-card h1 span{color:var(--leaf-dk)}
+.nojs-lead{margin:14px auto 0;max-width:30ch;font-size:16px;line-height:1.45;font-weight:700}
+.nojs-steps{list-style:none;margin:20px 0 0;display:flex;flex-direction:column;gap:10px;text-align:left}
+.nojs-steps li{background:#eef4e6;border-radius:16px;padding:12px 14px;font-size:14px;line-height:1.45;color:var(--ink)}
+.nojs-steps b{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--leaf-dk);margin-bottom:3px}
+.nojs-note{margin-top:16px;font-size:12px;line-height:1.45;color:var(--ink-soft)}
+</style>
+<noscript><style>#app{display:none!important}</style></noscript>
+</head>
+<body>
+<noscript>
+  <div class="nojs">
+    <div class="nojs-card">
+      <h1>Чистый <span>Прыжок</span></h1>
+      <p class="nojs-lead">Здесь игра не запустится: это окно только показывает файл, но не запускает его.</p>
+      <ul class="nojs-steps">
+        <li><b>Компьютер или Android</b>Откройте файл в браузере &mdash; Chrome, Safari, Edge или Firefox.</li>
+        <li><b>iPhone и iPad</b>Просмотр файлов на iPhone и iPad игры не запускает. Попросите у отправителя ссылку на игру и откройте её в Safari.</li>
+      </ul>
+      <p class="nojs-note">Если в браузере вы всё равно видите это сообщение, включите JavaScript в настройках браузера.</p>
+    </div>
+  </div>
+</noscript>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <div class="hud">
+    <div class="hud-row">
+      <div class="pill"><span class="lbl">Очки</span><span class="val" id="score">0</span></div>
+      <div class="pill"><span class="lbl">Рекорд</span><span class="val" id="best">0</span></div>
+      <div class="spacer"></div>
+      <button class="iconbtn" id="mute" aria-label="Выключить звук">&#128266;</button>
+      <button class="iconbtn" id="pauseBtn" aria-label="Пауза" hidden>&#9208;</button>
+    </div>
+    <div class="meter-wrap">
+      <span class="cap">Очищено</span>
+      <div class="meter"><div class="meter-fill" id="cleanFill"></div></div>
+      <span class="meter-pct" id="cleanPct">0%</span>
+    </div>
+  </div>
+
+  <!-- ---------- start screen / character select ---------- -->
+  <div class="overlay" id="menu">
+    <div class="card">
+      <h1>Чистый <em>Прыжок</em></h1>
+      <p class="tagline">Помоги зверятам добраться до чистой земли &mdash; не дай грязи победить!</p>
+
+      <p class="sectionlabel" id="pickLabel">Выбери героя</p>
+      <div class="picker" id="picker" role="radiogroup" aria-labelledby="pickLabel"></div>
+
+      <p class="sectionlabel" id="lvlLabel">Сложность &mdash; потяни ползунок</p>
+      <div class="dial">
+        <div class="dial-readout" aria-hidden="true">
+          <span class="dial-name" id="diffName">Средний</span>
+          <span class="dial-path" id="diffPath">путь 40 очков</span>
+        </div>
+        <input type="range" class="dial-range" id="diffRange" min="0" max="100" step="1"
+               value="67" aria-labelledby="lvlLabel">
+        <div class="dial-ticks" aria-hidden="true">
+          <i style="left:0%"></i><i style="left:33%"></i><i style="left:67%"></i><i style="left:100%"></i>
+        </div>
+      </div>
+
+      <button class="btn" id="playBtn">Начать игру</button>
+      <p class="keys">Держи <kbd>Пробел</kbd> &middot; отпусти для прыжка</p>
+    </div>
+  </div>
+
+  <!-- ---------- pause ---------- -->
+  <div class="overlay hidden" id="pause">
+    <div class="card">
+      <h2>Пауза</h2>
+      <p class="tagline">Заводы подождут. Полоса очистки сохранится.</p>
+      <button class="btn" id="resumeBtn">Продолжить</button>
+      <button class="btn ghost" id="menuBtn">В меню</button>
+      <p class="keys">Пауза &mdash; <kbd>Esc</kbd></p>
+    </div>
+  </div>
+
+  <!-- ---------- game over ---------- -->
+  <div class="overlay hidden" id="over">
+    <div class="card">
+      <h2 id="overTitle">Ой!</h2>
+      <div class="lvlchip" id="lvlChip">Средний</div>
+      <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
+      <div class="stats">
+        <span>Камни <span id="finalStones">0</span></span>
+        <span>Листья <span id="finalLeaves">0</span></span>
+        <span>Рекорд <span id="finalBest">0</span></span>
+      </div>
+      <div class="badge hidden" id="newbest">Новый рекорд!</div>
+      <p class="ecomsg" id="ecoMsg">Каждый чистый камень на счету &mdash; попробуй ещё!</p>
+      <button class="btn" id="againBtn">Ещё раз</button>
+      <button class="btn ghost" id="changeBtn">Сменить героя</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+'use strict';
+
+/* ==========================================================================
+   0. Helpers
+   ========================================================================== */
+var TAU = Math.PI * 2;
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
+
+var hexCache = {};
+/** Accepts "#rrggbb" or the "rgb(r,g,b)" strings mix() itself produces,
+    so blended colours can be blended again (a stone getting polluted). */
+function rgbOf(h) {
+  if (!hexCache[h]) {
+    if (h.charAt(0) === '#') {
+      hexCache[h] = [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+    } else {
+      var m = h.match(/-?\d+/g) || [0, 0, 0];
+      hexCache[h] = [+m[0], +m[1], +m[2]];
+    }
+  }
+  return hexCache[h];
+}
+/** Blend two hex colours - the whole world palette is driven through this. */
+function mix(a, b, t) {
+  var A = rgbOf(a), B = rgbOf(b);
+  return 'rgb(' + Math.round(lerp(A[0], B[0], t)) + ',' +
+                  Math.round(lerp(A[1], B[1], t)) + ',' +
+                  Math.round(lerp(A[2], B[2], t)) + ')';
+}
+
+/* ==========================================================================
+   1. DOM handles
+   ========================================================================== */
+var canvas = document.getElementById('game');
+var ctx = canvas.getContext('2d', { alpha: false });
+var elScore = document.getElementById('score');
+var elBest = document.getElementById('best');
+var elCleanFill = document.getElementById('cleanFill');
+var elCleanPct = document.getElementById('cleanPct');
+var elMenu = document.getElementById('menu');
+var elOver = document.getElementById('over');
+var elPicker = document.getElementById('picker');
+var elDiffRange = document.getElementById('diffRange');
+var elDiffName = document.getElementById('diffName');
+var elDiffPath = document.getElementById('diffPath');
+var elLvlChip = document.getElementById('lvlChip');
+var elMute = document.getElementById('mute');
+var elPause = document.getElementById('pause');
+var elPauseBtn = document.getElementById('pauseBtn');
+var elFinal = document.getElementById('finalScore');
+var elFinalStones = document.getElementById('finalStones');
+var elFinalLeaves = document.getElementById('finalLeaves');
+var elFinalBest = document.getElementById('finalBest');
+var elNewBest = document.getElementById('newbest');
+var elEcoMsg = document.getElementById('ecoMsg');
+var elOverTitle = document.getElementById('overTitle');
+
+/* ==========================================================================
+   2. Saved state (localStorage can be unavailable - never let it throw)
+   ========================================================================== */
+var LS_BEST = 'cleanHop.best.v1', LS_MUTE = 'cleanHop.muted.v1';
+var LS_CHAR = 'cleanHop.animal.v1', LS_LEVEL = 'cleanHop.level.v1';
+var best = 0;
+function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+/* ==========================================================================
+   3. Audio - every sound synthesised on the fly, no files
+   ========================================================================== */
+var A = { ctx: null, master: null, noise: null, muted: false, osc: null, oscGain: null };
+try { A.muted = localStorage.getItem(LS_MUTE) === '1'; } catch (e) {}
+
+function audioInit() {
+  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+  var AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  A.ctx = new AC();
+  A.master = A.ctx.createGain();
+  A.master.gain.value = A.muted ? 0 : 0.5;
+  A.master.connect(A.ctx.destination);
+  var buf = A.ctx.createBuffer(1, A.ctx.sampleRate, A.ctx.sampleRate);
+  var d = buf.getChannelData(0);
+  for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  A.noise = buf;
+}
+function tone(type, f0, f1, dur, vol, delay) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime + (delay || 0);
+  var o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(f0, t0);
+  if (f1 && f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(A.master);
+  o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function noiseBurst(dur, vol, f0, f1, delay) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime + (delay || 0);
+  var src = A.ctx.createBufferSource(); src.buffer = A.noise;
+  var flt = A.ctx.createBiquadFilter(); flt.type = 'lowpass';
+  flt.frequency.setValueAtTime(f0, t0);
+  flt.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t0 + dur);
+  var g = A.ctx.createGain();
+  g.gain.setValueAtTime(vol, t0);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  src.connect(flt); flt.connect(g); g.connect(A.master);
+  src.start(t0); src.stop(t0 + dur + 0.02);
+}
+function chargeStart() {
+  if (!A.ctx || A.muted || A.osc) return;
+  var o = A.ctx.createOscillator(), g = A.ctx.createGain();
+  o.type = 'triangle'; o.frequency.value = 170;
+  g.gain.value = 0.0001;
+  g.gain.linearRampToValueAtTime(0.07, A.ctx.currentTime + 0.07);
+  o.connect(g); g.connect(A.master); o.start();
+  A.osc = o; A.oscGain = g;
+}
+function chargeUpdate(p) {
+  if (A.osc) A.osc.frequency.setTargetAtTime(170 + p * 440, A.ctx.currentTime, 0.03);
+}
+function chargeStop() {
+  if (!A.osc) return;
+  try {
+    var t = A.ctx.currentTime;
+    A.oscGain.gain.cancelScheduledValues(t);
+    A.oscGain.gain.setValueAtTime(Math.max(0.0001, A.oscGain.gain.value), t);
+    A.oscGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    A.osc.stop(t + 0.09);
+  } catch (e) {}
+  A.osc = null; A.oscGain = null;
+}
+function sndJump(p)   { tone('sine', 380 + p * 150, 780 + p * 400, 0.16, 0.20); }
+function sndLand()    { tone('triangle', 190, 115, 0.10, 0.16); noiseBurst(0.06, 0.05, 1400, 300); }
+function sndScore()   { tone('sine', 920, 920, 0.09, 0.14); tone('sine', 1380, 1380, 0.10, 0.10, 0.06); }
+function sndPerfect() { tone('sine', 880, 880, 0.09, 0.14); tone('sine', 1175, 1175, 0.09, 0.13, 0.07);
+                        tone('sine', 1568, 1568, 0.18, 0.12, 0.14); }
+function sndLeaf()    { tone('sine', 1046, 1046, 0.08, 0.13); tone('sine', 1568, 1568, 0.08, 0.12, 0.06);
+                        tone('sine', 2093, 2093, 0.14, 0.10, 0.12); }
+function sndSplat()   { noiseBurst(0.42, 0.30, 900, 90); tone('sine', 200, 60, 0.32, 0.11); }
+function sndCrack()   { noiseBurst(0.14, 0.10, 2400, 400); }
+/* Landing on the meadow: a rising C-major flourish, a held chord, then chimes. */
+function sndFanfare() {
+  tone('triangle', 523, 523, 0.15, 0.17, 0.00);   // C
+  tone('triangle', 659, 659, 0.15, 0.17, 0.12);   // E
+  tone('triangle', 784, 784, 0.15, 0.17, 0.24);   // G
+  tone('triangle', 1046, 1046, 0.38, 0.19, 0.36); // C'
+  tone('sine', 261, 261, 0.62, 0.13, 0.36);       // bass root under it
+  tone('sine', 1318, 1318, 0.55, 0.09, 0.44);
+  tone('sine', 1568, 1568, 0.66, 0.08, 0.50);
+  for (var i = 0; i < 5; i++) {                   // sparkle tail
+    tone('sine', 1568 + i * 209, 1568 + i * 209, 0.20, 0.055, 0.56 + i * 0.09);
+  }
+}
+/* One chime per celebratory bounce on the meadow. */
+function sndTwinkle() {
+  var f = 1568 + ((Math.random() * 4) | 0) * 196;
+  tone('sine', f, f, 0.16, 0.075);
+  tone('sine', f * 2, f * 2, 0.12, 0.035, 0.03);
+}
+/* A warm resolving chord as the result card appears. */
+function sndWinCard() {
+  tone('sine', 392, 392, 0.7, 0.10);
+  tone('sine', 523, 523, 0.7, 0.09, 0.04);
+  tone('sine', 659, 659, 0.8, 0.08, 0.08);
+  tone('triangle', 1046, 1046, 0.5, 0.05, 0.12);
+}
+function sndOver()    { tone('triangle', 392, 392, 0.16, 0.13, 0.06);
+                        tone('triangle', 311, 311, 0.16, 0.13, 0.22);
+                        tone('triangle', 233, 233, 0.36, 0.13, 0.38); }
+/* ==========================================================================
+   3b. Voices. Leave a hopper alone for ten seconds and it starts talking:
+       the dog barks, the kitten meows, and everyone else has their own say.
+   ========================================================================== */
+/**
+ * A meow is three shapes in a row - a closed nasal "м", an open bright "я",
+ * then a closing "у" - so the formant sweeps up and back down while the
+ * pitch arcs over it, with a little vibrato to keep it alive.
+ */
+function sndMeow() {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime, D = 0.62;
+
+  var o = A.ctx.createOscillator();
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(425, t0);
+  o.frequency.exponentialRampToValueAtTime(690, t0 + 0.17);
+  o.frequency.setValueAtTime(690, t0 + 0.27);
+  o.frequency.exponentialRampToValueAtTime(355, t0 + D);
+
+  var lfo = A.ctx.createOscillator();            // the wobble of a real voice
+  lfo.type = 'sine';
+  lfo.frequency.value = 15;
+  var lfoG = A.ctx.createGain();
+  lfoG.gain.setValueAtTime(4, t0);
+  lfoG.gain.linearRampToValueAtTime(19, t0 + 0.3);
+  lfo.connect(lfoG); lfoG.connect(o.frequency);
+
+  var bp = A.ctx.createBiquadFilter();           // the mouth opening and closing
+  bp.type = 'bandpass';
+  bp.Q.value = 2.6;
+  bp.frequency.setValueAtTime(330, t0);
+  bp.frequency.exponentialRampToValueAtTime(1550, t0 + 0.21);
+  bp.frequency.exponentialRampToValueAtTime(505, t0 + D);
+  var lp = A.ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 3200;
+
+  var g = A.ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.045, t0 + 0.055);     // the closed "м"
+  g.gain.exponentialRampToValueAtTime(0.155, t0 + 0.21);      // opens out
+  g.gain.setValueAtTime(0.155, t0 + 0.35);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + D + 0.06);
+
+  o.connect(bp); bp.connect(lp); lp.connect(g); g.connect(A.master);
+  o.start(t0); o.stop(t0 + D + 0.1);
+  lfo.start(t0); lfo.stop(t0 + D + 0.1);
+}
+/**
+ * One bark. A real one is a noisy plosive, then a harmonic-rich voice whose
+ * pitch snaps up and drops away, shaped by a moving vocal-tract formant.
+ */
+function woof(d, f0) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime + d;
+
+  var o = A.ctx.createOscillator();              // vocal folds
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(f0 * 0.72, t0);
+  o.frequency.exponentialRampToValueAtTime(f0 * 1.28, t0 + 0.022);   // the snap
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.52, t0 + 0.17);    // the fall
+  var o2 = A.ctx.createOscillator();             // chest, an octave-ish below
+  o2.type = 'square';
+  o2.frequency.setValueAtTime(f0 * 0.38, t0);
+  o2.frequency.exponentialRampToValueAtTime(f0 * 0.26, t0 + 0.17);
+  var og = A.ctx.createGain();
+  og.gain.value = 0.45;
+
+  var bp = A.ctx.createBiquadFilter();           // vocal tract: "w-o-af"
+  bp.type = 'bandpass';
+  bp.Q.value = 1.7;
+  bp.frequency.setValueAtTime(680, t0);
+  bp.frequency.exponentialRampToValueAtTime(1550, t0 + 0.04);
+  bp.frequency.exponentialRampToValueAtTime(500, t0 + 0.18);
+
+  var g = A.ctx.createGain();                    // near-instant attack, fast decay
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.20, t0 + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.055, t0 + 0.075);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.21);
+
+  o.connect(bp); o2.connect(og); og.connect(bp);
+  bp.connect(g); g.connect(A.master);
+  o.start(t0); o.stop(t0 + 0.25);
+  o2.start(t0); o2.stop(t0 + 0.25);
+  noiseBurst(0.045, 0.085, 2800, 700, d);        // the breathy front of the bark
+}
+/* Three barks, each a little different - a dog never repeats itself exactly. */
+function sndBark() { woof(0, 300); woof(0.205, 345); woof(0.45, 268); }
+/**
+ * A real quack is nasal and raspy: two buzzy reeds through tight nasal
+ * formants, a fast rattle in the loudness, a droop in pitch at the end,
+ * and a breath of noise on top.
+ */
+function quack(d, f0) {
+  if (!A.ctx || A.muted) return;
+  var t0 = A.ctx.currentTime + d, D = 0.20;
+
+  var o = A.ctx.createOscillator();              // the main reed
+  o.type = 'sawtooth';
+  o.frequency.setValueAtTime(f0, t0);
+  o.frequency.setValueAtTime(f0 * 1.04, t0 + 0.03);
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.78, t0 + D);
+  var o2 = A.ctx.createOscillator();             // a second reed, slightly out
+  o2.type = 'square';
+  o2.frequency.setValueAtTime(f0 * 1.51, t0);
+  o2.frequency.exponentialRampToValueAtTime(f0 * 1.16, t0 + D);
+  var g2 = A.ctx.createGain();
+  g2.gain.value = 0.35;
+
+  var n1 = A.ctx.createBiquadFilter();           // nasal formants
+  n1.type = 'bandpass'; n1.Q.value = 5;
+  n1.frequency.setValueAtTime(1150, t0);
+  n1.frequency.exponentialRampToValueAtTime(900, t0 + D);
+  var n2 = A.ctx.createBiquadFilter();
+  n2.type = 'bandpass'; n2.Q.value = 6;
+  n2.frequency.setValueAtTime(2300, t0);
+  n2.frequency.exponentialRampToValueAtTime(1800, t0 + D);
+
+  var vca = A.ctx.createGain();                  // the rattle
+  vca.gain.value = 0.75;
+  var am = A.ctx.createOscillator();
+  am.type = 'square';
+  am.frequency.value = 38;
+  var amG = A.ctx.createGain();
+  amG.gain.value = 0.25;
+  am.connect(amG); amG.connect(vca.gain);
+
+  var g = A.ctx.createGain();                    // quick bite, short hold, gone
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.32, t0 + 0.015);
+  g.gain.setValueAtTime(0.32, t0 + 0.09);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + D + 0.03);
+
+  o.connect(n1); o.connect(n2);
+  o2.connect(g2); g2.connect(n1); g2.connect(n2);
+  n1.connect(vca); n2.connect(vca); vca.connect(g); g.connect(A.master);
+  o.start(t0);  o.stop(t0 + D + 0.06);
+  o2.start(t0); o2.stop(t0 + D + 0.06);
+  am.start(t0); am.stop(t0 + D + 0.06);
+  noiseBurst(0.05, 0.04, 3200, 1500, d);         // the rasp
+}
+/* «Кря-кря»: two quacks, the second a touch lower. */
+function sndQuack() { quack(0, 270); quack(0.24, 250); }
+function sndSqueak()  { tone('sine', 1180, 1760, 0.07, 0.08);
+                        tone('sine', 1600, 1120, 0.09, 0.07, 0.09); }
+function sndYip()     { tone('triangle', 700, 1060, 0.06, 0.11);
+                        tone('triangle', 1000, 520, 0.12, 0.10, 0.06); }
+function sndChatter() { for (var i = 0; i < 5; i++) noiseBurst(0.03, 0.06, 2600, 1300, i * 0.07); }
+
+var VOICES = {
+  kitten: { snd: sndMeow,    say: 'Мяу!' },
+  bunny:  { snd: sndSqueak,  say: 'Пи-пи!' },
+  duck:   { snd: sndQuack,   say: 'Кря-кря!' },
+  fox:    { snd: sndYip,     say: 'Тяв!' },
+  beaver: { snd: sndChatter, say: 'Тр-тр!' },
+  dog:    { snd: sndBark,    say: 'Гав-гав!' }
+};
+
+function setMuted(m) {
+  A.muted = m;
+  if (A.master) A.master.gain.value = m ? 0 : 0.5;
+  if (m) chargeStop();
+  elMute.innerHTML = m ? '&#128263;' : '&#128266;';
+  elMute.setAttribute('aria-label', m ? 'Включить звук' : 'Выключить звук');
+  save(LS_MUTE, m ? '1' : '0');
+}
+
+/* ==========================================================================
+   4. The animals. One draw routine serves both the picker portraits and the
+      live hopper, so the two can never drift apart.
+      Chunky blocky heads, oversized eyes - a mobile-game silhouette.
+   ========================================================================== */
+var ANIMALS = {
+  kitten: { name: 'Котёнок', fur: '#f9ae4f', fur2: '#e28b2c', pale: '#ffe7c2',
+            inner: '#ff9db4', nose: '#ff7f9c', eye: '#2b2118', iris: '#3f7d3a' },
+  bunny:  { name: 'Зайчик', fur: '#f3ece0', fur2: '#d9cdba', pale: '#fffdf8',
+            inner: '#ffb3c7', nose: '#ff7f9c', eye: '#2b2118', iris: '#7a5bd0' },
+  duck:   { name: 'Утёнок', fur: '#ffd648', fur2: '#f0ba26', pale: '#fff1a6',
+            inner: '#ff9d3d', nose: '#ff9d3d', eye: '#2b2118', iris: '#2f7fd0' },
+  fox:    { name: 'Лисёнок', fur: '#ff8a4c', fur2: '#e3672c', pale: '#fff3e6',
+            inner: '#ffc3a4', nose: '#3d2a1d', eye: '#2b2118', iris: '#c0782a' },
+  beaver: { name: 'Бобёр', fur: '#a97551', fur2: '#8a5c3d', pale: '#e8cba8',
+            inner: '#c99a76', nose: '#3d2a1d', eye: '#2b2118', iris: '#5a3f2a' },
+  dog:    { name: 'Пёсик', fur: '#e8c07a', fur2: '#c9974c', pale: '#fff4dc',
+            inner: '#ffc0a4', nose: '#3d2a1d', eye: '#2b2118', iris: '#4a6fd0' }
+};
+var ORDER = ['kitten', 'bunny', 'duck', 'fox', 'beaver', 'dog'];
+
+/**
+ * Difficulty is one dial, 0 (gentlest) to 100 (hardest). Four named waypoints
+ * anchor it and every position in between blends their settings, so the road
+ * is exactly as long - and as tough - as the player drags it.
+ *   target - points that fill the cleanliness bar: the length of the road
+ *   ramp   - how quickly gaps widen and stones shrink along the way
+ *   swing  - seconds for one sweep of the power meter; slower is easier
+ */
+var DIFF_POINTS = [
+  { at: 0,   name: 'Суперпростой', target: 10, ramp: 60, swing: 1.35 },
+  { at: 33,  name: 'Простой',      target: 20, ramp: 40, swing: 0.85 },
+  { at: 67,  name: 'Средний',      target: 40, ramp: 34, swing: 0.85 },
+  { at: 100, name: 'Сложный',      target: 70, ramp: 26, swing: 0.85 }
+];
+var LS_DIFF = 'cleanHop.diff.v1';
+
+/** Settings for one dial position. The gentlest band keeps every hazard home. */
+function diffCfg(v) {
+  v = clamp(Math.round(v), 0, 100);
+  var i = 0;
+  while (i < DIFF_POINTS.length - 2 && v > DIFF_POINTS[i + 1].at) i++;
+  var a = DIFF_POINTS[i], b = DIFF_POINTS[i + 1];
+  var t = (v - a.at) / (b.at - a.at);
+  var band = v <= 16 ? 0 : (v < 50 ? 1 : (v < 84 ? 2 : 3));   // nearest waypoint names it
+  return {
+    value: v,
+    name: DIFF_POINTS[band].name,
+    target: Math.round(lerp(a.target, b.target, t) / 5) * 5,
+    ramp: lerp(a.ramp, b.ramp, t),
+    swing: lerp(a.swing, b.swing, t),
+    calm: band === 0
+  };
+}
+
+var diffValue = 67;
+try {
+  var sd = localStorage.getItem(LS_DIFF);
+  if (sd !== null && !isNaN(parseInt(sd, 10))) {
+    diffValue = clamp(parseInt(sd, 10), 0, 100);
+  } else {                                       // arriving from the four-button picker
+    var oldLvl = localStorage.getItem(LS_LEVEL);
+    var fromLvl = { supereasy: 0, easy: 33, normal: 67, hard: 100 };
+    if (oldLvl && fromLvl[oldLvl] !== undefined) diffValue = fromLvl[oldLvl];
+  }
+} catch (e) {}
+var LVL = diffCfg(diffValue);
+
+/* Records are kept per road length: a 25-point road and a 70-point road are
+   not the same run, wherever the dial's name boundaries happen to fall. */
+function bestKey() { return LS_BEST + '.path' + LVL.target; }
+function loadBest() {
+  try { best = parseInt(localStorage.getItem(bestKey()) || '0', 10) || 0; }
+  catch (e) { best = 0; }
+}
+try {                                            // carry older records over, once
+  var legacy = localStorage.getItem(LS_BEST);
+  if (legacy && !localStorage.getItem(LS_BEST + '.normal')) {
+    localStorage.setItem(LS_BEST + '.normal', legacy);
+  }
+  var carry = { supereasy: 10, easy: 20, normal: 40, hard: 70 };
+  for (var ck in carry) {
+    var oldRec = localStorage.getItem(LS_BEST + '.' + ck);
+    var pathKey = LS_BEST + '.path' + carry[ck];
+    if (oldRec && !localStorage.getItem(pathKey)) localStorage.setItem(pathKey, oldRec);
+  }
+} catch (e) {}
+loadBest();
+var chosen = 'kitten';
+try { var sc = localStorage.getItem(LS_CHAR); if (sc && ANIMALS[sc]) chosen = sc; } catch (e) {}
+
+function rr(g, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+function fillRR(g, x, y, w, h, r) { rr(g, x, y, w, h, r); g.fill(); }
+function ellF(g, x, y, rx, ry) { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fill(); }
+
+/**
+ * Draw an animal with its FEET at the local origin, facing right.
+ * o = { t, blink, squint, yuck, air }
+ */
+function drawAnimal(g, kind, W, o) {
+  var C = ANIMALS[kind];
+  o = o || {};
+  var t = o.t || 0;
+  var tp = (o.tp !== undefined) ? o.tp : t;   // tail clock, can run faster than t
+  var look = o.look || 0;                     // pupils darting sideways
+  var airborne = !!o.air;
+  var headY = -W * 0.80;                      // head centre
+  var hw = W * 0.46, hh = W * 0.37;           // head half-extents
+
+  /* --- tail (behind everything) --- */
+  if (kind === 'fox') {
+    var sw = airborne ? -0.10 : Math.sin(tp * 3.2) * 0.13;
+    g.fillStyle = C.fur;
+    g.save(); g.translate(-W * 0.36, -W * 0.30); g.rotate(sw);
+    ellF(g, -W * 0.16, -W * 0.08, W * 0.26, W * 0.19);
+    g.fillStyle = C.pale;
+    ellF(g, -W * 0.30, -W * 0.14, W * 0.11, W * 0.10);
+    g.restore();
+  } else if (kind === 'bunny') {
+    g.fillStyle = C.pale;
+    ellF(g, -W * 0.40, -W * 0.24, W * 0.14, W * 0.13);
+  } else if (kind === 'kitten') {
+    var wag = airborne ? -0.45 : Math.sin(tp * 3.4) * 0.5;
+    g.strokeStyle = C.fur; g.lineWidth = W * 0.15; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-W * 0.30, -W * 0.26);
+    g.quadraticCurveTo(-W * 0.80, -W * (0.26 - wag * 0.14), -W * 0.62, -W * (0.62 + wag * 0.10));
+    g.stroke();
+  } else if (kind === 'beaver') {
+    // the flat paddle tail - a beaver's signature, scored with diamonds
+    var pad = airborne ? -0.42 : Math.sin(tp * 1.8) * 0.15;
+    g.save();
+    g.translate(-W * 0.32, -W * 0.20);
+    g.rotate(0.5 + pad);
+    g.fillStyle = '#6b4a33';
+    fillRR(g, -W * 0.54, -W * 0.14, W * 0.58, W * 0.28, W * 0.12);
+    g.strokeStyle = 'rgba(38,24,14,0.35)';
+    g.lineWidth = Math.max(1, W * 0.016);
+    g.beginPath();
+    for (var pv = 0; pv < 3; pv++) {
+      var pvx = -W * (0.46 - pv * 0.15);
+      g.moveTo(pvx, -W * 0.12); g.lineTo(pvx + W * 0.10, W * 0.12);
+      g.moveTo(pvx + W * 0.10, -W * 0.12); g.lineTo(pvx, W * 0.12);
+    }
+    g.stroke();
+    g.restore();
+  } else if (kind === 'dog') {
+    var dwag = airborne ? -0.55 : Math.sin(tp * 7.5) * 0.75;   // wags twice as fast
+    g.strokeStyle = C.fur; g.lineWidth = W * 0.14; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-W * 0.30, -W * 0.28);
+    g.quadraticCurveTo(-W * 0.78, -W * (0.36 + dwag * 0.10), -W * 0.54, -W * (0.76 + dwag * 0.12));
+    g.stroke();
+  } else {                                     // duckling: a little tail flick
+    g.fillStyle = C.fur2;
+    g.beginPath();
+    g.moveTo(-W * 0.28, -W * 0.34);
+    g.lineTo(-W * 0.52, -W * 0.44);
+    g.lineTo(-W * 0.28, -W * 0.18);
+    g.closePath(); g.fill();
+  }
+
+  /* --- feet --- */
+  var footY = airborne ? -W * 0.16 : -W * 0.02;
+  g.fillStyle = kind === 'duck' ? '#ff9d3d' : C.fur2;
+  fillRR(g, -W * 0.30, footY, W * 0.22, W * 0.13, W * 0.06);
+  fillRR(g, W * 0.08, footY, W * 0.22, W * 0.13, W * 0.06);
+
+  /* --- body block --- */
+  g.fillStyle = C.fur;
+  fillRR(g, -W * 0.33, -W * 0.52, W * 0.66, W * 0.52, W * 0.17);
+  g.fillStyle = C.pale;
+  fillRR(g, -W * 0.15, -W * 0.42, W * 0.34, W * 0.38, W * 0.13);
+  if (kind === 'duck') {                       // folded wing
+    g.fillStyle = C.fur2;
+    fillRR(g, -W * 0.30, -W * 0.42, W * 0.20, W * 0.26, W * 0.09);
+  }
+
+  /* --- ears (drawn before the head so their bases tuck under) --- */
+  g.fillStyle = C.fur;
+  if (kind === 'kitten' || kind === 'fox') {
+    var ew = kind === 'fox' ? 0.30 : 0.24, eh = kind === 'fox' ? 0.62 : 0.46;
+    g.beginPath();
+    g.moveTo(-hw * 0.86, headY - hh * 0.55);
+    g.lineTo(-hw * (0.86 - ew * 0.20), headY - hh * (0.55 + eh));
+    g.lineTo(-hw * 0.10, headY - hh * 0.70);
+    g.closePath(); g.fill();
+    g.beginPath();
+    g.moveTo(hw * 0.86, headY - hh * 0.55);
+    g.lineTo(hw * (0.86 - ew * 0.20), headY - hh * (0.55 + eh));
+    g.lineTo(hw * 0.10, headY - hh * 0.70);
+    g.closePath(); g.fill();
+    g.fillStyle = C.inner;
+    g.beginPath();
+    g.moveTo(-hw * 0.72, headY - hh * 0.66);
+    g.lineTo(-hw * 0.74, headY - hh * (0.55 + eh * 0.78));
+    g.lineTo(-hw * 0.26, headY - hh * 0.76);
+    g.closePath(); g.fill();
+    g.beginPath();
+    g.moveTo(hw * 0.72, headY - hh * 0.66);
+    g.lineTo(hw * 0.74, headY - hh * (0.55 + eh * 0.78));
+    g.lineTo(hw * 0.26, headY - hh * 0.76);
+    g.closePath(); g.fill();
+  } else if (kind === 'bunny') {
+    var lean = airborne ? 0.16 : Math.sin(t * 2.2) * 0.06;
+    g.save(); g.translate(0, headY - hh * 0.5);
+    g.rotate(-0.12 - lean);
+    g.fillStyle = C.fur; fillRR(g, -W * 0.30, -W * 0.62, W * 0.19, W * 0.66, W * 0.09);
+    g.fillStyle = C.inner; fillRR(g, -W * 0.265, -W * 0.55, W * 0.11, W * 0.50, W * 0.055);
+    g.restore();
+    g.save(); g.translate(0, headY - hh * 0.5);
+    g.rotate(0.12 + lean);
+    g.fillStyle = C.fur; fillRR(g, W * 0.11, -W * 0.62, W * 0.19, W * 0.66, W * 0.09);
+    g.fillStyle = C.inner; fillRR(g, W * 0.155, -W * 0.55, W * 0.11, W * 0.50, W * 0.055);
+    g.restore();
+  } else if (kind === 'beaver') {            // small round ears, set wide
+    g.fillStyle = C.fur;
+    ellF(g, -hw * 0.82, headY - hh * 0.74, W * 0.115, W * 0.105);
+    ellF(g, hw * 0.82, headY - hh * 0.74, W * 0.115, W * 0.105);
+    g.fillStyle = C.fur2;
+    ellF(g, -hw * 0.82, headY - hh * 0.72, W * 0.055, W * 0.05);
+    ellF(g, hw * 0.82, headY - hh * 0.72, W * 0.055, W * 0.05);
+  } else if (kind === 'dog') {               // floppy ears that swing on the jump
+    var flop = airborne ? 0.34 : Math.sin(t * 2.4) * 0.08;
+    g.fillStyle = C.fur2;
+    g.save(); g.translate(-hw * 0.80, headY - hh * 0.46); g.rotate(-0.08 - flop);
+    fillRR(g, -W * 0.17, 0, W * 0.21, W * 0.58, W * 0.10);
+    g.restore();
+    g.save(); g.translate(hw * 0.80, headY - hh * 0.46); g.rotate(0.08 + flop);
+    fillRR(g, -W * 0.04, 0, W * 0.21, W * 0.58, W * 0.10);
+    g.restore();
+  } else {                                     // duckling tuft
+    g.strokeStyle = C.fur2; g.lineWidth = W * 0.06; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(0, headY - hh * 0.9);
+    g.quadraticCurveTo(W * 0.05, headY - hh * 1.55, W * 0.16, headY - hh * 1.25);
+    g.stroke();
+  }
+
+  /* --- head block --- */
+  g.fillStyle = C.fur;
+  fillRR(g, -hw, headY - hh, hw * 2, hh * 2, W * 0.24);
+  if (kind === 'fox' || kind === 'kitten') {   // cheek/muzzle patch
+    g.fillStyle = C.pale;
+    fillRR(g, -hw * 0.62, headY + hh * 0.02, hw * 1.24, hh * 0.92, W * 0.16);
+  }
+  if (kind === 'beaver') {                     // broad flat muzzle
+    g.fillStyle = C.pale;
+    fillRR(g, -hw * 0.72, headY + hh * 0.08, hw * 1.44, hh * 0.88, W * 0.17);
+  }
+  if (kind === 'dog') {                        // snout jutting past the head
+    g.fillStyle = C.pale;
+    fillRR(g, -hw * 0.50, headY + hh * 0.18, hw * 1.00, hh * 1.06, W * 0.16);
+  }
+  if (kind === 'kitten') {                     // forehead stripes
+    g.fillStyle = C.fur2;
+    fillRR(g, -W * 0.09, headY - hh * 0.86, W * 0.045, hh * 0.34, W * 0.02);
+    fillRR(g, W * 0.045, headY - hh * 0.86, W * 0.045, hh * 0.34, W * 0.02);
+  }
+
+  /* --- the big eyes --- */
+  var ey = headY - hh * 0.06, ex = W * 0.20;
+  var erx = W * 0.155, ery = W * 0.175;
+  if (o.yuck) {
+    g.strokeStyle = C.eye; g.lineWidth = W * 0.055; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-ex - erx * 0.7, ey - ery * 0.4); g.lineTo(-ex + erx * 0.7, ey + ery * 0.4);
+    g.moveTo(-ex + erx * 0.7, ey - ery * 0.4); g.lineTo(-ex - erx * 0.7, ey + ery * 0.4);
+    g.moveTo(ex - erx * 0.7, ey - ery * 0.4); g.lineTo(ex + erx * 0.7, ey + ery * 0.4);
+    g.moveTo(ex + erx * 0.7, ey - ery * 0.4); g.lineTo(ex - erx * 0.7, ey + ery * 0.4);
+    g.stroke();
+  } else if (o.blink) {
+    g.strokeStyle = C.eye; g.lineWidth = W * 0.05; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-ex - erx * 0.6, ey); g.lineTo(-ex + erx * 0.6, ey);
+    g.moveTo(ex - erx * 0.6, ey); g.lineTo(ex + erx * 0.6, ey);
+    g.stroke();
+  } else {
+    var sq = o.squint ? 0.58 : 1;
+    g.fillStyle = '#ffffff';
+    ellF(g, -ex, ey, erx, ery * sq);
+    ellF(g, ex, ey, erx, ery * sq);
+    var lx = look * erx * 0.34;                // where the eyes are pointed
+    g.fillStyle = C.iris;
+    ellF(g, -ex + W * 0.012 + lx, ey + ery * 0.06 * sq, erx * 0.66, ery * 0.72 * sq);
+    ellF(g, ex + W * 0.012 + lx, ey + ery * 0.06 * sq, erx * 0.66, ery * 0.72 * sq);
+    g.fillStyle = C.eye;
+    ellF(g, -ex + W * 0.012 + lx, ey + ery * 0.08 * sq, erx * 0.40, ery * 0.48 * sq);
+    ellF(g, ex + W * 0.012 + lx, ey + ery * 0.08 * sq, erx * 0.40, ery * 0.48 * sq);
+    g.fillStyle = '#ffffff';                   // the big cartoon highlight
+    ellF(g, -ex - erx * 0.28 + lx, ey - ery * 0.36 * sq, erx * 0.26, ery * 0.26 * sq);
+    ellF(g, ex - erx * 0.28 + lx, ey - ery * 0.36 * sq, erx * 0.26, ery * 0.26 * sq);
+  }
+
+  /* --- nose / beak / mouth --- */
+  if (kind === 'duck') {
+    g.fillStyle = '#ff9d3d';
+    fillRR(g, -W * 0.15, ey + ery * 0.9, W * 0.30, W * 0.15, W * 0.06);
+    g.fillStyle = '#e8862a';
+    fillRR(g, -W * 0.15, ey + ery * 0.9 + W * 0.095, W * 0.30, W * 0.055, W * 0.025);
+  } else {
+    g.fillStyle = C.nose;
+    g.beginPath();
+    g.moveTo(-W * 0.045, ey + ery * 0.95);
+    g.lineTo(W * 0.045, ey + ery * 0.95);
+    g.lineTo(0, ey + ery * 1.35);
+    g.closePath(); g.fill();
+    if (o.yuck) {                              // little "bleh" tongue
+      g.fillStyle = '#ff7f9c';
+      fillRR(g, -W * 0.05, ey + ery * 1.4, W * 0.10, W * 0.11, W * 0.05);
+    }
+  }
+  if (o.tongue) {                              // lolling tongue
+    g.fillStyle = '#ff7f9c';
+    fillRR(g, -W * 0.05, ey + ery * 1.30, W * 0.11, W * 0.15, W * 0.05);
+  }
+  if (o.speak) {                               // mouth open, mid-noise
+    if (kind === 'duck') {
+      g.fillStyle = '#e8862a';
+      fillRR(g, -W * 0.14, ey + ery * 1.30, W * 0.28, W * 0.10, W * 0.045);
+    } else {
+      g.fillStyle = '#7a3a44';
+      ellF(g, W * 0.01, ey + ery * 1.48, W * 0.075, W * 0.085);
+      g.fillStyle = '#ff7f9c';
+      ellF(g, W * 0.01, ey + ery * 1.58, W * 0.042, W * 0.038);
+    }
+  }
+  if (kind === 'beaver') {                     // the two big front teeth
+    g.fillStyle = '#fffdf4';
+    fillRR(g, -W * 0.078, ey + ery * 1.38, W * 0.072, W * 0.17, W * 0.022);
+    fillRR(g, W * 0.006, ey + ery * 1.38, W * 0.072, W * 0.17, W * 0.022);
+  }
+  if (kind === 'dog') {
+    g.fillStyle = '#3d2a1d';                   // a proper wet nose on the snout
+    fillRR(g, -W * 0.082, ey + ery * 1.00, W * 0.164, W * 0.12, W * 0.055);
+    g.fillStyle = '#e8604f';                   // collar, in front of the head
+    fillRR(g, -W * 0.30, -W * 0.50, W * 0.60, W * 0.10, W * 0.045);
+    g.fillStyle = '#ffd44a';
+    ellF(g, W * 0.02, -W * 0.40, W * 0.055, W * 0.055);
+  }
+  if (kind === 'kitten' || kind === 'fox' || kind === 'beaver') {   // whiskers
+    g.strokeStyle = 'rgba(60,44,30,0.34)';
+    g.lineWidth = Math.max(1, W * 0.02);
+    g.beginPath();
+    g.moveTo(-hw * 0.62, ey + ery * 0.9); g.lineTo(-hw * 1.22, ey + ery * 0.55);
+    g.moveTo(-hw * 0.62, ey + ery * 1.2); g.lineTo(-hw * 1.20, ey + ery * 1.4);
+    g.moveTo(hw * 0.62, ey + ery * 0.9); g.lineTo(hw * 1.22, ey + ery * 0.55);
+    g.moveTo(hw * 0.62, ey + ery * 1.2); g.lineTo(hw * 1.20, ey + ery * 1.4);
+    g.stroke();
+  }
+}
+
+/* ==========================================================================
+   5. Viewport-derived layout. Everything scales with the screen so phone and
+      desktop play the same game.
+   ========================================================================== */
+var VW = 0, VH = 0, DPR = 1, groundY = 0;
+var KW = 0, MIN_D = 0, MAX_D = 0;
+
+var stones = [], items = [], parts = [], ripples = [], pops = [], clouds = [], junk = [];
+var cirrus = [], birds = [];
+var fg = [], motes = [], flyers = [], shore = [];
+var truckP = 0;
+var camKick = 0, camKickV = 0, hitStop = 0, winFlash = 0;
+var IDLE_VOICE = 10, idleT = 0, voiceAt = IDLE_VOICE;
+var scoreTX = 60, scoreTY = 30;
+var camX = 0, camLo = 0, T = 0;
+var score = 0, stonesCleared = 0, leaves = 0;
+var mode = 'menu';       // 'menu' | 'play' | 'over'
+var phase = 'stand';     // 'stand' | 'charge' | 'air' | 'fall'
+var charge = 0, fallT = 0, overT = 0, shake = 0;
+var paused = false;
+var clean = 0, cleanShown = 0, cleanPctShown = -1;
+var won = false, finishSpawned = false, finishCued = false, finishStone = null;
+var sunBoost = 0, winT = 0, cheerT = 0;
+var stoneId = 0, lastX = 0, lastTop = 0, lastWasCrumble = false;
+var CHARGE_TIME = 0.85, CRUMBLE_FUSE = 1.05;
+var chargeT = 0;                                 // time the jump has been held
+var CLEAN_TARGET = LVL.target;
+
+var hop = {
+  x: 0, y: 0, vx: 0, vy: 0, g: 2000,
+  rot: 0, rotV: 0, sqz: 0, sqzV: 0,
+  onStone: null, offset: 0, blinkT: 2.5, blink: 0, alpha: 1,
+  act: null, actLeft: 0, actDur: 1, actT: 3,      // idle micro-performances
+  tailPhase: 0, speak: 0
+};
+
+function layout() {
+  var prevGround = groundY;
+  VW = Math.max(300, window.innerWidth);
+  VH = Math.max(380, window.innerHeight);
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+
+  canvas.width = Math.round(VW * DPR);
+  canvas.height = Math.round(VH * DPR);
+  canvas.style.width = VW + 'px';
+  canvas.style.height = VH + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  groundY = Math.round(VH * 0.72);
+  KW = clamp(VW * 0.072, 30, 56);
+  MIN_D = VW * 0.20;
+  MAX_D = VW * 0.60;
+
+  if (prevGround) {                            // keep a live run consistent
+    var dy = groundY - prevGround;
+    for (var i = 0; i < stones.length; i++) stones[i].baseY += dy;
+    for (var j = 0; j < items.length; j++) items[j].y += dy;
+    hop.y += dy;
+    lastTop += dy;
+  }
+  buildClouds();
+  buildJunk();
+  buildFactories();
+  buildForeground();
+  buildMotes();
+  buildShore();
+  measureScorePill();
+  paintPortraits();
+}
+
+function buildClouds() {
+  clouds.length = 0;
+  for (var i = 0; i < 12; i++) {
+    var c = { x: rand(-260, VW * 2.4), y: rand(VH * 0.06, VH * 0.40),
+      s: rand(0.5, 1.25), p: rand(0.06, 0.26), spd: rand(2, 8),
+      a: rand(0.5, 0.92), ph: rand(0, TAU), lobes: [], ext: 1 };
+    var n = 4 + ((Math.random() * 3) | 0);
+    c.lobes.push({ dx: 0, dy: -0.12, r: 1 });     // the main mass
+    for (var j = 1; j < n; j++) {
+      c.lobes.push({ dx: rand(-1.15, 1.15), dy: rand(-0.34, 0.10), r: rand(0.42, 0.86) });
+    }
+    for (var k = 0; k < c.lobes.length; k++) {
+      c.ext = Math.max(c.ext, Math.abs(c.lobes[k].dx) + c.lobes[k].r);
+    }
+    clouds.push(c);
+  }
+  clouds.sort(function (a, b) { return a.p - b.p; });
+
+  cirrus.length = 0;                              // high thin wisps
+  for (var w = 0; w < 7; w++) {
+    cirrus.push({ x: rand(-200, VW * 2), y: rand(VH * 0.03, VH * 0.22),
+      s: rand(0.7, 1.6), a: rand(0.10, 0.24), ph: rand(0, TAU) });
+  }
+  birds.length = 0;                               // return with the clean air
+  for (var b = 0; b < 3; b++) {
+    birds.push({ x: rand(0, VW * 2), y: rand(VH * 0.12, VH * 0.34),
+      s: rand(0.7, 1.2), spd: rand(11, 20), ph: rand(0, TAU), n: 3 + ((Math.random() * 3) | 0) });
+  }
+}
+/** The industrial band on the horizon. Each unit is one works: a plant,
+    a pair of cooling towers, a tank farm, or a lone chimney. */
+var factories = [];
+var FKINDS = ['plant', 'towers', 'works', 'tanks', 'stack'];
+function buildFactories() {
+  factories.length = 0;
+  var span = VW * 2.2, n = 9;
+  for (var i = 0; i < n; i++) {
+    factories.push({
+      x: (span / n) * i + rand(-20, 20),
+      kind: FKINDS[i % FKINDS.length],
+      s: rand(0.84, 1.22),
+      seed: rand(0, TAU),
+      lit: [Math.random() < 0.7, Math.random() < 0.5, Math.random() < 0.8,
+            Math.random() < 0.4, Math.random() < 0.65, Math.random() < 0.55]
+    });
+  }
+}
+
+/** Where the flying score tokens should land: the middle of the score pill. */
+function measureScorePill() {
+  var r = elScore.getBoundingClientRect();
+  scoreTX = r.left + r.width / 2;
+  scoreTY = r.top + r.height / 2;
+}
+
+/** The shoreline strip in front of the works: lamps, trees, benches, wires. */
+var SHORE_KINDS = ['lamp', 'tree', 'pole', 'pine', 'bush', 'lamp', 'tree', 'bench'];
+function buildShore() {
+  shore.length = 0;
+  var span = VW * 1.9, n = 14;
+  for (var i = 0; i < n; i++) {
+    shore.push({ x: (span / n) * i + rand(-13, 13),
+                 kind: SHORE_KINDS[i % SHORE_KINDS.length],
+                 s: rand(0.8, 1.28), seed: rand(0, TAU) });
+  }
+}
+
+/** Reeds and grass right under the lens: the closest, fastest-moving layer. */
+function buildForeground() {
+  fg.length = 0;
+  for (var i = 0; i < 9; i++) {
+    fg.push({ x: rand(-200, VW * 2.2), s: rand(0.7, 1.5), ph: rand(0, TAU),
+              kind: (Math.random() * 2) | 0, a: rand(0.45, 0.78) });
+  }
+}
+
+/** Specks on the air: grey ash while it is filthy, golden pollen once clean. */
+function buildMotes() {
+  motes.length = 0;
+  for (var i = 0; i < 18; i++) {
+    motes.push({ x: rand(0, VW * 2), y: rand(VH * 0.25, groundY),
+                 s: rand(0.9, 2.3), ph: rand(0, 1), sp: rand(0.4, 1.1),
+                 rise: rand(9, 26) });
+  }
+}
+
+/** Decorative litter bobbing in the sludge - atmosphere, never a hitbox. */
+function buildJunk() {
+  junk.length = 0;
+  for (var i = 0; i < 26; i++) {
+    junk.push({ x: rand(-VW, VW * 3), yo: rand(6, 46), s: rand(0.55, 1.25),
+      kind: (Math.random() * 3) | 0, ph: rand(0, TAU), sp: rand(0.7, 1.5), jolt: 0 });
+  }
+}
+
+/* ==========================================================================
+   6. Stones, trash piles and collectibles
+   ========================================================================== */
+function makeStone(x, baseY, w, type) {
+  return {
+    id: ++stoneId, ax: x, x: x, baseY: baseY, w: w, type: type,
+    amp: 0, msp: 0, mph: 0,
+    bsp: rand(1.1, 2.0), bph: rand(0, TAU),
+    visited: false, trig: false, tt: 0, sink: 0, sinkV: 0, dead: false,
+    trash: 0,                                   // 0 = none, else half-width of the pile
+    trashX: 0,                                  // pile centre, as an offset from the stone
+    moss: [rand(-0.28, 0.28), rand(-0.26, 0.26)],
+    flower: Math.random() < 0.5,
+    notch: rand(0, TAU),                        // silhouette variation
+    deco: makeDeco(),                           // what grows on top
+    pebbles: makePebbles(),
+    roots: 1 + ((Math.random() * 3) | 0),
+    impactT: 0, impactX: 0,                     // grass flinch after a landing
+    broke: false                                // chunks thrown once, when it gives
+  };
+}
+/** Two or three plants per island, placed once so they never jitter. */
+function makeDeco() {
+  var d = [], n = 2 + ((Math.random() * 3) | 0);
+  for (var i = 0; i < n; i++) {
+    d.push({ dx: rand(-0.36, 0.36), kind: (Math.random() * 4) | 0,
+             s: rand(0.8, 1.35), ph: rand(0, TAU) });
+  }
+  return d;
+}
+function makePebbles() {
+  var q = [];
+  for (var i = 0; i < 4; i++) {
+    q.push({ dx: rand(-0.40, 0.40), dy: rand(0.22, 0.78), r: rand(0.024, 0.05) });
+  }
+  return q;
+}
+function stoneX(s) { return s.amp ? s.ax + Math.sin(T * s.msp + s.mph) * s.amp : s.ax; }
+function stoneTop(s) { return s.baseY + Math.sin(T * s.bsp + s.bph) * 2.5 + s.sink; }
+/* Depth is measured to the waterline, so an island always sits IN the sludge
+   however high its top rides. */
+function stoneH(s) { return Math.max(30, s.w * 0.44, (groundY - s.baseY) + 24); }
+
+/**
+ * Append the next stone. Gaps are clamped so every jump is provably inside
+ * the hopper's envelope, even at the worst phase of two drifting stones.
+ */
+function spawnStone() {
+  if (finishSpawned) return;
+
+  // The bar is full: the next thing ahead is the finish meadow, and nothing
+  // after it. Wide and low-set, so the last hop is a generous one.
+  if (clean >= 1) {
+    var gapF = clamp(rand(VW * 0.32, VW * 0.42), MIN_D + VW * 0.10 + 10, MAX_D * 0.80);
+    var f = makeStone(lastX + gapF, groundY - 34 * clamp(VW / 900, 0.7, 1.2),
+                      Math.max(VW * 0.55, 260), 'finish');
+    f.bsp = 0; f.bph = 0;                      // a meadow does not bob
+    f.flowers = [];
+    for (var fi = 0; fi < 16; fi++) {
+      f.flowers.push({ dx: rand(-0.46, 0.46), dy: rand(4, 30),
+        c: pick(['#ffd44a', '#ff8fb0', '#ffffff', '#c48cff']), r: rand(2.6, 4.4) });
+    }
+    stones.push(f);
+    finishStone = f;
+    lastX = f.ax; lastTop = f.baseY;
+    finishSpawned = true;
+    return;
+  }
+
+  var diff = clamp(score / LVL.ramp, 0, 1);
+  var maxAmp = VW * 0.05;
+  var r = Math.random();
+  var calm = LVL.calm;
+  var pC = (!calm && stonesCleared >= 5 && !lastWasCrumble) ? 0.05 + 0.20 * diff : 0;
+  var pM = (!calm && stonesCleared >= 3) ? 0.12 + 0.30 * diff : 0;
+  var type = r < pC ? 'crumble' : (r < pC + pM ? 'moving' : 'normal');
+
+  var gap = rand(VW * (0.28 + 0.10 * diff), VW * (0.34 + 0.20 * diff));
+  var lo = MIN_D + 2 * maxAmp + 10;
+  var hi = (type === 'moving' ? MAX_D * 0.72 : MAX_D * 0.88);
+  gap = clamp(gap, lo, Math.max(lo + 6, hi));
+
+  var w = clamp(VW * (0.155 - 0.058 * diff) * rand(0.86, 1.14), 48, 260);
+  var rise = rand(36, 64) * clamp(VW / 900, 0.7, 1.2);
+  var fromX = lastX, fromTop = lastTop;
+
+  var s = makeStone(fromX + gap, groundY - rise, w, type);
+  if (type === 'moving') {
+    s.amp = rand(maxAmp * 0.55, maxAmp);
+    s.msp = rand(0.7, 1.4);
+    s.mph = rand(0, TAU);
+  }
+
+  // Trash pile: sits on the near edge, so the safe zone is the far half.
+  // Only on stones roomy enough to still leave a fair landing strip.
+  if (!calm && stonesCleared >= 6 && type !== 'crumble' && gap < MAX_D * 0.70 &&
+      w > VW * 0.10 && Math.random() < 0.14 + 0.26 * diff) {
+    s.trash = w * 0.17;
+    s.trashX = -w * 0.31;
+  }
+
+  stones.push(s);
+  lastX = s.ax;
+  lastTop = s.baseY;
+  lastWasCrumble = (type === 'crumble');
+
+  // A leaf sits on the ideal arc for this gap: reward the well-judged jump.
+  if (stones.length >= 3 && Math.random() < 0.45) {
+    var pReq = clamp((gap - MIN_D) / (MAX_D - MIN_D), 0, 1);
+    var apexReq = VH * (0.13 + 0.10 * pReq);
+    items.push({
+      x: fromX + gap * 0.5,
+      y: fromTop - apexReq * 0.82,
+      r: Math.max(13, KW * 0.34),
+      ph: rand(0, TAU), taken: false, kind: 'leaf'
+    });
+  }
+}
+
+/* ==========================================================================
+   7. Effects
+   ========================================================================== */
+function splat(x, y) {
+  for (var i = 0; i < 22; i++) {                 // the broad throw of muck
+    var a = rand(-2.5, -0.65), sp = rand(80, 280);
+    parts.push({ x: x + rand(-10, 10), y: y, vx: Math.cos(a) * sp * rand(-1, 1),
+      vy: Math.sin(a) * sp, g: 880, r: rand(2, 6), life: rand(0.4, 0.95), max: 1,
+      c: pick(['#6b5c3e', '#4c4130', '#7d6c48']) });
+  }
+  for (var c = 0; c < 9; c++) {                  // the crown: a tight upward jet
+    var cs = (c / 8 - 0.5) * 2;
+    parts.push({ x: x + cs * 9, y: y - 2, vx: cs * rand(50, 110),
+      vy: -rand(230, 340) + Math.abs(cs) * 70, g: 900,
+      r: rand(2.4, 4.6), life: rand(0.5, 0.8), max: 0.8, c: '#8a7a56' });
+  }
+  for (var j = 0; j < 3; j++) {
+    ripples.push({ x: x, y: y + 2, r: 6 + j * 8, life: 0.9 + j * 0.22, max: 1.3 });
+  }
+  ripples.push({ x: x, y: y + 3, r: 10, life: 2.1, max: 2.1,   // slick spreading out
+                 vr: 34, c: '#5d5236', a: 0.34, lw: 3 });
+  for (var k = 0; k < junk.length; k++) {        // the litter nearby gets rocked
+    if (Math.abs((junk[k].x - camX) - (x - camX)) < 150) junk[k].jolt = 1;
+  }
+}
+function dust(x, y) {
+  for (var i = 0; i < 9; i++) {
+    parts.push({ x: x + rand(-8, 8), y: y, vx: rand(-70, 70), vy: rand(-90, -20),
+      g: 420, r: rand(2, 4.5), life: rand(0.24, 0.46), max: 0.46, c: '#e9f7d8' });
+  }
+}
+/** The rotten stone gives way: shards fly off and drop into the sludge. */
+function breakStone(s) {
+  var top = stoneTop(s);
+  for (var i = 0; i < 6; i++) {
+    var side = i % 2 ? 1 : -1;
+    parts.push({
+      x: s.x + rand(-s.w * 0.4, s.w * 0.4), y: top + rand(0, s.w * 0.2),
+      vx: side * rand(30, 130), vy: rand(-210, -70), g: 700,
+      r: rand(s.w * 0.06, s.w * 0.13), rot: rand(0, TAU), vr: rand(-7, 7),
+      life: rand(0.7, 1.2), max: 1.2, kind: 'chunk',
+      c: pick(['#6b6357', '#7b7266', '#5d5548', '#5c6b45'])
+    });
+  }
+  for (var j = 0; j < 5; j++) {
+    parts.push({ x: s.x + rand(-s.w * 0.3, s.w * 0.3), y: top,
+      vx: rand(-50, 50), vy: rand(-60, -10), g: 400, r: rand(2, 4.5),
+      life: rand(0.3, 0.6), max: 0.6, c: '#6b5c3e' });
+  }
+  ripples.push({ x: s.x, y: groundY + 2, r: s.w * 0.3, life: 0.9, max: 0.9,
+                 vr: 40, c: '#4c4130', a: 0.5 });
+  sndCrack();
+}
+
+/** Nobody has touched the hopper in a while, so it pipes up. */
+function speakUp() {
+  var v = VOICES[chosen];
+  if (!v) return;
+  v.snd();
+  popup(hop.x + KW * 0.55, hop.y - KW * 1.75, v.say, '#ffffff');
+  hop.speak = 0.45;
+  hop.sqz = 0.13; hop.sqzV = 0;
+}
+
+/** A score token that arcs from the action up into the HUD counter. */
+function flyScore(sx, sy, text, color) {
+  flyers.push({ x: sx, y: sy, t: 0, dur: 0.62, n: text, c: color });
+}
+
+/** Landing shock: a flat expanding ring, dust thrown sideways, grass flinch. */
+function impactBurst(s, top) {
+  ripples.push({ x: hop.x, y: top + 2, r: KW * 0.28, life: 0.34, max: 0.34,
+                 vr: KW * 5.2, c: '#ffffff', a: 0.55, lw: 2.5 });
+  for (var i = 0; i < 8; i++) {
+    var side = i < 4 ? -1 : 1;
+    parts.push({ x: hop.x + side * rand(2, 10), y: top,
+      vx: side * rand(60, 150), vy: rand(-70, -14), g: 460,
+      r: rand(1.8, 4), life: rand(0.22, 0.42), max: 0.42, c: '#eaf7da' });
+  }
+  s.impactT = 0.42;
+  s.impactX = hop.x - s.x;
+}
+
+function sparkle(x, y, color) {
+  for (var i = 0; i < 13; i++) {
+    var a = rand(0, TAU), sp = rand(60, 200);
+    parts.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+      g: 250, r: rand(1.6, 3.6), life: rand(0.35, 0.72), max: 0.72, c: color });
+  }
+}
+function popup(x, y, text, color) { pops.push({ x: x, y: y, t: text, c: color, life: 0.95, max: 0.95 }); }
+
+/** Called after every score change: the full bar opens the finish. */
+function checkFinishCue() {
+  if (clean >= 1 && !finishCued) {
+    finishCued = true;
+    popup(hop.x, hop.y - KW * 2.8, 'ФИНИШ ВПЕРЕДИ!', '#ffd44a');
+    sparkle(hop.x, hop.y - KW, '#ffd44a');
+    sndPerfect();
+  }
+}
+
+/* ==========================================================================
+   8. Game flow
+   ========================================================================== */
+/* Encouragement is chosen by how the run actually went, not at random. */
+var MSG_START = [                                 // fell in the first few hops
+  'Первый шаг всегда самый трудный. Пробуй ещё!',
+  'Даже один чистый камень — уже помощь природе.',
+  'Ничего страшного: зверята готовы к новой попытке.',
+  'Не спеши с зарядом — и всё получится.'
+];
+var MSG_MID = [                                   // a decent run
+  'Каждый чистый камень на счету — попробуй ещё!',
+  'Земля стала зеленее. Ещё разок?',
+  'Маленькие прыжки — большая уборка. Вперёд!',
+  'Ты расчистил дорожку. Так держать!',
+  'Мусор отступает с каждым прыжком.',
+  'Природа заметила твои старания. Продолжай!'
+];
+var MSG_NEAR = [                                  // bar was almost full
+  'Поляна была совсем близко! Ещё один заход.',
+  'Почти дошёл — природа в тебя верит.',
+  'До финиша оставалось чуть-чуть. Не сдавайся!',
+  'Так близко! Ещё попытка — и там цветы.'
+];
+var MSG_WIN = [                                   // reached the meadow
+  'Земля снова чистая, и солнце светит вовсю. Спасибо!',
+  'Ты дошёл до поляны! Цветы распустились благодаря тебе.',
+  'Вот что бывает, когда кто-то не проходит мимо мусора.',
+  'Чисто! Бабочки прилетели сказать спасибо.',
+  'Дорога очищена от начала до конца. Ты молодец!'
+];
+
+/** Pick the line that matches this run's story. */
+function encouragement(isNew) {
+  if (won) return isNew ? 'Новый рекорд — и чистая земля впридачу!' : pick(MSG_WIN);
+  if (isNew && score >= 5) return 'Новый рекорд отряда чистоты!';
+  if (clean >= 0.7) return pick(MSG_NEAR);
+  if (score < 5) return pick(MSG_START);
+  return pick(MSG_MID);
+}
+
+function updateHud() {
+  elScore.textContent = score;
+  elBest.textContent = Math.max(best, score);
+  var pct = Math.round(clean * 100);
+  if (pct !== cleanPctShown) {
+    cleanPctShown = pct;
+    elCleanFill.style.width = pct + '%';
+    elCleanPct.textContent = pct + '%';
+  }
+}
+
+function reset() {
+  stones.length = 0; items.length = 0; parts.length = 0;
+  ripples.length = 0; pops.length = 0;
+  score = 0; stonesCleared = 0; leaves = 0;
+  T = 0; stoneId = 0; lastWasCrumble = false;
+  fallT = 0; overT = 0; shake = 0; charge = 0;
+  flyers.length = 0; camKick = 0; camKickV = 0; hitStop = 0; winFlash = 0;
+  clean = 0; cleanShown = 0; cleanPctShown = -1;
+  won = false; finishSpawned = false; finishCued = false; finishStone = null;
+  sunBoost = 0; winT = 0; cheerT = 0;
+  elOver.classList.remove('win');
+
+  var start = makeStone(VW * 0.26, groundY - Math.max(42, VH * 0.075),
+                        Math.max(120, VW * 0.30), 'start');
+  start.visited = true;
+  stones.push(start);
+  lastX = start.ax; lastTop = start.baseY;
+
+  hop.x = start.ax; hop.y = stoneTop(start);
+  hop.vx = 0; hop.vy = 0; hop.rot = 0; hop.rotV = 0;
+  hop.sqz = 0; hop.sqzV = 0; hop.alpha = 1;
+  hop.onStone = start; hop.offset = 0;
+  hop.act = null; hop.actLeft = 0; hop.actT = rand(2.5, 4.5);
+  hop.tailPhase = 0; hop.speak = 0;
+  idleT = 0; voiceAt = IDLE_VOICE;
+
+  camLo = start.ax - VW * 0.30;
+  camX = camLo;
+  phase = 'stand';
+
+  for (var i = 0; i < 6; i++) spawnStone();
+  updateHud();
+}
+
+function startGame() {
+  reset();
+  mode = 'play';
+  setPaused(false);
+  elPauseBtn.hidden = false;
+  elMenu.classList.add('hidden');
+  elOver.classList.add('hidden');
+}
+
+/** Freeze the whole world: no time passes, so nothing drifts or crumbles. */
+function setPaused(v) {
+  paused = v;
+  if (v) { cancelPress(); elPause.classList.remove('hidden'); }
+  else elPause.classList.add('hidden');
+}
+function toMenu() {
+  mode = 'menu';
+  setPaused(false);
+  elPauseBtn.hidden = true;
+  reset();
+  elOver.classList.add('hidden');
+  elMenu.classList.remove('hidden');
+}
+function gameOver() {
+  mode = 'over';
+  overT = 0;
+  setPaused(false);
+  elPauseBtn.hidden = true;
+  chargeStop();
+  var isNew = score > best;
+  if (isNew) { best = score; save(bestKey(), String(best)); }
+  elOverTitle.textContent = won ? 'Ты справился!'
+    : (leaves > 0 ? 'Ой! Зато улов хорош.' : 'Ой!');
+  elFinal.textContent = score;
+  elFinalStones.textContent = stonesCleared;
+  elFinalLeaves.textContent = leaves;
+  elFinalBest.textContent = best;
+  elNewBest.classList.toggle('hidden', !isNew);
+  elEcoMsg.textContent = encouragement(isNew);
+  elOver.classList.toggle('win', won);
+  elOver.classList.remove('hidden');
+  updateHud();
+  if (won) sndWinCard(); else sndOver();
+}
+
+function fallIn(reason) {
+  if (phase === 'fall') return;
+  chargeStop();
+  phase = 'fall';
+  fallT = 0;
+  hop.rotV = rand(-4.5, 4.5);
+  hop.onStone = null;
+  splat(hop.x, groundY);
+  sndSplat();
+  shake = 9;
+  popup(hop.x, groundY - KW * 2.2, reason === 'trash' ? 'УПС!' : 'ОЙ!', '#ffd44a');
+}
+
+function land(s, top) {
+  // Landing in the trash pile is the miss - jump over it, not into it.
+  if (s.trash) {
+    var tx = s.x + s.trashX;
+    if (Math.abs(hop.x - tx) < s.trash + KW * 0.22) {
+      hop.y = top;
+      fallIn('trash');
+      return;
+    }
+  }
+  phase = 'stand';
+  hop.onStone = s;
+  hop.y = top;
+  hop.vy = 0;
+  hop.rot = 0;
+  hop.sqz = -0.34; hop.sqzV = 0;
+
+  var off = hop.x - s.x;
+  dust(hop.x, top);
+  impactBurst(s, top);
+
+  if (!s.visited) {
+    s.visited = true;
+    stonesCleared++;
+    var acc = 1 - Math.min(1, Math.abs(off) / (s.w * 0.5));
+    if (acc > 0.72) {
+      score += 2;
+      popup(hop.x, top - KW * 2.1, 'В ЦЕНТР +2', '#ffd44a');
+      sparkle(hop.x, top - KW * 0.6, '#ffd44a');
+      flyScore(hop.x - camX, top - KW * 1.7, '+2', '#ffd44a');
+      camKick = 8; camKickV = 0;
+      hitStop = 0.075;                            // a beat of stillness on a bullseye
+      sndPerfect();
+    } else {
+      score += 1;
+      popup(hop.x, top - KW * 2.0, '+1', '#ffffff');
+      flyScore(hop.x - camX, top - KW * 1.6, '+1', '#ffffff');
+      camKick = 4.5; camKickV = 0;
+      sndScore();
+    }
+    clean = clamp(score / CLEAN_TARGET, 0, 1);
+    updateHud();
+    checkFinishCue();
+  } else {
+    sndLand();
+  }
+
+  // settle onto the stone so the hopper never dangles off the edge
+  var limit = s.w * 0.5 - KW * 0.24;
+  if (s.trash) {                                // ...and never into the pile
+    var lo = s.trashX + s.trash + KW * 0.24;
+    hop.offset = clamp(off, Math.min(lo, limit), limit);
+  } else {
+    hop.offset = clamp(off, -limit, limit);
+  }
+  hop.x = s.x + hop.offset;
+
+  if (s.type === 'crumble' && !s.trig) { s.trig = true; s.tt = 0; sndCrack(); }
+  if (s.type === 'finish' && !won) {
+    won = true;
+    phase = 'cheer';
+    winT = 0; cheerT = 0;
+    sparkle(hop.x, hop.y - KW * 0.8, '#ffd44a');
+    winFlash = 1;
+    sndFanfare();
+  }
+}
+
+function doJump() {
+  var p = clamp(charge, 0.04, 1);
+  var d = MIN_D + p * (MAX_D - MIN_D);
+  var apex = VH * (0.13 + 0.10 * p);
+  var t = 0.60 + 0.30 * p;
+  hop.g = 8 * apex / (t * t);
+  hop.vy = -4 * apex / t;
+  hop.vx = d / t;
+  hop.onStone = null;
+  hop.sqz = 0.24; hop.sqzV = 0;
+  phase = 'air';
+  charge = 0;
+  chargeStop();
+  sndJump(p);
+}
+
+/* ==========================================================================
+   9. Input - pointer events ride on the canvas, so overlay buttons never
+      double-fire a jump. Keyboard is global.
+   ========================================================================== */
+function press() {
+  if (paused) return;
+  idleT = 0; voiceAt = IDLE_VOICE;               // you touched it - it goes quiet
+  audioInit();
+  if (mode === 'menu') { startGame(); return; }
+  if (mode === 'over') { if (overT > 0.45) startGame(); return; }
+  if (mode === 'play' && phase === 'stand') { phase = 'charge'; charge = 0; chargeT = 0; chargeStart(); }
+}
+function release() {
+  if (mode === 'play' && phase === 'charge') doJump();
+  else chargeStop();
+}
+function cancelPress() {
+  if (mode === 'play' && phase === 'charge') { phase = 'stand'; charge = 0; }
+  chargeStop();
+}
+
+canvas.addEventListener('pointerdown', function (e) {
+  e.preventDefault();
+  if (mode === 'menu') return;                 // the picker owns the start screen
+  press();
+}, { passive: false });
+window.addEventListener('pointerup', function () { release(); });
+window.addEventListener('pointercancel', cancelPress);
+window.addEventListener('blur', cancelPress);
+canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+window.addEventListener('keydown', function (e) {
+  if (e.target === elDiffRange && /^(Arrow|Home|End|Page)/.test(e.code)) return;  // the dial moves itself
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
+    if (document.activeElement && document.activeElement.tagName === 'BUTTON' &&
+        (mode !== 'play' || paused)) return;   // let a focused button do its own thing
+    e.preventDefault();
+    if (!e.repeat) press();
+  } else if (mode === 'menu' && (e.code === 'ArrowLeft' || e.code === 'ArrowRight')) {
+    e.preventDefault();
+    var i = ORDER.indexOf(chosen) + (e.code === 'ArrowRight' ? 1 : -1);
+    setChosen(ORDER[(i + ORDER.length) % ORDER.length]);
+  } else if (mode === 'menu' && (e.code === 'ArrowUp' || e.code === 'ArrowDown')) {
+    e.preventDefault();
+    setDifficulty(diffValue + (e.code === 'ArrowUp' ? 5 : -5));
+  } else if (e.code === 'Escape') {
+    e.preventDefault();
+    if (mode === 'play') setPaused(!paused);
+  } else if (e.key === 'm' || e.key === 'M') {
+    audioInit(); setMuted(!A.muted);
+  }
+});
+window.addEventListener('keyup', function (e) {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') release();
+});
+
+elMute.addEventListener('click', function () { audioInit(); setMuted(!A.muted); });
+elPauseBtn.addEventListener('click', function () { if (mode === 'play') setPaused(!paused); });
+document.getElementById('resumeBtn').addEventListener('click', function () { setPaused(false); });
+document.getElementById('menuBtn').addEventListener('click', function () { audioInit(); toMenu(); });
+document.getElementById('playBtn').addEventListener('click', function () { audioInit(); startGame(); });
+document.getElementById('againBtn').addEventListener('click', function () { audioInit(); startGame(); });
+document.getElementById('changeBtn').addEventListener('click', function () { audioInit(); toMenu(); });
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden) { cancelPress(); if (mode === 'play') setPaused(true); }
+});
+window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', function () { setTimeout(layout, 120); });
+
+/* ---- character picker ---- */
+var portraits = [];
+function buildPicker() {
+  elPicker.innerHTML = '';
+  portraits = [];
+  ORDER.forEach(function (kind) {
+    var b = document.createElement('button');
+    b.className = 'pick';
+    b.type = 'button';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', kind === chosen ? 'true' : 'false');
+    b.dataset.kind = kind;
+    var c = document.createElement('canvas');
+    var n = document.createElement('span');
+    n.className = 'nm';
+    n.textContent = ANIMALS[kind].name;
+    b.appendChild(c); b.appendChild(n);
+    b.addEventListener('click', function () { audioInit(); setChosen(kind); sndScore(); });
+    elPicker.appendChild(b);
+    portraits.push({ kind: kind, canvas: c, btn: b });
+  });
+  paintPortraits();
+}
+/* ---- difficulty dial ---- */
+function buildDifficulty() {
+  elDiffRange.value = String(diffValue);
+  elDiffRange.addEventListener('input', function () {
+    audioInit();
+    setDifficulty(parseInt(elDiffRange.value, 10));
+  });
+}
+/** Apply a dial position everywhere it matters: road, record, readouts, feel. */
+function setDifficulty(v) {
+  var prevTarget = LVL.target, prevName = LVL.name;
+  diffValue = clamp(Math.round(v), 0, 100);
+  LVL = diffCfg(diffValue);
+  save(LS_DIFF, String(diffValue));
+  CLEAN_TARGET = LVL.target;
+  if (parseInt(elDiffRange.value, 10) !== diffValue) elDiffRange.value = String(diffValue);
+
+  var hue = Math.round(lerp(122, 6, diffValue / 100));   // a green road to a red one
+  elDiffRange.parentNode.style.setProperty('--dialc', 'hsl(' + hue + ',62%,40%)');
+  elDiffName.textContent = LVL.name;
+  elDiffPath.textContent = 'путь ' + LVL.target + ' очков';
+  elDiffRange.setAttribute('aria-valuetext', LVL.name + ', путь ' + LVL.target + ' очков');
+  elLvlChip.textContent = LVL.name + ' · путь ' + LVL.target;
+
+  loadBest();                                    // each road length keeps its own record
+  clean = clamp(score / CLEAN_TARGET, 0, 1);
+  updateHud();
+
+  if (LVL.name !== prevName) sndScore();         // a chime for a new name,
+  else if (LVL.target !== prevTarget) {          // a soft tick per step of road
+    tone('sine', 520 + diffValue * 6, 520 + diffValue * 6, 0.05, 0.05);
+  }
+}
+
+function setChosen(kind) {
+  chosen = kind;
+  save(LS_CHAR, kind);
+  for (var i = 0; i < portraits.length; i++) {
+    portraits[i].btn.setAttribute('aria-checked', portraits[i].kind === kind ? 'true' : 'false');
+  }
+}
+function paintPortraits() {
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  for (var i = 0; i < portraits.length; i++) {
+    var c = portraits[i].canvas;
+    var cssW = c.clientWidth || 52, cssH = c.clientHeight || 52;
+    c.width = Math.round(cssW * dpr);
+    c.height = Math.round(cssH * dpr);
+    var g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, cssW, cssH);
+    g.save();
+    g.translate(cssW * 0.5, cssH * 0.94);
+    drawAnimal(g, portraits[i].kind, cssW * 0.56, { t: 0 });
+    g.restore();
+  }
+}
+
+/* ==========================================================================
+   10. Simulation
+   ========================================================================== */
+function update(dt) {
+  T += dt;
+  shake = Math.max(0, shake - dt * 26);
+  camKickV += (-camKick * 300 - camKickV * 17) * dt;   // camera settles back
+  camKick += camKickV * dt;
+  if (winFlash > 0) winFlash = Math.max(0, winFlash - dt * 2.2);
+
+  for (var fl = flyers.length - 1; fl >= 0; fl--) {    // score tokens to the HUD
+    var fo = flyers[fl];
+    fo.t += dt;
+    if (fo.t >= fo.dur) {
+      flyers.splice(fl, 1);
+      var pill = elScore.parentNode;
+      pill.classList.remove('pop');
+      void pill.offsetWidth;                            // restart the animation
+      pill.classList.add('pop');
+    }
+  }
+  cleanShown += (clean - cleanShown) * (1 - Math.exp(-2.4 * dt));
+  if (won) sunBoost = Math.min(1, sunBoost + dt * 0.75);
+
+  for (var i = 0; i < clouds.length; i++) clouds[i].x -= clouds[i].spd * dt;
+  truckP += dt * 22;
+  for (var jk = 0; jk < junk.length; jk++) {
+    if (junk[jk].jolt > 0) junk[jk].jolt = Math.max(0, junk[jk].jolt - dt * 1.6);
+  }
+
+  for (var i2 = 0; i2 < stones.length; i2++) {
+    var s = stones[i2];
+    s.x = stoneX(s);
+    if (s.impactT > 0) s.impactT = Math.max(0, s.impactT - dt);
+    if (s.trig && !s.dead) {
+      s.tt += dt;
+      if (s.tt > CRUMBLE_FUSE) {
+        if (!s.broke) { s.broke = true; breakStone(s); }
+        s.sinkV += 340 * dt;
+        s.sink += s.sinkV * dt;
+        if (s.baseY + s.sink > groundY + stoneH(s) + 20) s.dead = true;
+      }
+    }
+  }
+
+  if (mode === 'play') {
+    if (phase === 'charge') {
+      // Dynamic power: the meter swings to full and back again for as long as
+      // the jump is held, so the leap is decided by *when* you let go.
+      chargeT += dt;
+      charge = 0.5 - 0.5 * Math.cos(Math.PI * chargeT / LVL.swing);
+      chargeUpdate(charge);
+    }
+
+    if (phase === 'stand' || phase === 'charge') {
+      var st = hop.onStone;
+      if (st) {
+        hop.x = st.x + hop.offset;
+        hop.y = stoneTop(st);
+        if (hop.y > groundY - 1) fallIn('sink');    // rode a polluted stone under
+      }
+    } else if (phase === 'air') {
+      var prevY = hop.y;
+      hop.vy += hop.g * dt;
+      hop.x += hop.vx * dt;
+      hop.y += hop.vy * dt;
+      hop.rot = clamp(Math.atan2(hop.vy, hop.vx) * 0.32, -0.5, 0.5);
+
+      // collectibles
+      for (var it = 0; it < items.length; it++) {
+        var o = items[it];
+        if (o.taken) continue;
+        var dx = hop.x - o.x, dy = (hop.y - KW * 0.62) - o.y;
+        if (dx * dx + dy * dy < (o.r + KW * 0.42) * (o.r + KW * 0.42)) {
+          o.taken = true;
+          leaves++;
+          score += 3;
+          clean = clamp(score / CLEAN_TARGET, 0, 1);
+          popup(o.x, o.y - 8, 'ЛИСТИК +3', '#7ee06a');
+          flyScore(o.x - camX, o.y, '+3', '#7ee06a');
+          sparkle(o.x, o.y, '#7ee06a');
+          sndLeaf();
+          updateHud();
+          checkFinishCue();
+        }
+      }
+
+      if (hop.vy > 0) {                          // only land while descending
+        for (var k = 0; k < stones.length; k++) {
+          var c = stones[k];
+          if (c.dead) continue;
+          var top = stoneTop(c);
+          if (top > groundY - 1) continue;
+          if (prevY <= top && hop.y >= top && Math.abs(hop.x - c.x) <= c.w * 0.5 + 3) {
+            land(c, top);
+            break;
+          }
+        }
+      }
+      if (phase === 'air' && hop.y > groundY) fallIn('sludge');
+    } else if (phase === 'cheer') {
+      // Landed on the meadow: bounce, throw petals, let the sun come up.
+      var cs = hop.onStone;
+      if (cs) { hop.x = cs.x + hop.offset; hop.y = stoneTop(cs); }
+      winT += dt;
+      cheerT -= dt;
+      if (cheerT <= 0) {
+        cheerT = 0.40;
+        hop.sqz = 0.26; hop.sqzV = 0;
+        sparkle(hop.x + rand(-40, 40), hop.y - KW * rand(0.8, 2.4), pick(['#ffd44a', '#ff8fb0', '#7ee06a']));
+        sndTwinkle();
+      }
+      if (winT > 1.6) gameOver();
+    } else if (phase === 'fall') {
+      fallT += dt;
+      hop.y += (18 + fallT * 46) * dt;
+      hop.rot += hop.rotV * dt;
+      hop.alpha = clamp(1 - fallT * 0.95, 0, 1);
+      if (fallT > 0.85) gameOver();
+    }
+
+    while (!finishSpawned && lastX < camX + VW * 1.9) spawnStone();
+
+    if (stones.length > 26) {
+      var keep = [];
+      for (var m = 0; m < stones.length; m++) {
+        if (stones[m] === hop.onStone || stones[m].ax > camX - VW * 0.7) keep.push(stones[m]);
+      }
+      stones = keep;
+    }
+    if (items.length > 14) {
+      var ki = [];
+      for (var n = 0; n < items.length; n++) if (items[n].x > camX - VW * 0.5) ki.push(items[n]);
+      items = ki;
+    }
+  } else if (mode === 'over') {
+    overT += dt;
+  }
+
+  var tgt = Math.max(camLo, hop.x - VW * 0.30);
+  camX += (tgt - camX) * (1 - Math.exp(-9 * dt));
+
+  hop.sqzV += (-hop.sqz * 260 - hop.sqzV * 16) * dt;
+  hop.sqz += hop.sqzV * dt;
+  hop.blinkT -= dt;
+  if (hop.blinkT <= 0) { hop.blink = 0.13; hop.blinkT = rand(2.2, 5.5); }
+  if (hop.blink > 0) hop.blink -= dt;
+
+  // Idle micro-performances: standing still, the hopper looks around,
+  // flicks its tail or bounces on the spot. The dog also lolls its tongue.
+  if (mode === 'play' && phase === 'stand') {
+    if (hop.actLeft > 0) {
+      hop.actLeft -= dt;
+      if (hop.actLeft <= 0) { hop.act = null; hop.actT = rand(2.6, 5.5); }
+    } else {
+      hop.actT -= dt;
+      if (hop.actT <= 0) {
+        hop.act = pick(chosen === 'dog' ? ['look', 'tail', 'bounce', 'tongue']
+                                        : ['look', 'tail', 'bounce']);
+        hop.actDur = hop.act === 'bounce' ? 0.6 : 1.0;
+        hop.actLeft = hop.actDur;
+      }
+    }
+  } else if (hop.act) { hop.act = null; hop.actLeft = 0; }
+  hop.tailPhase += dt * (hop.act === 'tail' ? 3.4 : 1);
+  if (hop.speak > 0) hop.speak -= dt;
+
+  // Left alone on a stone, the hopper starts talking to itself.
+  if (mode === 'play' && phase === 'stand') {
+    idleT += dt;
+    if (idleT >= voiceAt) {
+      speakUp();
+      voiceAt = idleT + rand(3.5, 6);
+    }
+  } else {
+    idleT = 0; voiceAt = IDLE_VOICE;
+  }
+
+
+  for (var p = parts.length - 1; p >= 0; p--) {
+    var q = parts[p];
+    q.life -= dt;
+    if (q.life <= 0) { parts.splice(p, 1); continue; }
+    q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt;
+    if (q.vr) q.rot += q.vr * dt;
+  }
+  for (var r = ripples.length - 1; r >= 0; r--) {
+    ripples[r].life -= dt; ripples[r].r += (ripples[r].vr || 46) * dt;
+    if (ripples[r].life <= 0) ripples.splice(r, 1);
+  }
+  for (var v = pops.length - 1; v >= 0; v--) {
+    pops[v].life -= dt; pops[v].y -= 42 * dt;
+    if (pops[v].life <= 0) pops.splice(v, 1);
+  }
+}
+
+/* ==========================================================================
+   11. Rendering. The whole palette is a blend between "polluted" and
+       "restored", driven by cleanShown - the before/after is the background.
+   ========================================================================== */
+var P = {};
+function palette() {
+  var c = cleanShown;
+  P.skyTop   = mix('#b0a184', '#4fbfec', c);
+  P.skyMid   = mix('#cdbfa2', '#9fdff7', c);
+  P.skyLow   = mix('#e6dcc4', '#e2f6ff', c);
+  P.sun      = mix('#e8d9a4', '#fff3c4', c);
+  P.cloud    = mix('#cabfa6', '#ffffff', c);
+  P.cloudSh  = mix('#a89d84', '#d9e9f6', c);
+  P.cloudHi  = mix('#e2d8bf', '#ffffff', c);
+  P.far      = mix('#9aa17e', '#93cdb4', c);
+  P.near     = mix('#7d8462', '#63b98a', c);
+  P.city     = mix('#5f5a4a', '#7fae95', c);
+  P.sludgeHi = mix('#5a4c33', '#3f8f86', c);
+  P.sludgeMid= mix('#3d3222', '#276a68', c);
+  P.sludgeLo = mix('#241d13', '#134247', c);
+  P.foam     = mix('#8a7a56', '#bff0e4', c);
+  P.rock     = mix('#857a6a', '#7c8c72', c);
+  P.rockEdge = mix('#6f6556', '#687a60', c);
+  P.moss     = mix('#57bf55', '#6fd85f', c);
+  P.mossHi   = mix('#7ee06a', '#95ee79', c);
+}
+
+function drawSky() {
+  var g = ctx.createLinearGradient(0, 0, 0, groundY);
+  g.addColorStop(0, P.skyTop);
+  g.addColorStop(0.55, P.skyMid);
+  g.addColorStop(1, P.skyLow);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, VW, groundY + 1);
+
+  var sx = VW * 0.82, sy = VH * 0.14;
+  var sr = Math.max(26, VW * 0.045) * (1 + 0.38 * sunBoost);
+  var reach = 3.2 + 1.1 * sunBoost;
+
+  ctx.globalAlpha = clamp(0.35 + 0.4 * cleanShown + 0.28 * sunBoost, 0, 1);
+  var halo = ctx.createRadialGradient(sx, sy, sr * 0.6, sx, sy, sr * reach);
+  halo.addColorStop(0, 'rgba(255,240,190,0.6)');
+  halo.addColorStop(1, 'rgba(255,240,190,0)');
+  ctx.fillStyle = halo;
+  ellF(ctx, sx, sy, sr * reach, sr * reach);
+  ctx.globalAlpha = 1;
+
+  if (sunBoost > 0.01) {                       // slow turning rays at the finish
+    ctx.save();
+    ctx.translate(sx, sy);
+    ctx.rotate(T * 0.16);
+    ctx.globalAlpha = 0.20 * sunBoost;
+    ctx.fillStyle = '#fff0b4';
+    for (var ry = 0; ry < 12; ry++) {
+      ctx.rotate(TAU / 12);
+      ctx.beginPath();
+      ctx.moveTo(0, -sr * 1.25);
+      ctx.lineTo(-sr * 0.16, -sr * (2.5 + 0.5 * sunBoost));
+      ctx.lineTo(sr * 0.16, -sr * (2.5 + 0.5 * sunBoost));
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = sunBoost > 0 ? mix('#fff3c4', '#ffffff', sunBoost * 0.5) : P.sun;
+  ellF(ctx, sx, sy, sr, sr);
+}
+
+function drawClouds() {
+  var span = VW * 2.6;
+
+  /* high cirrus, almost still */
+  for (var w = 0; w < cirrus.length; w++) {
+    var q = cirrus[w];
+    var qx = q.x - camX * 0.03;
+    qx = ((qx + 260) % span + span) % span - 260;
+    if (qx < -260 || qx > VW + 260) continue;
+    ctx.globalAlpha = q.a;
+    ctx.fillStyle = P.cloudHi;
+    var qw = 90 * q.s;
+    ellF(ctx, qx, q.y, qw, qw * 0.055);
+    ellF(ctx, qx + qw * 0.55, q.y + qw * 0.07, qw * 0.6, qw * 0.04);
+    ellF(ctx, qx - qw * 0.45, q.y - qw * 0.05, qw * 0.5, qw * 0.035);
+  }
+  ctx.globalAlpha = 1;
+
+  /* the cumulus layer: lobed body, flat shaded base, sunlit crowns */
+  for (var i = 0; i < clouds.length; i++) {
+    var c = clouds[i];
+    var x = c.x - camX * c.p;
+    x = ((x + 300) % span + span) % span - 300;
+    var u = 42 * c.s;
+    if (x < -u * 3 || x > VW + u * 3) continue;
+    var breathe = 1 + Math.sin(T * 0.45 + c.ph) * 0.022;
+
+    ctx.globalAlpha = c.a;
+    ctx.fillStyle = P.cloudSh;                    // shaded underside
+    fillRR(ctx, x - c.ext * u * 0.92, c.y + u * 0.08, c.ext * u * 1.84, u * 0.42, u * 0.21);
+
+    ctx.fillStyle = P.cloud;                      // body
+    fillRR(ctx, x - c.ext * u * 0.92, c.y - u * 0.02, c.ext * u * 1.84, u * 0.34, u * 0.17);
+    for (var l = 0; l < c.lobes.length; l++) {
+      var lo = c.lobes[l];
+      ellF(ctx, x + lo.dx * u, c.y + lo.dy * u, lo.r * u * breathe, lo.r * u * 0.78 * breathe);
+    }
+
+    ctx.fillStyle = P.cloudHi;                    // crowns facing the sun
+    for (var m = 0; m < c.lobes.length; m++) {
+      var lh = c.lobes[m];
+      if (lh.dx < -0.1) continue;
+      ellF(ctx, x + lh.dx * u + lh.r * u * 0.18, c.y + lh.dy * u - lh.r * u * 0.26,
+           lh.r * u * 0.62, lh.r * u * 0.34);
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  /* birds come back once the air clears */
+  if (cleanShown > 0.35) {
+    ctx.globalAlpha = clamp((cleanShown - 0.35) * 2.2, 0, 1) * 0.75;
+    ctx.strokeStyle = '#4a5a52';
+    for (var f = 0; f < birds.length; f++) {
+      var fl = birds[f];
+      var fx = fl.x - camX * 0.13 - T * fl.spd;
+      fx = ((fx + 300) % span + span) % span - 300;
+      if (fx < -120 || fx > VW + 120) continue;
+      ctx.lineWidth = Math.max(1.2, 1.8 * fl.s);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      for (var bd = 0; bd < fl.n; bd++) {
+        var bx = fx + bd * 15 * fl.s;
+        var by = fl.y + Math.abs(bd - (fl.n - 1) * 0.5) * 8 * fl.s +
+                 Math.sin(T * 0.7 + fl.ph + bd) * 3;
+        var flap = Math.sin(T * 7 + fl.ph + bd * 0.8) * 3 * fl.s;
+        ctx.moveTo(bx - 5 * fl.s, by + flap);
+        ctx.quadraticCurveTo(bx, by - 2 * fl.s, bx + 5 * fl.s, by + flap);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** A rising column of puffs: dark smoke from stacks, pale steam from towers. */
+function drawPlume(x, y, u, amount, seed, color, rise, drift, speed) {
+  if (amount <= 0.02) return;
+  ctx.fillStyle = color;
+  for (var k = 0; k < 9; k++) {
+    var ph = (T * speed + seed + k / 9) % 1;
+    var e = ph * ph;                             // drift accelerates downwind
+    var py = y - ph * rise;
+    var px = x + Math.sin(ph * 2.6 + seed * 2 + k * 1.3) * u * 0.42 + e * drift;
+    var r = u * (0.13 + ph * 0.42);              // puffs overlap into a column
+    ctx.globalAlpha = amount * (1 - ph) * (1 - ph * 0.55) * 0.34;
+    ellF(ctx, px, py, r, r * (0.82 + ph * 0.14));
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Grid of windows: smoggy amber while the land is dirty, daylight when clean. */
+function drawWindows(x, y, cols, rows, cw, ch, gap, f, win, smoke) {
+  for (var c = 0; c < cols; c++) {
+    for (var r = 0; r < rows; r++) {
+      var on = f.lit[(c + r * cols) % f.lit.length];
+      var flick = on ? 0.72 + Math.sin(T * 2.4 + c * 1.7 + r) * 0.14 : 0.26;
+      ctx.globalAlpha = clamp(flick, 0.15, 1);
+      ctx.fillStyle = win;
+      ctx.fillRect(x + c * (cw + gap), y + r * (ch + gap), cw, ch);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** A wind turbine that fades in and spins as the land recovers. */
+function drawTurbine(x, base, u, amount) {
+  if (amount < 0.04) return;
+  ctx.save();
+  ctx.globalAlpha = amount;
+  ctx.fillStyle = '#eef5f0';
+  ctx.beginPath();
+  ctx.moveTo(x - u * 0.09, base);
+  ctx.lineTo(x + u * 0.09, base);
+  ctx.lineTo(x + u * 0.045, base - u * 2.5);
+  ctx.lineTo(x - u * 0.045, base - u * 2.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.translate(x, base - u * 2.5);
+  ctx.rotate(T * 1.1);
+  for (var b = 0; b < 3; b++) {
+    ctx.rotate(TAU / 3);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(u * 0.20, -u * 0.7, u * 0.06, -u * 1.5);
+    ctx.quadraticCurveTo(-u * 0.05, -u * 0.7, 0, 0);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+/** A hazier, smaller band further back - depth without extra detail. */
+function drawFarWorks() {
+  var par = 0.035, base = groundY - VH * 0.058, span = VW * 1.7;
+  ctx.globalAlpha = 0.30 + 0.14 * (1 - cleanShown);
+  ctx.fillStyle = mix('#6d685a', '#93b7a6', cleanShown);
+  for (var i = 0; i < 11; i++) {
+    var x = i * (span / 11) + 26 - camX * par;
+    x = ((x + 220) % span + span) % span - 220;
+    if (x < -200 || x > VW + 200) continue;
+    var u = VH * 0.026 * (0.78 + (i % 3) * 0.24);
+    if (i % 3 === 0) {                            // squat cooling tower
+      ctx.beginPath();
+      ctx.moveTo(x - u * 0.55, base);
+      ctx.quadraticCurveTo(x - u * 0.26, base - u * 1.2, x - u * 0.42, base - u * 2);
+      ctx.lineTo(x + u * 0.42, base - u * 2);
+      ctx.quadraticCurveTo(x + u * 0.26, base - u * 1.2, x + u * 0.55, base);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillRect(x, base - u * 1.3, u * 1.5, u * 1.3);
+      ctx.fillRect(x + u * 1.8, base - u * 2.4, u * 0.26, u * 2.4);
+    }
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Ground clutter every works has: fence, lamps and a tank wagon on rails. */
+function drawYard(f, x, base, u, body, trim) {
+  ctx.strokeStyle = trim;
+  ctx.lineWidth = Math.max(1, u * 0.045);
+  ctx.beginPath();                                // fence
+  ctx.moveTo(x - u * 1.9, base - u * 0.26);
+  ctx.lineTo(x + u * 5.0, base - u * 0.26);
+  for (var pz = 0; pz < 9; pz++) {
+    var fx2 = x - u * 1.9 + pz * u * 0.78;
+    ctx.moveTo(fx2, base - u * 0.34);
+    ctx.lineTo(fx2, base);
+  }
+  ctx.stroke();
+
+  for (var lp = 0; lp < 2; lp++) {                // lamp posts
+    var lx = x + u * (0.4 + lp * 3.4);
+    ctx.fillStyle = trim;
+    ctx.fillRect(lx, base - u * 1.05, u * 0.08, u * 1.05);
+    ctx.fillRect(lx - u * 0.02, base - u * 1.08, u * 0.30, u * 0.07);
+    ctx.globalAlpha = 0.30 + 0.25 * (1 - cleanShown);
+    ctx.fillStyle = '#ffd984';
+    ellF(ctx, lx + u * 0.26, base - u * 1.02, u * 0.13, u * 0.13);
+    ctx.globalAlpha = 1;
+  }
+
+  var wx = x + u * 2.0;                           // tank wagon
+  ctx.fillStyle = body;
+  fillRR(ctx, wx, base - u * 0.62, u * 1.25, u * 0.40, u * 0.18);
+  ctx.fillStyle = trim;
+  ctx.fillRect(wx - u * 0.05, base - u * 0.24, u * 1.35, u * 0.10);
+  ellF(ctx, wx + u * 0.26, base - u * 0.09, u * 0.11, u * 0.11);
+  ellF(ctx, wx + u * 0.98, base - u * 0.09, u * 0.11, u * 0.11);
+  ctx.fillRect(x - u * 1.9, base - u * 0.02, u * 7, u * 0.05);   // rail
+}
+
+function drawFactory(f, x, base, u, body, trim, win, smoke) {
+  var clean = cleanShown;
+
+  if (f.kind === 'plant') {
+    /* main hall with a sawtooth roof, offices, two banded chimneys */
+    var hw = u * 3.2, hh = u * 1.25;
+    ctx.fillStyle = body;
+    ctx.fillRect(x, base - hh, hw, hh);
+    for (var t = 0; t < 4; t++) {                 // sawtooth roof lights
+      var sx = x + t * (hw / 4);
+      ctx.beginPath();
+      ctx.moveTo(sx, base - hh);
+      ctx.lineTo(sx + hw / 8, base - hh - u * 0.42);
+      ctx.lineTo(sx + hw / 4, base - hh);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.fillStyle = trim;
+    ctx.fillRect(x, base - hh - u * 0.06, hw, u * 0.06);
+    drawWindows(x + u * 0.22, base - hh * 0.72, 6, 2, u * 0.26, u * 0.28, u * 0.18, f, win, smoke);
+
+    for (var ch = 0; ch < 2; ch++) {               // chimneys
+      var cx = x + hw + u * (0.28 + ch * 0.62);
+      var chh = u * (2.9 - ch * 0.8);
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(cx - u * 0.17, base);
+      ctx.lineTo(cx + u * 0.17, base);
+      ctx.lineTo(cx + u * 0.12, base - chh);
+      ctx.lineTo(cx - u * 0.12, base - chh);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = mix('#b45b45', '#8fbfa8', clean);
+      ctx.fillRect(cx - u * 0.135, base - chh + u * 0.16, u * 0.27, u * 0.14);
+      ctx.fillRect(cx - u * 0.15, base - chh + u * 0.46, u * 0.30, u * 0.14);
+      drawPlume(cx, base - chh - u * 0.1, u, smoke, f.seed + ch, '#6d6552',
+                u * (5 + ch), u * 2.2, 0.13 + ch * 0.03);
+    }
+    ctx.fillStyle = trim;                          // roof ducts and vents
+    ctx.fillRect(x + hw * 0.10, base - hh - u * 0.30, u * 0.7, u * 0.24);
+    ctx.fillRect(x + hw * 0.55, base - hh - u * 0.22, u * 0.4, u * 0.18);
+    var fanX = x + hw * 0.32, fanY = base - hh - u * 0.52;
+    ctx.fillStyle = body;                          // extractor fan, always turning
+    ellF(ctx, fanX, fanY, u * 0.24, u * 0.24);
+    ctx.save();
+    ctx.translate(fanX, fanY);
+    ctx.rotate(T * 2.6 + f.seed);
+    ctx.fillStyle = trim;
+    for (var bl = 0; bl < 3; bl++) {
+      ctx.rotate(TAU / 3);
+      ctx.fillRect(-u * 0.035, 0, u * 0.07, u * 0.21);
+    }
+    ctx.restore();
+
+    if (clean > 0.1) {                             // solar panels arrive
+      ctx.globalAlpha = clean;
+      ctx.fillStyle = '#33507f';
+      for (var sp = 0; sp < 3; sp++) {
+        ctx.save();
+        ctx.translate(x + u * 0.5 + sp * u * 0.95, base - hh - u * 0.5);
+        ctx.rotate(-0.32);
+        ctx.fillRect(0, 0, u * 0.72, u * 0.12);
+        ctx.restore();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+  } else if (f.kind === 'towers') {
+    /* two cooling towers, waisted, breathing pale steam */
+    for (var tw = 0; tw < 2; tw++) {
+      var tx = x + tw * u * 1.55;
+      var th = u * (2.2 - tw * 0.25);
+      ctx.fillStyle = body;
+      ctx.beginPath();
+      ctx.moveTo(tx - u * 0.62, base);
+      ctx.quadraticCurveTo(tx - u * 0.30, base - th * 0.62, tx - u * 0.48, base - th);
+      ctx.lineTo(tx + u * 0.48, base - th);
+      ctx.quadraticCurveTo(tx + u * 0.30, base - th * 0.62, tx + u * 0.62, base);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = trim;
+      ctx.fillRect(tx - u * 0.48, base - th, u * 0.96, u * 0.10);
+      drawPlume(tx, base - th - u * 0.15, u * 1.25, 0.35 + smoke * 0.4,
+                f.seed + tw * 2, '#dfe7e4', u * 4.2, u * 1.6, 0.10);
+    }
+    ctx.fillStyle = trim;                          // pump house
+    ctx.fillRect(x - u * 0.9, base - u * 0.6, u * 0.8, u * 0.6);
+    drawWindows(x - u * 0.78, base - u * 0.46, 2, 1, u * 0.2, u * 0.2, u * 0.12, f, win, smoke);
+
+  } else if (f.kind === 'works') {
+    /* long shed, a running conveyor up to a silo, a crane and a water tower */
+    var sw = u * 2.6, sh2 = u * 1.0;
+    ctx.fillStyle = body;
+    ctx.fillRect(x, base - sh2, sw, sh2);
+    ctx.fillStyle = trim;
+    ctx.fillRect(x - u * 0.08, base - sh2 - u * 0.12, sw + u * 0.16, u * 0.12);
+    drawWindows(x + u * 0.2, base - sh2 * 0.66, 5, 1, u * 0.26, u * 0.26, u * 0.16, f, win, smoke);
+
+    var siloX = x + sw + u * 0.9;                 // silo
+    ctx.fillStyle = body;
+    ctx.fillRect(siloX - u * 0.45, base - u * 2.1, u * 0.9, u * 2.1);
+    ellF(ctx, siloX, base - u * 2.1, u * 0.45, u * 0.22);
+    ctx.fillStyle = trim;
+    ctx.fillRect(siloX - u * 0.45, base - u * 1.25, u * 0.9, u * 0.09);
+
+    ctx.strokeStyle = trim;                       // conveyor gantry
+    ctx.lineWidth = Math.max(2, u * 0.10);
+    ctx.beginPath();
+    ctx.moveTo(x + sw * 0.55, base - sh2 - u * 0.1);
+    ctx.lineTo(siloX - u * 0.4, base - u * 1.95);
+    ctx.stroke();
+    ctx.fillStyle = mix('#c9a35a', '#dff3ea', cleanShown);
+    for (var cv = 0; cv < 5; cv++) {              // material running up the belt
+      var t2 = ((T * 0.22 + cv / 5) % 1);
+      var cx2 = lerp(x + sw * 0.55, siloX - u * 0.4, t2);
+      var cy2 = lerp(base - sh2 - u * 0.1, base - u * 1.95, t2);
+      ellF(ctx, cx2, cy2 - u * 0.12, u * 0.09, u * 0.07);
+    }
+
+    var crX = x - u * 1.3;                        // crane
+    ctx.fillStyle = trim;
+    ctx.fillRect(crX, base - u * 2.6, u * 0.14, u * 2.6);
+    ctx.fillRect(crX - u * 0.7, base - u * 2.7, u * 2.2, u * 0.13);
+    var swing = Math.sin(T * 0.9 + f.seed) * u * 0.35;
+    ctx.fillRect(crX + u * 1.1 + swing, base - u * 2.6, u * 0.05, u * 0.9);
+    ctx.fillRect(crX + u * 0.98 + swing, base - u * 1.75, u * 0.3, u * 0.18);
+
+    var wtX = x + sw + u * 2.3;                   // water tower
+    ctx.fillStyle = body;
+    ellF(ctx, wtX, base - u * 1.75, u * 0.55, u * 0.42);
+    ctx.fillRect(wtX - u * 0.55, base - u * 1.78, u * 1.1, u * 0.35);
+    ctx.strokeStyle = trim;
+    ctx.lineWidth = Math.max(1.4, u * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(wtX - u * 0.42, base - u * 1.45); ctx.lineTo(wtX - u * 0.30, base);
+    ctx.moveTo(wtX + u * 0.42, base - u * 1.45); ctx.lineTo(wtX + u * 0.30, base);
+    ctx.moveTo(wtX - u * 0.36, base - u * 0.7); ctx.lineTo(wtX + u * 0.36, base - u * 0.7);
+    ctx.stroke();
+
+    drawPlume(siloX, base - u * 2.25, u * 0.9, smoke * 0.55, f.seed + 3, '#6d6552',
+              u * 3.2, u * 1.5, 0.14);
+
+  } else if (f.kind === 'tanks') {
+    /* tank farm: cylinders, a connecting pipe run and a flare stack */
+    for (var tk = 0; tk < 3; tk++) {
+      var kx = x + tk * u * 1.0;
+      var kh = u * (0.9 + (tk % 2) * 0.24);
+      ctx.fillStyle = body;
+      ctx.fillRect(kx - u * 0.4, base - kh, u * 0.8, kh);
+      ellF(ctx, kx, base - kh, u * 0.4, u * 0.16);
+      ctx.fillStyle = trim;
+      ctx.fillRect(kx - u * 0.4, base - kh * 0.55, u * 0.8, u * 0.07);
+    }
+    ctx.fillStyle = trim;                          // pipe run + trestle
+    ctx.fillRect(x - u * 0.5, base - u * 0.34, u * 3.2, u * 0.10);
+    for (var pl = 0; pl < 4; pl++) ctx.fillRect(x - u * 0.4 + pl * u * 0.85, base - u * 0.34, u * 0.07, u * 0.34);
+
+    var fx = x + u * 3.0, fh = u * 2.1;            // flare stack
+    ctx.fillStyle = body;
+    ctx.fillRect(fx, base - fh, u * 0.16, fh);
+    if (smoke > 0.08) {                            // flickering flare
+      var fl = 0.6 + Math.sin(T * 11 + f.seed) * 0.4;
+      ctx.globalAlpha = smoke;
+      ctx.fillStyle = '#ff9c3d';
+      ctx.beginPath();
+      ctx.moveTo(fx + u * 0.02, base - fh);
+      ctx.quadraticCurveTo(fx + u * 0.34, base - fh - u * 0.36 * fl, fx + u * 0.08, base - fh - u * 0.72 * fl);
+      ctx.quadraticCurveTo(fx + u * 0.02, base - fh - u * 0.34 * fl, fx - u * 0.06, base - fh);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    drawPlume(fx + u * 0.08, base - fh - u * 0.5, u * 0.8, smoke * 0.8, f.seed, '#6d6552', u * 3.4, u * 1.6, 0.16);
+
+  } else {
+    /* a single tall chimney on a wide base, with a gantry and a beacon */
+    var bh = u * 0.95;
+    ctx.fillStyle = body;
+    ctx.fillRect(x, base - bh, u * 1.9, bh);
+    drawWindows(x + u * 0.18, base - bh * 0.68, 4, 1, u * 0.24, u * 0.24, u * 0.14, f, win, smoke);
+    var sh = u * 3.6, sx2 = x + u * 1.35;
+    ctx.beginPath();
+    ctx.moveTo(sx2 - u * 0.22, base);
+    ctx.lineTo(sx2 + u * 0.22, base);
+    ctx.lineTo(sx2 + u * 0.14, base - sh);
+    ctx.lineTo(sx2 - u * 0.14, base - sh);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = trim;                        // gantry ladder
+    ctx.lineWidth = Math.max(1, u * 0.045);
+    ctx.beginPath();
+    for (var lr = 1; lr < 7; lr++) {
+      var ly = base - sh * (lr / 7);
+      ctx.moveTo(sx2 - u * 0.19, ly);
+      ctx.lineTo(sx2 + u * 0.19, ly);
+    }
+    ctx.stroke();
+    var beacon = (Math.sin(T * 2.2 + f.seed) + 1) * 0.5;   // slow red pulse
+    ctx.globalAlpha = 0.35 + beacon * 0.65;
+    ctx.fillStyle = '#ff5b4a';
+    ellF(ctx, sx2, base - sh - u * 0.1, u * 0.11, u * 0.11);
+    ctx.globalAlpha = 1;
+    drawPlume(sx2, base - sh - u * 0.15, u * 1.1, smoke, f.seed, '#6d6552', u * 6, u * 2.8, 0.11);
+  }
+
+  drawYard(f, x, base, u, body, trim);
+
+  /* what replaces the smoke: turbines and trees, fading in with the clean-up */
+  drawTurbine(x + u * 4.2, base, u, cleanShown);
+  if (cleanShown > 0.05) {
+    ctx.globalAlpha = cleanShown;
+    ctx.fillStyle = '#4f9c5a';
+    ellF(ctx, x - u * 1.5, base - u * 0.55, u * 0.5, u * 0.42);
+    ellF(ctx, x - u * 1.15, base - u * 0.38, u * 0.34, u * 0.3);
+    ctx.fillStyle = '#6b4a2f';
+    ctx.fillRect(x - u * 1.57, base - u * 0.3, u * 0.14, u * 0.3);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawSkyline() {
+  var par = 0.07, base = groundY - VH * 0.062;
+  var span = VW * 2.2;
+  var smoke = 1 - cleanShown;
+  var body = P.city;
+  var trim = mix('#4a4639', '#6b9a82', cleanShown);
+  var win = mix('#d9a758', '#e6f7ff', cleanShown);
+  for (var i = 0; i < factories.length; i++) {
+    var f = factories[i];
+    var x = f.x - camX * par;
+    x = ((x + 320) % span + span) % span - 320;
+    if (x < -300 || x > VW + 300) continue;
+    drawFactory(f, x, base, VH * 0.040 * f.s, body, trim, win, smoke);
+  }
+}
+
+/** Shafts of light fanning down from the sun; they strengthen as it clears. */
+function drawGodRays() {
+  var amt = 0.06 + 0.13 * cleanShown + 0.30 * sunBoost;
+  if (amt < 0.02) return;
+  ctx.save();
+  ctx.translate(VW * 0.82, VH * 0.14);
+  ctx.rotate(1.85 + Math.sin(T * 0.05) * 0.05);
+  ctx.fillStyle = '#fff6d0';
+  for (var i = 0; i < 6; i++) {
+    ctx.rotate(0.19);
+    ctx.globalAlpha = amt * (0.45 + 0.35 * Math.sin(T * 0.35 + i * 1.7));
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-VH * 0.05, VH * 1.6);
+    ctx.lineTo(VH * 0.09, VH * 1.6);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawMotes() {
+  var span = VW * 2;
+  ctx.fillStyle = mix('#8d8674', '#ffe9a3', cleanShown);
+  for (var i = 0; i < motes.length; i++) {
+    var m = motes[i];
+    var x = m.x - camX * 0.5;
+    x = ((x + 100) % span + span) % span - 100;
+    if (x < -20 || x > VW + 20) continue;
+    var cyc = ((T * m.rise / (VH * 0.6)) + m.ph) % 1;   // drifts up, then fades
+    var y = m.y - cyc * VH * 0.6 + Math.sin(T * m.sp + m.ph * TAU) * 9;
+    ctx.globalAlpha = Math.sin(cyc * Math.PI) * 0.5;
+    ellF(ctx, x, y, m.s, m.s);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** The nearest layer of all - big, soft, and faster than everything behind. */
+function drawForeground() {
+  var span = VW * 2.2;
+  var col = mix('#3a4230', '#2f6340', cleanShown);
+  for (var i = 0; i < fg.length; i++) {
+    var f = fg[i];
+    var x = f.x - camX * 1.35;
+    x = ((x + 320) % span + span) % span - 320;
+    if (x < -180 || x > VW + 180) continue;
+    var u = VH * 0.14 * f.s;
+    var base = VH + u * 0.1;
+    ctx.globalAlpha = f.a;
+    ctx.fillStyle = col;
+    if (f.kind === 0) {                          // a clump of tall blades
+      for (var b = 0; b < 7; b++) {
+        var bx = x + (b - 3) * u * 0.16;
+        var lean = Math.sin(T * 0.9 + f.ph + b * 0.6) * u * 0.16;
+        var hgt = u * (0.7 + 0.32 * Math.sin(b * 2.1 + f.ph));
+        ctx.beginPath();
+        ctx.moveTo(bx - u * 0.075, base);
+        ctx.quadraticCurveTo(bx + lean * 0.5, base - hgt * 0.6,
+                             bx + lean, base - hgt);
+        ctx.quadraticCurveTo(bx + lean * 0.5, base - hgt * 0.55,
+                             bx + u * 0.075, base);
+        ctx.closePath();
+        ctx.fill();
+      }
+    } else {                                     // cattails on tall stems
+      for (var c = 0; c < 3; c++) {
+        var cx = x + (c - 1) * u * 0.26;
+        var bend = Math.sin(T * 0.7 + f.ph + c) * u * 0.13;
+        var ch = u * (0.85 + c * 0.13);
+        ctx.lineWidth = Math.max(2, u * 0.045);
+        ctx.strokeStyle = col;
+        ctx.beginPath();
+        ctx.moveTo(cx, base);
+        ctx.quadraticCurveTo(cx + bend * 0.5, base - ch * 0.6, cx + bend, base - ch);
+        ctx.stroke();
+        fillRR(ctx, cx + bend - u * 0.05, base - ch - u * 0.30, u * 0.10, u * 0.32, u * 0.05);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawShore() {
+  var par = 0.32, span = VW * 1.9;
+  var base = groundY - VH * 0.040;
+  var wood = mix('#5b5546', '#4e6350', cleanShown);
+  var leaf = mix('#4e5a3e', '#3d7d52', cleanShown);
+  var leaf2 = mix('#5d6a48', '#4f9660', cleanShown);
+  var lampGlow = 0.16 + 0.30 * (1 - cleanShown);   // brighter through the smog
+
+  for (var i = 0; i < shore.length; i++) {
+    var o = shore[i];
+    var x = o.x - camX * par;
+    x = ((x + 240) % span + span) % span - 240;
+    if (x < -140 || x > VW + 140) continue;
+    var u = VH * 0.055 * o.s;
+    var sway = Math.sin(T * 0.8 + o.seed) * u * 0.03;
+
+    if (o.kind === 'lamp') {
+      ctx.fillStyle = wood;
+      ctx.fillRect(x - u * 0.035, base - u * 1.55, u * 0.07, u * 1.55);
+      ctx.beginPath();                             // the curved arm
+      ctx.moveTo(x, base - u * 1.55);
+      ctx.quadraticCurveTo(x + u * 0.26, base - u * 1.72, x + u * 0.30, base - u * 1.52);
+      ctx.lineTo(x + u * 0.24, base - u * 1.50);
+      ctx.quadraticCurveTo(x + u * 0.20, base - u * 1.63, x, base - u * 1.48);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();                             // the head
+      ctx.moveTo(x + u * 0.20, base - u * 1.50);
+      ctx.lineTo(x + u * 0.40, base - u * 1.50);
+      ctx.lineTo(x + u * 0.35, base - u * 1.38);
+      ctx.lineTo(x + u * 0.25, base - u * 1.38);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffd984';                   // the light itself
+      ctx.globalAlpha = 0.55 + 0.35 * (1 - cleanShown);
+      ellF(ctx, x + u * 0.30, base - u * 1.38, u * 0.075, u * 0.05);
+      ctx.globalAlpha = lampGlow;                  // haze around it
+      ellF(ctx, x + u * 0.30, base - u * 1.33, u * 0.30, u * 0.22);
+      ctx.globalAlpha = lampGlow * 0.5;
+      ctx.beginPath();                             // the cone on the ground
+      ctx.moveTo(x + u * 0.22, base - u * 1.34);
+      ctx.lineTo(x + u * 0.72, base);
+      ctx.lineTo(x - u * 0.14, base);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+    } else if (o.kind === 'tree') {
+      ctx.fillStyle = wood;
+      ctx.fillRect(x - u * 0.05, base - u * 0.75, u * 0.10, u * 0.75);
+      ctx.fillStyle = leaf;
+      ellF(ctx, x - u * 0.24 + sway, base - u * 0.90, u * 0.30, u * 0.26);
+      ellF(ctx, x + u * 0.26 + sway, base - u * 0.86, u * 0.27, u * 0.23);
+      ctx.fillStyle = leaf2;
+      ellF(ctx, x + sway, base - u * 1.14, u * 0.34, u * 0.30);
+
+    } else if (o.kind === 'pine') {
+      ctx.fillStyle = wood;
+      ctx.fillRect(x - u * 0.04, base - u * 0.5, u * 0.08, u * 0.5);
+      ctx.fillStyle = leaf;
+      for (var tier = 0; tier < 3; tier++) {
+        var ty = base - u * (0.44 + tier * 0.34);
+        var tw = u * (0.40 - tier * 0.09);
+        ctx.beginPath();
+        ctx.moveTo(x + sway * (tier + 1) * 0.4, ty - u * 0.46);
+        ctx.lineTo(x + tw, ty);
+        ctx.lineTo(x - tw, ty);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+    } else if (o.kind === 'bush') {
+      ctx.fillStyle = leaf;
+      ellF(ctx, x - u * 0.15, base - u * 0.15, u * 0.22, u * 0.17);
+      ellF(ctx, x + u * 0.17, base - u * 0.13, u * 0.20, u * 0.15);
+      ctx.fillStyle = leaf2;
+      ellF(ctx, x, base - u * 0.27, u * 0.24, u * 0.19);
+
+    } else if (o.kind === 'bench') {
+      ctx.fillStyle = wood;
+      fillRR(ctx, x - u * 0.30, base - u * 0.24, u * 0.60, u * 0.07, u * 0.03);
+      fillRR(ctx, x - u * 0.30, base - u * 0.44, u * 0.60, u * 0.06, u * 0.03);
+      ctx.fillRect(x - u * 0.26, base - u * 0.24, u * 0.05, u * 0.24);
+      ctx.fillRect(x + u * 0.21, base - u * 0.24, u * 0.05, u * 0.24);
+
+    } else {                                       // a pair of poles and a wire
+      var gapP = u * 1.5;
+      ctx.fillStyle = wood;
+      ctx.fillRect(x - u * 0.04, base - u * 1.35, u * 0.08, u * 1.35);
+      ctx.fillRect(x + gapP - u * 0.04, base - u * 1.35, u * 0.08, u * 1.35);
+      ctx.fillRect(x - u * 0.18, base - u * 1.28, u * 0.36, u * 0.05);
+      ctx.fillRect(x + gapP - u * 0.18, base - u * 1.28, u * 0.36, u * 0.05);
+      ctx.strokeStyle = wood;
+      ctx.lineWidth = Math.max(1, u * 0.022);
+      ctx.beginPath();
+      ctx.moveTo(x, base - u * 1.28);
+      ctx.quadraticCurveTo(x + gapP * 0.5, base - u * 1.06, x + gapP, base - u * 1.28);
+      ctx.stroke();
+      ctx.fillStyle = '#3f4a42';                   // three birds sitting on it
+      for (var bd = 0; bd < 3; bd++) {
+        var q = 0.28 + bd * 0.22;
+        var bxx = x + gapP * q;
+        var byy = base - u * (1.28 - 0.22 * 4 * q * (1 - q)) - u * 0.07;
+        var hopb = Math.sin(T * 1.4 + bd * 2 + o.seed) > 0.93 ? -u * 0.05 : 0;
+        ellF(ctx, bxx, byy + hopb, u * 0.055, u * 0.045);
+        ellF(ctx, bxx + u * 0.04, byy - u * 0.04 + hopb, u * 0.03, u * 0.028);
+      }
+    }
+  }
+
+  /* a little van doing its rounds along the shore */
+  var tx = truckP - camX * par;
+  tx = ((tx + 240) % span + span) % span - 240;
+  if (tx > -120 && tx < VW + 120) {
+    var tu = VH * 0.038;
+    ctx.fillStyle = mix('#6d6656', '#5c8f74', cleanShown);
+    fillRR(ctx, tx, base - tu * 0.78, tu * 1.5, tu * 0.52, tu * 0.10);
+    fillRR(ctx, tx + tu * 1.35, base - tu * 0.62, tu * 0.62, tu * 0.36, tu * 0.09);
+    ctx.fillStyle = '#cfe4ee';
+    fillRR(ctx, tx + tu * 1.48, base - tu * 0.56, tu * 0.34, tu * 0.20, tu * 0.05);
+    ctx.fillStyle = '#2f3630';
+    ellF(ctx, tx + tu * 0.36, base - tu * 0.20, tu * 0.17, tu * 0.17);
+    ellF(ctx, tx + tu * 1.62, base - tu * 0.20, tu * 0.17, tu * 0.17);
+    ctx.fillStyle = '#ffd984';
+    ctx.globalAlpha = 0.5 + 0.4 * (1 - cleanShown);
+    ellF(ctx, tx + tu * 1.98, base - tu * 0.44, tu * 0.09, tu * 0.07);
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawHills(par, amp, base, color, seed) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(0, VH);
+  for (var sx = 0; sx <= VW + 18; sx += 18) {
+    var wx = (camX * par + sx) * 0.0042 + seed;
+    var y = base - amp * (0.52 + 0.32 * Math.sin(wx) + 0.16 * Math.sin(wx * 2.7 + seed));
+    ctx.lineTo(sx, y);
+  }
+  ctx.lineTo(VW, VH);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSludge() {
+  var g = ctx.createLinearGradient(0, groundY, 0, VH);
+  g.addColorStop(0, P.sludgeHi);
+  g.addColorStop(0.38, P.sludgeMid);
+  g.addColorStop(1, P.sludgeLo);
+  ctx.fillStyle = g;
+  ctx.fillRect(0, groundY, VW, VH - groundY);
+
+  // oily sheen - slow drifting iridescent blobs, dulled as the land recovers
+  ctx.globalAlpha = 0.16 * (1 - cleanShown * 0.65);
+  for (var i = 0; i < 6; i++) {
+    var x = ((i * 233 - camX * 0.5) % (VW + 300) + VW + 300) % (VW + 300) - 150;
+    var y = groundY + 22 + (i % 3) * 26;
+    ctx.fillStyle = i % 2 ? '#9d7be0' : '#63d1c0';
+    ellF(ctx, x + Math.sin(T * 0.6 + i) * 14, y, 60 + i * 9, 11 + (i % 3) * 3);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** Litter bobbing in the sludge. Decoration only - it is never a hitbox. */
+function drawJunk() {
+  for (var i = 0; i < junk.length; i++) {
+    var j = junk[i];
+    var span = VW * 3.4;
+    var x = j.x - camX;
+    x = ((x + 200) % span + span) % span - 200;
+    if (x < -60 || x > VW + 60) continue;
+    var y = groundY + j.yo + Math.sin(T * j.sp + j.ph) * 3
+            + (j.jolt ? Math.sin(T * 17 + j.ph) * 6 * j.jolt : 0);
+    var s = j.s * (14 + j.yo * 0.1);
+    ctx.globalAlpha = clamp(1 - cleanShown * 0.5, 0.35, 1);
+    if (j.kind === 0) {                          // bottle
+      ctx.fillStyle = '#7fa88c';
+      fillRR(ctx, x - s * 0.5, y - s * 0.22, s, s * 0.42, s * 0.16);
+      ctx.fillStyle = '#c8d8c0';
+      fillRR(ctx, x + s * 0.34, y - s * 0.12, s * 0.30, s * 0.22, s * 0.08);
+    } else if (j.kind === 1) {                   // can
+      ctx.fillStyle = '#b8b0a0';
+      fillRR(ctx, x - s * 0.3, y - s * 0.28, s * 0.6, s * 0.52, s * 0.12);
+      ctx.fillStyle = '#8d8577';
+      fillRR(ctx, x - s * 0.3, y - s * 0.06, s * 0.6, s * 0.12, s * 0.05);
+    } else {                                     // crumpled bag
+      ctx.fillStyle = '#6c6656';
+      ctx.beginPath();
+      ctx.moveTo(x - s * 0.5, y + s * 0.16);
+      ctx.lineTo(x - s * 0.2, y - s * 0.3);
+      ctx.lineTo(x + s * 0.22, y - s * 0.2);
+      ctx.lineTo(x + s * 0.5, y + s * 0.18);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function stonePath(px, top, w, h) {
+  var r = Math.min(w * 0.26, h * 0.55);
+  ctx.beginPath();
+  ctx.moveTo(px - w / 2 + r, top);
+  ctx.lineTo(px + w / 2 - r, top);
+  ctx.quadraticCurveTo(px + w / 2, top, px + w / 2, top + r);
+  ctx.lineTo(px + w / 2 - w * 0.05, top + h - r * 0.35);
+  ctx.quadraticCurveTo(px + w * 0.30, top + h, px, top + h);
+  ctx.quadraticCurveTo(px - w * 0.30, top + h, px - w / 2 + w * 0.05, top + h - r * 0.35);
+  ctx.lineTo(px - w / 2, top + r);
+  ctx.quadraticCurveTo(px - w / 2, top, px - w / 2 + r, top);
+  ctx.closePath();
+}
+
+/** A rainbow arching over the goal once it is reached. */
+function drawRainbow() {
+  if (!won || !finishStone || sunBoost < 0.02) return;
+  var cx = finishStone.x - camX, cy = groundY + VH * 0.05;
+  var R = VH * 0.62;
+  var bands = ['#ff8f6b', '#ffc24a', '#ffe98a', '#8fe07a', '#7ad3e8', '#8fa8ee', '#c69bf0'];
+  ctx.save();
+  ctx.globalAlpha = 0.22 * sunBoost;
+  ctx.lineWidth = Math.max(6, VH * 0.016);
+  for (var i = 0; i < bands.length; i++) {
+    ctx.strokeStyle = bands[i];
+    ctx.beginPath();
+    ctx.arc(cx, cy, R - i * ctx.lineWidth, Math.PI * 1.04, Math.PI * 1.96);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** The goal: a flowering meadow with a tree, a signpost and a finish flag. */
+function drawMeadow(s, px, top, w, h) {
+  h = Math.min(h, VH * 0.082);                   // a shallow bank, not a hull
+  var hw = w * 0.5;
+
+  if (won) {                                      // warm glow once it is reached
+    ctx.save();
+    ctx.globalAlpha = 0.22 * sunBoost;
+    var gl = ctx.createRadialGradient(px, top - h, w * 0.1, px, top - h * 0.4, w * 0.85);
+    gl.addColorStop(0, '#fff3b0');
+    gl.addColorStop(1, 'rgba(255,243,176,0)');
+    ctx.fillStyle = gl;
+    ellF(ctx, px, top - h * 0.4, w * 0.85, w * 0.5);
+    ctx.restore();
+  }
+
+  /* ---- the bank, given the same rock treatment as the islands ---- */
+  ctx.fillStyle = '#8a6a45';
+  islandPath(px, top, w, h, s.notch);
+  ctx.fill();
+  ctx.save();
+  islandPath(px, top, w, h, s.notch);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(0,0,0,0.13)';
+  ctx.fillRect(px - w, top + h * 0.55, w * 2, h);
+  ctx.fillStyle = 'rgba(22,18,11,0.45)';
+  ctx.fillRect(px - w, groundY, w * 2, VH);
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';           // one faint earth seam
+  ctx.lineWidth = Math.max(1.5, w * 0.006);
+  ctx.beginPath();
+  ctx.moveTo(px - hw * 0.9, top + h * 0.42);
+  ctx.quadraticCurveTo(px, top + h * 0.32, px + hw * 0.9, top + h * 0.46);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  for (var pb = 0; pb < 6; pb++) {
+    ellF(ctx, px + (pb / 5 - 0.5) * w * 0.8, top + h * (0.3 + (pb % 3) * 0.2), w * 0.012, w * 0.009);
+  }
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';       // waterline
+  ellF(ctx, px, groundY, hw * 0.94, Math.max(3, w * 0.02));
+
+  /* ---- turf ---- */
+  ctx.fillStyle = '#5fc45c';
+  ellF(ctx, px, top + 4, hw - 1, Math.max(10, w * 0.035));
+  ctx.fillStyle = '#84e07a';
+  ellF(ctx, px - w * 0.06, top + 1, hw * 0.68, Math.max(5, w * 0.02));
+
+  ctx.fillStyle = '#4fae4a';                      // back layer of grass
+  for (var g = 0; g < 26; g++) {
+    var gx = px - hw * 0.94 + (w * 0.94 / 25) * g;
+    var sway = Math.sin(T * 1.5 + g * 0.7) * 2.2;
+    ctx.beginPath();
+    ctx.moveTo(gx - 2.6, top + 2);
+    ctx.quadraticCurveTo(gx + sway, top - 14, gx + 2.6 + sway, top + 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  /* ---- cattails along both shores ---- */
+  ctx.lineCap = 'round';
+  for (var rd = 0; rd < 6; rd++) {
+    var side = rd < 3 ? -1 : 1;
+    var rx = px + side * (hw * 0.72 + (rd % 3) * w * 0.05);
+    var bend = Math.sin(T * 1.1 + rd) * 4;
+    ctx.strokeStyle = '#4fae4a';
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(rx, top + 2);
+    ctx.quadraticCurveTo(rx + bend, top - 18, rx + bend * 1.6, top - 34);
+    ctx.stroke();
+    ctx.fillStyle = '#a9743f';
+    fillRR(ctx, rx + bend * 1.6 - 2.4, top - 46, 4.8, 13, 2.4);
+  }
+
+  /* ---- the tree ---- */
+  var tx = px - w * 0.30, ty = top;
+  ctx.fillStyle = '#7a5334';
+  ctx.beginPath();
+  ctx.moveTo(tx - 7, ty + 2);
+  ctx.quadraticCurveTo(tx - 3, ty - 26, tx - 2.5, ty - 46);
+  ctx.lineTo(tx + 3.5, ty - 46);
+  ctx.quadraticCurveTo(tx + 4, ty - 26, tx + 8, ty + 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#7a5334';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.moveTo(tx, ty - 38); ctx.lineTo(tx - 13, ty - 50);
+  ctx.moveTo(tx, ty - 42); ctx.lineTo(tx + 12, ty - 52);
+  ctx.stroke();
+  var lean = Math.sin(T * 0.9) * 0.028;
+  ctx.save();
+  ctx.translate(tx, ty - 48);
+  ctx.rotate(lean);
+  ctx.fillStyle = '#3f9c46';
+  ellF(ctx, -16, 4, 20, 16);
+  ellF(ctx, 17, 2, 18, 15);
+  ellF(ctx, 0, -14, 23, 19);
+  ctx.fillStyle = '#5fc85a';
+  ellF(ctx, -6, -16, 16, 13);
+  ellF(ctx, 13, -6, 12, 10);
+  ctx.fillStyle = '#e8604f';                      // apples
+  ellF(ctx, -14, 2, 3.4, 3.4);
+  ellF(ctx, 8, -14, 3.2, 3.2);
+  ellF(ctx, 18, 6, 3, 3);
+  ctx.restore();
+
+  /* ---- fallen log and bushes ---- */
+  var lx = px + w * 0.09;
+  ctx.fillStyle = '#8a6a45';
+  fillRR(ctx, lx - 20, top - 11, 40, 12, 6);
+  ctx.fillStyle = '#a9835a';
+  ellF(ctx, lx + 20, top - 5, 3.6, 6);
+  ctx.fillStyle = '#7a5334';
+  ellF(ctx, lx + 20, top - 5, 1.6, 2.8);
+
+  for (var bs = 0; bs < 2; bs++) {
+    var bx = px + (bs ? w * 0.26 : -w * 0.08);
+    ctx.fillStyle = '#3f9c46';
+    ellF(ctx, bx - 8, top - 7, 11, 9);
+    ellF(ctx, bx + 8, top - 6, 10, 8);
+    ctx.fillStyle = '#5fc85a';
+    ellF(ctx, bx, top - 13, 12, 10);
+    ctx.fillStyle = '#c9569f';
+    ellF(ctx, bx - 6, top - 9, 2.6, 2.6);
+    ellF(ctx, bx + 7, top - 12, 2.4, 2.4);
+  }
+
+  /* ---- flowers ---- */
+  for (var i = 0; i < s.flowers.length; i++) {
+    var f = s.flowers[i];
+    var fx = px + f.dx * w, fy = top - f.dy;
+    var nod = Math.sin(T * 1.7 + i) * 1.4;
+    ctx.strokeStyle = '#3f9c46';
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.moveTo(fx, top + 2);
+    ctx.quadraticCurveTo(fx + nod, fy + 4, fx + nod, fy);
+    ctx.stroke();
+    ctx.fillStyle = f.c;
+    for (var pt = 0; pt < 5; pt++) {
+      var a = pt * TAU / 5 + T * 0.2;
+      ellF(ctx, fx + nod + Math.cos(a) * f.r, fy + Math.sin(a) * f.r, f.r * 0.68, f.r * 0.68);
+    }
+    ctx.fillStyle = '#fff3c4';
+    ellF(ctx, fx + nod, fy, f.r * 0.55, f.r * 0.55);
+  }
+
+  /* ---- stepping stones from the landing side ---- */
+  ctx.fillStyle = 'rgba(150,150,138,0.75)';
+  for (var st2 = 0; st2 < 3; st2++) {
+    ellF(ctx, px - hw * 0.62 + st2 * w * 0.10, top + 6 - st2 * 1.5, 9 - st2, 3.4);
+  }
+
+  /* ---- signpost ---- */
+  var sgx = px + w * 0.15;
+  ctx.fillStyle = '#8a6a45';
+  ctx.fillRect(sgx - 2.5, top - 34, 5, 34);
+  ctx.fillStyle = '#f6efdc';
+  fillRR(ctx, sgx - 30, top - 52, 60, 20, 5);
+  ctx.fillStyle = '#8a6a45';
+  fillRR(ctx, sgx - 30, top - 52, 60, 3.5, 1.75);
+  ctx.fillStyle = '#3f7a45';
+  ctx.font = '800 ' + Math.max(11, Math.round(w * 0.035)) + 'px ' +
+    '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ФИНИШ', sgx, top - 38);
+  ctx.textAlign = 'left';
+
+  /* ---- finish flag ---- */
+  var poleX = px + w * 0.40;
+  ctx.fillStyle = '#8a6a45';
+  ctx.fillRect(poleX, top - 82, 4.5, 84);
+  var flap = Math.sin(T * 3) * 4;
+  ctx.fillStyle = '#4fbf5f';
+  ctx.beginPath();
+  ctx.moveTo(poleX + 4, top - 82);
+  ctx.quadraticCurveTo(poleX + 30, top - 78 + flap, poleX + 52, top - 70);
+  ctx.lineTo(poleX + 52, top - 48);
+  ctx.quadraticCurveTo(poleX + 28, top - 54 + flap, poleX + 4, top - 50);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = '#fff3c4';
+  ellF(ctx, poleX + 26, top - 62 + flap * 0.4, 5.5, 5.5);
+
+  /* ---- petals drifting off the tree ---- */
+  for (var pe = 0; pe < 7; pe++) {
+    var pt2 = (T * 0.17 + pe / 7) % 1;
+    var ppx = tx + Math.sin(pt2 * 6 + pe) * 15 + pt2 * 26;
+    var ppy = top - 60 + pt2 * 58;
+    ctx.save();
+    ctx.globalAlpha = (1 - pt2) * 0.85;
+    ctx.translate(ppx, ppy);
+    ctx.rotate(pt2 * 6 + pe);
+    ctx.fillStyle = pe % 2 ? '#ffc7de' : '#fff0a8';
+    ellF(ctx, 0, 0, 3.4, 2);
+    ctx.restore();
+  }
+
+  /* ---- butterflies and a bee ---- */
+  for (var b = 0; b < 3; b++) {
+    var bx2 = px + Math.sin(T * (0.5 + b * 0.2) + b * 2) * w * 0.32 - w * 0.1;
+    var by2 = top - 52 - b * 22 + Math.sin(T * (1.6 + b * 0.4)) * 7;
+    var wing = Math.abs(Math.sin(T * 9 + b)) * 0.8 + 0.2;
+    ctx.fillStyle = b % 2 ? '#ff9fc4' : '#ffd44a';
+    ellF(ctx, bx2 - 4 * wing, by2, 4.4 * wing, 3.4);
+    ellF(ctx, bx2 + 4 * wing, by2, 4.4 * wing, 3.4);
+    ctx.fillStyle = '#6b4a2f';
+    ellF(ctx, bx2, by2, 1.3, 3.0);
+  }
+  var bee = px + w * 0.2 + Math.sin(T * 1.9) * w * 0.16;
+  var beeY = top - 20 + Math.sin(T * 3.1) * 9;
+  ctx.fillStyle = '#ffd44a';
+  ellF(ctx, bee, beeY, 3.4, 2.6);
+  ctx.fillStyle = '#3d2a1d';
+  ellF(ctx, bee + 1.4, beeY, 1.1, 2.4);
+  ctx.globalAlpha = 0.45;
+  ctx.fillStyle = '#ffffff';
+  ellF(ctx, bee - 0.5, beeY - 2.6, 2.6, 1.4);
+  ctx.globalAlpha = 1;
+}
+
+/** A slightly irregular boulder: flat landing top, bulging sides, round base. */
+/**
+ * A boulder rising out of the water: widest at the grassy shoulder, curving in
+ * towards the waterline and on down to a rounded keel - an island, not a drum.
+ */
+function islandPath(px, top, w, h, seed) {
+  var hw = w * 0.5;
+  var bl = 1 + Math.sin(seed) * 0.06;            // each rock bulges its own way
+  var br = 1 + Math.cos(seed * 1.7) * 0.06;
+  var keel = Math.sin(seed * 2.3) * hw * 0.18;   // lowest point sits off-centre
+  ctx.beginPath();
+  ctx.moveTo(px - hw * 0.96, top);
+  ctx.lineTo(px + hw * 0.96, top);
+  ctx.quadraticCurveTo(px + hw * 1.04 * br, top + h * 0.30, px + hw * 0.80, top + h * 0.62);
+  ctx.quadraticCurveTo(px + hw * 0.56, top + h * 0.97, px + keel, top + h);
+  ctx.quadraticCurveTo(px - hw * 0.52, top + h * 1.00, px - hw * 0.80 * bl, top + h * 0.64);
+  ctx.quadraticCurveTo(px - hw * 1.04 * bl, top + h * 0.30, px - hw * 0.96, top);
+  ctx.closePath();
+}
+
+/** Approximate half-width of islandPath at depth fraction f (0 top, 1 keel). */
+function islandHalfAt(w, f) {
+  var hw = w * 0.5;
+  if (f <= 0.62) return hw * lerp(0.98, 0.80, f / 0.62);
+  return hw * lerp(0.80, 0.18, clamp((f - 0.62) / 0.38, 0, 1));
+}
+
+/** Turf with a nibbled top edge, an earth band beneath and tufts on the rim. */
+/**
+ * The grass cap: a scalloped crown, a slight overhang past the rock, and a
+ * fringe of grass drooping over the edge - a cap, not a lid.
+ */
+function drawTurf(s, px, top, w, cap, capHi, earth) {
+  var hw = w * 0.52;                             // overhangs the rock a touch
+  var th = Math.max(6, w * 0.10);                // depth of the solid turf
+  var bumps = Math.max(4, Math.round(w / 22));
+  var drips = Math.max(5, Math.round(w / 13));
+  var capDark = mix(cap, '#1d331c', 0.30);
+
+  function crown() {                             // the scalloped top edge
+    var r = th * 0.6;
+    ctx.moveTo(px - hw, top + th * 0.5);
+    ctx.quadraticCurveTo(px - hw, top - 1, px - hw + r, top - 1);
+    var x0 = px - hw + r, span = 2 * hw - r * 2;
+    for (var i = 0; i < bumps; i++) {
+      var a = x0 + span * i / bumps, b = x0 + span * (i + 1) / bumps;
+      var lift = 2.5 + Math.sin(i * 1.7 + s.notch) * 2;
+      ctx.quadraticCurveTo((a + b) * 0.5, top - 1 - lift, b, top - 1);
+    }
+    ctx.quadraticCurveTo(px + hw, top - 1, px + hw, top + th * 0.5);
+  }
+
+  ctx.fillStyle = 'rgba(0,0,0,0.17)';            // shadow the overhang throws
+  ctx.beginPath();
+  ctx.moveTo(px - hw * 0.94, top + th);
+  ctx.lineTo(px + hw * 0.94, top + th);
+  ctx.quadraticCurveTo(px + hw * 0.90, top + th * 2.6, px, top + th * 2.9);
+  ctx.quadraticCurveTo(px - hw * 0.90, top + th * 2.6, px - hw * 0.94, top + th);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = capDark;                       // whole cap with its fringe
+  ctx.beginPath();
+  crown();
+  ctx.lineTo(px + hw, top + th);
+  for (var d = drips; d >= 1; d--) {
+    var xa = px - hw + 2 * hw * d / drips;
+    var xb = px - hw + 2 * hw * (d - 1) / drips;
+    var dl = th * (0.45 + 0.75 * Math.abs(Math.sin(d * 2.17 + s.notch)));
+    ctx.quadraticCurveTo((xa + xb) * 0.5, top + th + dl * 1.8, xb, top + th);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = cap;                           // the sunlit body of the turf
+  ctx.beginPath();
+  crown();
+  ctx.lineTo(px + hw, top + th * 0.72);
+  ctx.quadraticCurveTo(px, top + th * 1.15, px - hw, top + th * 0.72);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = capHi;                         // highlight along the crown
+  ctx.beginPath();
+  ctx.moveTo(px - hw * 0.80, top + 1.5);
+  ctx.quadraticCurveTo(px - hw * 0.15, top - 3.5, px + hw * 0.50, top + 1);
+  ctx.quadraticCurveTo(px - hw * 0.15, top + 3.5, px - hw * 0.80, top + 1.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Blades, daisies, mushrooms, sprouts and berry bushes - one island's garden. */
+function drawGarden(s, px, top, w, cap) {
+  ctx.fillStyle = cap;
+  var flinch = s.impactT > 0 ? s.impactT / 0.42 : 0;
+  for (var g = 0; g < 9; g++) {
+    var gx = px - w * 0.40 + (w * 0.80 / 8) * g;
+    var hgt = 8 + Math.sin(g * 2.3 + s.notch) * 4;
+    var sway = Math.sin(T * 1.5 + g + s.id) * 2.1;
+    if (flinch > 0) {                            // pushed away from the landing
+      var fd = (gx - px) - s.impactX;
+      sway += (fd >= 0 ? 1 : -1) * flinch * 7 * Math.exp(-Math.abs(fd) / (w * 0.28));
+      hgt *= 1 - flinch * 0.35;
+    }
+    ctx.beginPath();
+    ctx.moveTo(gx - 2.3, top + 1);
+    ctx.quadraticCurveTo(gx + sway, top - hgt, gx + 2.3 + sway, top + 1);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  for (var d = 0; d < s.deco.length; d++) {
+    var o = s.deco[d];
+    var ox = px + o.dx * w, u = 5 * o.s;
+    var nod = Math.sin(T * 1.6 + o.ph) * 1.6;
+
+    if (o.kind === 0) {                            // daisies, once it is greener
+      if (cleanShown < 0.2) continue;
+      ctx.globalAlpha = clamp((cleanShown - 0.2) * 2.2, 0, 1);
+      for (var f = 0; f < 2; f++) {
+        var fx = ox + f * u * 1.5, fy = top - u * 2.0 - f * u * 0.4;
+        ctx.strokeStyle = '#3f9c46';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(fx, top + 1);
+        ctx.quadraticCurveTo(fx + nod, fy + u, fx + nod, fy);
+        ctx.stroke();
+        ctx.fillStyle = f ? '#ff9fc4' : '#fffdf2';
+        for (var pt = 0; pt < 5; pt++) {
+          var a = pt * TAU / 5;
+          ellF(ctx, fx + nod + Math.cos(a) * u * 0.42, fy + Math.sin(a) * u * 0.42, u * 0.3, u * 0.3);
+        }
+        ctx.fillStyle = '#ffd44a';
+        ellF(ctx, fx + nod, fy, u * 0.26, u * 0.26);
+      }
+      ctx.globalAlpha = 1;
+
+    } else if (o.kind === 1) {                     // toadstool
+      ctx.fillStyle = '#f6efdc';
+      ctx.fillRect(ox - u * 0.22, top - u * 1.15, u * 0.44, u * 1.15);
+      ctx.fillStyle = '#e8604f';
+      ctx.beginPath();
+      ctx.ellipse(ox, top - u * 1.15, u * 0.72, u * 0.56, 0, Math.PI, 0);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#fffdf2';
+      ellF(ctx, ox - u * 0.26, top - u * 1.32, u * 0.15, u * 0.12);
+      ellF(ctx, ox + u * 0.22, top - u * 1.20, u * 0.12, u * 0.10);
+
+    } else if (o.kind === 2) {                     // seedling
+      ctx.strokeStyle = '#3f9c46';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(ox, top + 1);
+      ctx.quadraticCurveTo(ox + nod * 0.6, top - u, ox + nod, top - u * 1.7);
+      ctx.stroke();
+      ctx.fillStyle = '#6fd85f';
+      ctx.save();
+      ctx.translate(ox + nod, top - u * 1.5);
+      ctx.rotate(-0.5 + nod * 0.05);
+      ellF(ctx, -u * 0.42, 0, u * 0.46, u * 0.24);
+      ctx.rotate(1.0);
+      ellF(ctx, u * 0.42, 0, u * 0.46, u * 0.24);
+      ctx.restore();
+
+    } else {                                       // berry bush
+      ctx.fillStyle = '#3f9c46';
+      ellF(ctx, ox - u * 0.5, top - u * 0.5, u * 0.62, u * 0.52);
+      ellF(ctx, ox + u * 0.5, top - u * 0.45, u * 0.56, u * 0.46);
+      ctx.fillStyle = '#5fc85a';
+      ellF(ctx, ox, top - u * 0.95, u * 0.66, u * 0.56);
+      ctx.fillStyle = '#e8604f';
+      ellF(ctx, ox - u * 0.34, top - u * 0.62, u * 0.16, u * 0.16);
+      ellF(ctx, ox + u * 0.42, top - u * 0.9, u * 0.14, u * 0.14);
+    }
+  }
+}
+
+/**
+ * The first island: a signpost and a jetty pointing the way to the first stone.
+ */
+function drawStartExtras(s, px, top, w, h) {
+  var FONT = '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+
+  /* Pilings, driven well down into the bed rather than stopping at the surface. */
+  var pileTop = top + h * 0.34;
+  var pileEnd = groundY + VH * 0.085;
+  var piles = [px - w * 0.36, px + w * 0.06];
+  ctx.strokeStyle = '#6b4a33';                     // cross-bracing between them
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.moveTo(piles[0] + 4, groundY - VH * 0.004);
+  ctx.lineTo(piles[1] + 5, groundY + VH * 0.040);
+  ctx.moveTo(piles[1] + 5, groundY - VH * 0.004);
+  ctx.lineTo(piles[0] + 4, groundY + VH * 0.040);
+  ctx.stroke();
+  ctx.fillStyle = '#734a30';
+  for (var pi = 0; pi < piles.length; pi++) {
+    ctx.fillRect(piles[pi], pileTop, 9, pileEnd - pileTop);
+    ctx.fillStyle = '#8a6a45';                     // a lit edge down each post
+    ctx.fillRect(piles[pi], pileTop, 2.5, pileEnd - pileTop);
+    ctx.fillStyle = '#734a30';
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.20)';        // wet collar at the surface
+  for (var pw = 0; pw < piles.length; pw++) {
+    ellF(ctx, piles[pw] + 4.5, groundY, 10, 3.2);
+  }
+
+  /* the jetty, reaching out towards the first jump */
+  var jx = px + w * 0.32, jw = w * 0.28;
+  ctx.fillStyle = '#6b4a33';
+  var jp = [jx + jw * 0.30, jx + jw * 0.86];
+  for (var ji = 0; ji < jp.length; ji++) {
+    ctx.fillRect(jp[ji], top + 2, 7, groundY + VH * 0.062 - (top + 2));
+  }
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  for (var jw2 = 0; jw2 < jp.length; jw2++) {
+    ellF(ctx, jp[jw2] + 3.5, groundY, 8, 2.6);
+  }
+  ctx.fillStyle = '#6b4a33';
+  ctx.fillStyle = '#8a6a45';
+  fillRR(ctx, jx, top - 5, jw, 10, 3);
+  ctx.strokeStyle = 'rgba(90,62,38,0.5)';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (var pl = 1; pl < 5; pl++) {                 // plank seams
+    var plx = jx + pl * jw / 5;
+    ctx.moveTo(plx, top - 4.5); ctx.lineTo(plx, top + 4.5);
+  }
+  ctx.stroke();
+
+  /* signpost pointing the way onward */
+  var sgx = px + w * 0.22;
+  ctx.fillStyle = '#8a6a45';
+  ctx.fillRect(sgx - 2.5, top - 42, 5, 42);
+  ctx.fillStyle = '#f6efdc';
+  fillRR(ctx, sgx - 28, top - 60, 56, 20, 5);
+  ctx.fillStyle = '#8a6a45';
+  fillRR(ctx, sgx - 28, top - 60, 56, 3.5, 1.75);
+  ctx.fillStyle = '#3f7a45';
+  ctx.font = '800 ' + Math.max(10, Math.round(w * 0.052)) + 'px ' + FONT;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('СТАРТ', sgx, top - 48);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#5fc45c';                       // this way
+  ctx.beginPath();
+  ctx.moveTo(sgx + 6, top - 34);
+  ctx.lineTo(sgx + 17, top - 29);
+  ctx.lineTo(sgx + 6, top - 24);
+  ctx.closePath();
+  ctx.fill();
+
+}
+
+function drawStone(s) {
+  var px = s.x - camX;
+  var top = stoneTop(s);
+  var w = s.w, h = stoneH(s);
+  if (px + w < -70 || px - w > VW + 70) return;
+  if (s.type === 'finish') { drawMeadow(s, px, top, w, h); return; }
+
+  var polluted = 0;
+  if (s.trig) {
+    polluted = clamp(s.tt / CRUMBLE_FUSE, 0, 1);
+    if (s.sink < 2) px += Math.sin(T * (28 + polluted * 34)) * 3 * polluted;
+  }
+
+  var body = P.rock, edge = P.rockEdge, cap = P.moss, capHi = P.mossHi;
+  var earth = mix('#8a6a45', '#7d6a4a', cleanShown);
+  if (s.type === 'moving') {
+    body = mix('#7d8590', '#7fa8ad', cleanShown);
+    cap = mix('#77a878', '#4fc9a6', cleanShown);
+  }
+  if (s.type === 'start') { body = '#8a7d6c'; edge = '#766a5b'; cap = '#5fc45c'; capHi = '#84e07a'; }
+  if (polluted > 0) {
+    body = mix(body, '#3b3123', polluted * 0.75);
+    cap = mix(cap, '#4a3f2a', polluted);
+    capHi = mix(capHi, '#5b4e34', polluted);
+    earth = mix(earth, '#3b3123', polluted);
+  }
+
+  /* --- reflection in the sludge --- */
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = body;
+  ellF(ctx, px + Math.sin(T * 2.1 + px * 0.02) * 3,
+       groundY + (groundY - top) * 0.5 + h * 0.3, w * 0.42, h * 0.32);
+  ctx.restore();
+
+  /* --- rock: lit shoulder, shadowed face, ledges, wet line, crisp rim --- */
+  var waterF = clamp((groundY - top) / h, 0, 1);  // where the surface cuts it
+  ctx.fillStyle = body;
+  islandPath(px, top, w, h, s.notch);
+  ctx.fill();
+
+  ctx.save();
+  islandPath(px, top, w, h, s.notch);
+  ctx.clip();
+  ctx.fillStyle = 'rgba(0,0,0,0.20)';             // the face turned from the sun
+  ctx.beginPath();
+  ctx.moveTo(px + w * 0.10, top);
+  ctx.lineTo(px + w, top);
+  ctx.lineTo(px + w, top + h);
+  ctx.lineTo(px - w * 0.06, top + h);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';       // the sunlit shoulder
+  ctx.beginPath();
+  ctx.moveTo(px - w * 0.50, top);
+  ctx.lineTo(px - w * 0.10, top);
+  ctx.lineTo(px - w * 0.26, top + h * 0.55);
+  ctx.lineTo(px - w * 0.50, top + h * 0.40);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)';           // ledges in the stone
+  ctx.lineWidth = Math.max(1.3, w * 0.014);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(px - w * 0.38, top + h * 0.34);
+  ctx.lineTo(px - w * 0.12, top + h * 0.38);
+  ctx.moveTo(px + w * 0.06, top + h * 0.50);
+  ctx.lineTo(px + w * 0.32, top + h * 0.45);
+  ctx.moveTo(px - w * 0.22, top + h * 0.60);
+  ctx.lineTo(px + w * 0.02, top + h * 0.64);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';       // pebbly speckle, above water
+  for (var pb = 0; pb < s.pebbles.length; pb++) {
+    var q = s.pebbles[pb];
+    ellF(ctx, px + q.dx * w * 0.8, top + q.dy * h * waterF, w * q.r, w * q.r * 0.72);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.14)';             // dark wet band at the waterline
+  ctx.fillRect(px - w, groundY - Math.max(3, h * 0.07), w * 2, Math.max(3, h * 0.07));
+  ctx.fillStyle = 'rgba(22,18,11,0.50)';          // everything below the surface
+  ctx.fillRect(px - w, groundY, w * 2, VH);
+  ctx.restore();
+
+  ctx.save();                                     // a crisp rim, above water only
+  ctx.beginPath();
+  ctx.rect(px - w, top - 2, w * 2, Math.max(0, groundY - top + 2));
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.22)';
+  ctx.lineWidth = Math.max(1.5, w * 0.018);
+  islandPath(px, top, w, h, s.notch);
+  ctx.stroke();
+  ctx.restore();
+
+  /* --- roots trailing into the water --- */
+  ctx.strokeStyle = polluted > 0.4 ? 'rgba(70,56,34,0.5)' : 'rgba(63,120,70,0.55)';
+  ctx.lineWidth = Math.max(1.4, w * 0.017);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  for (var rt = 0; rt < s.roots; rt++) {
+    var rx = px + (rt - (s.roots - 1) * 0.5) * w * 0.26;
+    var drift = Math.sin(T * 1.3 + rt + s.notch) * 4;
+    ctx.moveTo(rx, top + h * 0.62);
+    ctx.quadraticCurveTo(rx + drift, top + h * 0.9, rx + drift * 1.6, groundY + 14);
+  }
+  ctx.stroke();
+
+  /* --- waterline: foam hugging the rock where the surface meets it --- */
+  var wh = islandHalfAt(w, waterF) * 1.10;
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ellF(ctx, px, groundY + 1, wh * 1.12, Math.max(3, w * 0.05));
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(px, groundY, wh, Math.max(2.5, w * 0.035), 0, 0.1, Math.PI - 0.1);
+  ctx.stroke();
+
+  /* --- turf and garden --- */
+  drawTurf(s, px, top, w, cap, capHi, earth);
+  if (polluted < 0.45) drawGarden(s, px, top, w, cap);
+
+  /* --- type-specific marks --- */
+  if (s.type === 'start') {
+    drawStartExtras(s, px, top, w, h);
+
+  } else if (s.type === 'moving') {
+    ctx.fillStyle = 'rgba(255,255,255,0.62)';
+    var dir = Math.cos(T * s.msp + s.mph) >= 0 ? 1 : -1;
+    for (var a = 0; a < 2; a++) {
+      var ax = px + dir * (w * 0.15 + a * 9);
+      ctx.beginPath();
+      ctx.moveTo(ax, top + h * 0.40 - 5);
+      ctx.lineTo(ax + dir * 6, top + h * 0.40);
+      ctx.lineTo(ax, top + h * 0.40 + 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';     // bow wave
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(px, groundY + 2, w * 0.5, 6, 0, 0, Math.PI);
+    ctx.stroke();
+
+  } else if (s.type === 'crumble') {
+    ctx.strokeStyle = 'rgba(40,30,16,0.5)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px - w * 0.2, top + h * 0.16);
+    ctx.lineTo(px - w * 0.07, top + h * 0.44);
+    ctx.moveTo(px + w * 0.17, top + h * 0.14);
+    ctx.lineTo(px + w * 0.25, top + h * 0.5);
+    ctx.stroke();
+    if (s.trig) {
+      var left = clamp(1 - s.tt / CRUMBLE_FUSE, 0, 1);
+      ctx.strokeStyle = left > 0.35 ? '#ffd44a' : '#ff7b5e';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(px, top - 19, 8, -Math.PI / 2, -Math.PI / 2 + TAU * left);
+      ctx.stroke();
+    }
+  }
+
+  /* --- trash pile: the part of the island you must not land on --- */
+  if (s.trash) {
+    var tx = px + s.trashX, tr = s.trash;
+    if (phase === 'air' && hop.y < top &&        // someone is sailing over it
+        Math.abs(hop.x - (s.x + s.trashX)) < tr * 4) {
+      tx += Math.sin(T * 38) * 2.2;
+    }
+    ctx.fillStyle = 'rgba(46,36,22,0.5)';
+    ellF(ctx, tx, top + 2, tr * 1.15, tr * 0.3);
+    ctx.fillStyle = '#5d5544';
+    ctx.beginPath();
+    ctx.moveTo(tx - tr, top + 3);
+    ctx.lineTo(tx - tr * 0.5, top - tr * 0.85);
+    ctx.lineTo(tx + tr * 0.15, top - tr * 0.4);
+    ctx.lineTo(tx + tr * 0.6, top - tr * 0.95);
+    ctx.lineTo(tx + tr, top + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#8a806a';
+    ellF(ctx, tx - tr * 0.35, top - tr * 0.3, tr * 0.26, tr * 0.2);
+    ctx.fillStyle = '#9fae94';
+    fillRR(ctx, tx + tr * 0.24, top - tr * 0.62, tr * 0.30, tr * 0.5, tr * 0.12);
+  }
+}
+
+/** Collectible leaf, gently spinning with a soft glow. */
+function drawItems() {
+  for (var i = 0; i < items.length; i++) {
+    var o = items[i];
+    if (o.taken) continue;
+    var x = o.x - camX, y = o.y + Math.sin(T * 2 + o.ph) * 5;
+    if (x < -60 || x > VW + 60) continue;
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = '#b9f5a0';
+    ellF(ctx, x, y, o.r * 1.28, o.r * 1.28);
+    ctx.globalAlpha = 1;
+    ctx.translate(x, y);
+    ctx.rotate(Math.sin(T * 1.6 + o.ph) * 0.35 - 0.4);
+    ctx.fillStyle = '#5fc85a';
+    ctx.beginPath();
+    ctx.moveTo(-o.r * 0.75, o.r * 0.55);
+    ctx.quadraticCurveTo(-o.r * 0.9, -o.r * 0.85, o.r * 0.7, -o.r * 0.7);
+    ctx.quadraticCurveTo(o.r * 0.55, o.r * 0.6, -o.r * 0.75, o.r * 0.55);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#2f8f43';
+    ctx.lineWidth = Math.max(1.4, o.r * 0.11);
+    ctx.beginPath();
+    ctx.moveTo(-o.r * 0.7, o.r * 0.5);
+    ctx.quadraticCurveTo(0, -o.r * 0.1, o.r * 0.62, -o.r * 0.62);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawHopper() {
+  var px = hop.x - camX, py = hop.y;
+
+  /* what the current idle performance is doing this frame */
+  var pr = hop.actLeft > 0 ? 1 - hop.actLeft / hop.actDur : 0;
+  var look = hop.act === 'look' ? Math.sin(pr * TAU) : 0;
+  var bounce = hop.act === 'bounce' ? -Math.abs(Math.sin(pr * TAU)) * KW * 0.18 : 0;
+  var opts = {
+    t: T, tp: hop.tailPhase, look: look,
+    blink: hop.blink > 0,
+    squint: phase === 'charge',
+    yuck: phase === 'fall',
+    tongue: hop.act === 'tongue',
+    speak: hop.speak > 0,
+    air: phase === 'air' || phase === 'fall'
+  };
+
+  /* Reflection in the sludge. Held close to the surface and faded out with
+     height - a true-distance mirror reads as a detached ghost on a high jump. */
+  var refl = clamp(1 - (groundY - py) / (VH * 0.30), 0, 1);
+  if (phase !== 'fall' && py < groundY - 2 && refl > 0.02) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, groundY, VW, VH - groundY);
+    ctx.clip();
+    ctx.globalAlpha = 0.20 * refl;
+    ctx.translate(px + Math.sin(T * 2.4 + hop.x * 0.02) * 3,
+                  groundY + (groundY - py) * 0.38);
+    ctx.scale(1, -1);
+    drawAnimal(ctx, chosen, KW, opts);
+    ctx.restore();
+  }
+
+  if (hop.onStone && phase !== 'fall') {
+    ctx.fillStyle = 'rgba(20,30,24,0.18)';
+    ellF(ctx, px, py + 3, KW * (0.42 - bounce / (KW * 2.2)), KW * 0.11);
+  }
+  ctx.save();
+  ctx.globalAlpha = hop.alpha;
+  ctx.translate(px, py + bounce);
+  ctx.rotate(hop.rot);
+  var idle = (phase === 'stand' && mode === 'play') ? Math.sin(T * 2.6) * 0.022 : 0;
+  ctx.scale(1 - hop.sqz * 0.72 - idle, 1 + hop.sqz + idle);
+  drawAnimal(ctx, chosen, KW, opts);
+  ctx.restore();
+
+  if (phase === 'fall') {                        // light stink puffs, kid-friendly
+    ctx.globalAlpha = 0.5 * hop.alpha;
+    ctx.fillStyle = '#9fbf6a';
+    for (var i = 0; i < 3; i++) {
+      ellF(ctx, px + Math.sin(T * 3 + i * 2) * 12 + i * 6,
+           py - KW * (1.5 + i * 0.42), 7 + i * 2.5, 6 + i * 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawSludgeTint() {
+  ctx.fillStyle = 'rgba(30,24,14,' + (0.30 - cleanShown * 0.12) + ')';
+  ctx.fillRect(0, groundY, VW, VH - groundY);
+}
+
+function drawSurface() {
+  ctx.fillStyle = P.foam;
+  ctx.globalAlpha = 0.55;
+  ctx.beginPath();
+  ctx.moveTo(0, groundY + 7);
+  for (var x = 0; x <= VW; x += 8) {
+    ctx.lineTo(x, groundY + Math.sin((x + camX * 0.6) * 0.02 + T * 1.5) * 2.4);
+  }
+  ctx.lineTo(VW, groundY + 7);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.globalAlpha = 0.08 + 0.20 * cleanShown + 0.20 * sunBoost;
+  ctx.fillStyle = '#fff3c4';                     // the sun's path on the water
+  for (var gl = 0; gl < 9; gl++) {
+    var gy = groundY + 7 + gl * 9;
+    var gw = VW * 0.085 * (1 - gl / 13) * (0.55 + 0.45 * Math.sin(T * 2.1 + gl * 1.3));
+    ellF(ctx, VW * 0.82 + Math.sin(T * 1.3 + gl) * 7, gy, Math.max(1, gw), 2.1);
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.lineCap = 'round';
+  for (var k = 0; k < 3; k++) {
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.13 - k * 0.035 + cleanShown * 0.07) + ')';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    var yb = groundY + 15 + k * 16;
+    for (var sx = 0; sx <= VW; sx += 8) {
+      var y = yb + Math.sin((sx + camX * 0.55) * 0.018 + T * (1.3 + k * 0.3) + k) * (3 + k);
+      if (sx === 0) ctx.moveTo(sx, y); else ctx.lineTo(sx, y);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawAim() {
+  if (phase !== 'charge') return;
+  var p = clamp(charge, 0.04, 1);
+  var d = MIN_D + p * (MAX_D - MIN_D);
+  var apex = VH * (0.13 + 0.10 * p);
+  var t = 0.60 + 0.30 * p;
+  var g = 8 * apex / (t * t), v0 = -4 * apex / t, vx = d / t;
+
+  ctx.save();
+  for (var i = 1; i <= 16; i++) {
+    var tt = t * i / 16;
+    var x = hop.x + vx * tt - camX;
+    var y = hop.y + v0 * tt + 0.5 * g * tt * tt;
+    ctx.globalAlpha = 0.62 - i * 0.023;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x, y, Math.max(1.7, 3.4 - i * 0.09), 0, TAU);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 0.9;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.ellipse(hop.x + d - camX, hop.y + 4, 15, 5.5, 0, 0, TAU);
+  ctx.stroke();
+  ctx.restore();
+
+  var bw = Math.max(56, KW * 1.5), bh = 9;
+  var bx = hop.x - camX - bw / 2, by = hop.y - KW * 2.3;
+  ctx.fillStyle = 'rgba(20,34,26,0.34)';
+  rr(ctx, bx - 2, by - 2, bw + 4, bh + 4, (bh + 4) / 2); ctx.fill();
+  ctx.fillStyle = 'hsl(' + Math.round(lerp(132, 6, charge)) + ',82%,54%)';
+  rr(ctx, bx, by, Math.max(bh, bw * charge), bh, bh / 2); ctx.fill();
+}
+
+function drawEffects() {
+  for (var i = 0; i < ripples.length; i++) {
+    var rp = ripples[i];
+    ctx.globalAlpha = clamp(rp.life / rp.max, 0, 1) * (rp.a || 0.45);
+    ctx.strokeStyle = rp.c || '#cbbf9a';
+    ctx.lineWidth = rp.lw || 2;
+    ctx.beginPath();
+    ctx.ellipse(rp.x - camX, rp.y, rp.r, rp.r * 0.32, 0, 0, TAU);
+    ctx.stroke();
+  }
+  for (var j = 0; j < parts.length; j++) {
+    var q = parts[j];
+    ctx.globalAlpha = clamp(q.life / q.max, 0, 1);
+    ctx.fillStyle = q.c;
+    if (q.kind === 'chunk') {                    // tumbling shard of stone
+      ctx.save();
+      ctx.translate(q.x - camX, q.y);
+      ctx.rotate(q.rot);
+      ctx.beginPath();
+      ctx.moveTo(-q.r, -q.r * 0.62);
+      ctx.lineTo(q.r * 0.82, -q.r);
+      ctx.lineTo(q.r, q.r * 0.7);
+      ctx.lineTo(-q.r * 0.72, q.r * 0.52);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(q.x - camX, q.y, q.r, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  ctx.textAlign = 'center';
+  for (var k = 0; k < pops.length; k++) {
+    var o = pops[k];
+    ctx.globalAlpha = clamp(o.life / o.max, 0, 1);
+    ctx.font = '800 ' + Math.round(Math.max(15, KW * 0.42)) + 'px ' +
+      '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(28,38,26,0.55)';
+    ctx.strokeText(o.t, o.x - camX, o.y);
+    ctx.fillStyle = o.c;
+    ctx.fillText(o.t, o.x - camX, o.y);
+  }
+  ctx.globalAlpha = 1;
+  ctx.textAlign = 'left';
+}
+
+/** Score tokens flying to the HUD, drawn in screen space. */
+function drawFlyers() {
+  for (var i = 0; i < flyers.length; i++) {
+    var f = flyers[i];
+    var pr = clamp(f.t / f.dur, 0, 1);
+    var e = pr * pr * (3 - 2 * pr);
+    var x = lerp(f.x, scoreTX, e);
+    var y = lerp(f.y, scoreTY, e) - Math.sin(pr * Math.PI) * 54;
+    var sc = 1 - pr * 0.35;
+    ctx.globalAlpha = pr > 0.85 ? (1 - pr) / 0.15 : 1;
+    ctx.fillStyle = f.c;
+    ctx.beginPath();
+    ctx.arc(x, y, 13 * sc, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = '#20303a';
+    ctx.font = '800 ' + Math.round(13 * sc) + 'px ' +
+      '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.n, x, y + 1);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+  ctx.globalAlpha = 1;
+}
+
+function render() {
+  palette();
+  ctx.save();
+  var kx = shake > 0.2 ? rand(-shake, shake) : 0;
+  var ky = (shake > 0.2 ? rand(-shake, shake) : 0) + camKick;
+  if (kx !== 0 || ky !== 0) ctx.translate(kx, ky);
+
+  drawSky();
+  drawClouds();
+  drawGodRays();
+  drawRainbow();
+  drawFarWorks();
+  drawHills(0.10, VH * 0.10, groundY + 2, P.far, 0.8);
+  drawSkyline();
+  drawHills(0.22, VH * 0.065, groundY + 2, P.near, 2.6);
+  drawShore();
+  drawSludge();
+  drawJunk();
+
+  for (var i = 0; i < stones.length; i++) drawStone(stones[i]);
+  drawItems();
+  drawMotes();
+  drawHopper();               // before the tint, so a sinking hopper goes under it
+  drawSludgeTint();
+  drawSurface();
+  drawEffects();
+  drawAim();
+
+  if (sunBoost > 0.01) {
+    ctx.fillStyle = 'rgba(255,236,170,' + (0.09 * sunBoost) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+
+  drawForeground();
+  drawFlyers();
+
+  if (winFlash > 0.01) {                          // a bright beat on reaching the meadow
+    ctx.fillStyle = 'rgba(255,255,255,' + (winFlash * winFlash * 0.45) + ')';
+    ctx.fillRect(0, 0, VW, VH);
+  }
+
+  var v = ctx.createRadialGradient(VW * 0.5, VH * 0.45, Math.min(VW, VH) * 0.3,
+                                   VW * 0.5, VH * 0.5, Math.max(VW, VH) * 0.78);
+  v.addColorStop(0, 'rgba(24,32,26,0)');
+  v.addColorStop(1, 'rgba(24,32,26,0.26)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, VW, VH);
+  ctx.restore();
+}
+
+/* ==========================================================================
+   12. Main loop - fixed-step physics, rendered every animation frame
+   ========================================================================== */
+var lastT = 0, acc = 0, STEP = 1 / 120;
+function frame(ts) {
+  requestAnimationFrame(frame);
+  if (!lastT) lastT = ts;
+  var dt = (ts - lastT) / 1000;
+  lastT = ts;
+  if (dt > 0.25) dt = 0.25;
+  if (hitStop > 0) {
+    hitStop -= dt;                               // hold the frame on a bullseye
+    acc = 0;
+  } else if (paused) {
+    acc = 0;                                     // resume without a time jump
+  } else {
+    acc += dt;
+    var steps = 0;
+    while (acc >= STEP && steps < 40) { update(STEP); acc -= STEP; steps++; }
+    if (steps >= 40) acc = 0;
+  }
+  render();
+}
+
+/* ==========================================================================
+   13. Boot
+   ========================================================================== */
+buildPicker();
+buildDifficulty();
+setDifficulty(diffValue);
+layout();
+reset();
+setMuted(A.muted);
+updateHud();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
