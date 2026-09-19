@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="150" viewBox="0 0 200 150">
+  <defs>
+    <linearGradient id="keel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7c8c72"/>
+      <stop offset="0.55" stop-color="#6e7d64"/>
+      <stop offset="1" stop-color="#55624e"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 18 L190 18 Q200 50 184 88 Q166 130 118 146 Q84 152 56 128 Q22 100 12 62 Q6 38 10 18 Z" fill="url(#keel)"/>
+  <ellipse cx="100" cy="37" rx="84" ry="7" fill="#ffffff" opacity="0.10"/>
+  <path d="M108 18 L190 18 Q200 50 184 88 Q166 130 118 146 Q112 92 108 18 Z" fill="#000000" opacity="0.16"/>
+  <path d="M10 18 L58 18 Q44 56 34 88 Q14 56 10 18 Z" fill="#ffffff" opacity="0.10"/>
+  <path d="M46 58 L96 64 M118 92 L162 84 M70 118 L112 124" stroke="#000000" stroke-width="3" opacity="0.14" stroke-linecap="round" fill="none"/>
+  <ellipse cx="58" cy="46" rx="6" ry="4" fill="#ffffff" opacity="0.14"/>
+  <ellipse cx="146" cy="54" rx="5" ry="3.4" fill="#ffffff" opacity="0.12"/>
+  <ellipse cx="94" cy="100" rx="5" ry="3.4" fill="#ffffff" opacity="0.12"/>
+  <path d="M11 24 Q6 10 20 9 Q34 3 50 8 Q66 2 84 7 Q102 1 120 7 Q138 2 154 8 Q170 3 180 9 Q194 11 190 24 L188 32 Q178 27 170 35 Q158 29 148 37 Q136 30 124 38 Q112 31 100 37 Q88 32 76 38 Q64 31 52 36 Q40 29 30 34 Q18 27 13 32 Q10 29 11 24 Z" fill="#4fae4a"/>
+  <path d="M11 22 Q7 11 20 10 Q34 4 50 9 Q66 3 84 8 Q102 2 120 8 Q138 3 154 9 Q170 4 180 10 Q193 11 190 22 Q158 26 100 27 Q42 26 11 22 Z" fill="#6fd85f"/>
+  <path d="M32 13 Q62 5 102 6 Q142 5 172 12 Q142 9 102 10 Q60 9 32 13 Z" fill="#95ee79" opacity="0.9"/>
+</svg>

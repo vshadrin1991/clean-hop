@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="220" viewBox="0 0 480 220">
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fbca4"/>
+      <stop offset="0.55" stop-color="#7fae95"/>
+      <stop offset="1" stop-color="#6d9c85"/>
+    </linearGradient>
+    <linearGradient id="roofA" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ba68f"/><stop offset="1" stop-color="#628f78"/>
+    </linearGradient>
+    <linearGradient id="roofB" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#54796a"/><stop offset="1" stop-color="#6b9a82"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2fbff"/><stop offset="0.5" stop-color="#cfeaf6"/><stop offset="1" stop-color="#a9cede"/>
+    </linearGradient>
+    <linearGradient id="stack" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9cc4b0"/><stop offset="0.35" stop-color="#7fae95"/><stop offset="1" stop-color="#5d8570"/>
+    </linearGradient>
+  </defs>
+
+  <!-- main sawtooth-roof hall -->
+  <rect x="10" y="110" width="250" height="110" fill="url(#wall)"/>
+  <rect x="10" y="110" width="6" height="110" fill="#5d8570" opacity="0.45"/>
+  <rect x="10" y="212" width="250" height="8" fill="#5d8570" opacity="0.5"/>
+  <g stroke="#5d8570" stroke-width="1" opacity="0.28">
+    <path d="M10 138 H260 M10 194 H260"/>
+  </g>
+  <!-- sawteeth: lit faces and shaded faces -->
+  <path d="M10 110 L41 76 L72 110 Z M135 110 L166 76 L197 110 Z" fill="url(#roofA)"/>
+  <path d="M72 110 L103 76 L135 110 Z M197 110 L228 76 L260 110 Z" fill="url(#roofB)"/>
+  <path d="M10 110 L41 76 L72 110 M135 110 L166 76 L197 110" stroke="#9cc4b0" stroke-width="2" fill="none" opacity="0.7"/>
+  <rect x="10" y="104" width="250" height="8" fill="#6b9a82"/>
+  <rect x="10" y="104" width="250" height="3" fill="#8fbfa8"/>
+  <!-- roof clutter -->
+  <rect x="30" y="96" width="58" height="14" rx="2" fill="#6b9a82"/>
+  <rect x="30" y="96" width="58" height="4" rx="2" fill="#8fbfa8"/>
+  <rect x="150" y="100" width="34" height="10" rx="2" fill="#6b9a82"/>
+  <circle cx="120" cy="96" r="13" fill="#7fae95"/>
+  <circle cx="120" cy="96" r="13" fill="none" stroke="#5d8570" stroke-width="2"/>
+  <path d="M120 84 L120 108 M108 96 L132 96" stroke="#6b9a82" stroke-width="4"/>
+
+  <!-- window band (FMETA win zone) -->
+  <g>
+    <g fill="url(#glass)" stroke="#5d8570" stroke-width="1.6">
+      <rect x="24" y="128" width="24" height="24" rx="2"/><rect x="60" y="128" width="24" height="24" rx="2"/><rect x="96" y="128" width="24" height="24" rx="2"/><rect x="132" y="128" width="24" height="24" rx="2"/><rect x="168" y="128" width="24" height="24" rx="2"/><rect x="204" y="128" width="24" height="24" rx="2"/>
+      <rect x="24" y="166" width="24" height="24" rx="2"/><rect x="60" y="166" width="24" height="24" rx="2"/><rect x="96" y="166" width="24" height="24" rx="2"/><rect x="132" y="166" width="24" height="24" rx="2"/><rect x="168" y="166" width="24" height="24" rx="2"/><rect x="204" y="166" width="24" height="24" rx="2"/>
+    </g>
+    <g stroke="#5d8570" stroke-width="1" opacity="0.6">
+      <path d="M36 128 V152 M72 128 V152 M108 128 V152 M144 128 V152 M180 128 V152 M216 128 V152"/>
+      <path d="M36 166 V190 M72 166 V190 M108 166 V190 M144 166 V190 M180 166 V190 M216 166 V190"/>
+      <path d="M24 140 H48 M60 140 H84 M96 140 H120 M132 140 H156 M168 140 H192 M204 140 H228"/>
+      <path d="M24 178 H48 M60 178 H84 M96 178 H120 M132 178 H156 M168 178 H192 M204 178 H228"/>
+    </g>
+  </g>
+
+  <!-- chimney 1 (FMETA stack ~x291, top ~y26) -->
+  <path d="M285 220 L300 220 L297 30 L288 30 Z" fill="url(#stack)"/>
+  <path d="M285 220 L289 220 L291 30 L288 30 Z" fill="#b8d8c8" opacity="0.5"/>
+  <rect x="286" y="26" width="13" height="7" rx="2" fill="#5d8570"/>
+  <rect x="287" y="40" width="11" height="12" fill="#8fbfa8"/>
+  <rect x="286" y="66" width="13" height="12" fill="#8fbfa8"/>
+  <rect x="285" y="92" width="15" height="8" fill="#6b9a82" opacity="0.8"/>
+  <!-- chimney 2 (FMETA stack ~x351, top ~y59) -->
+  <path d="M345 220 L360 220 L357 64 L348 64 Z" fill="url(#stack)"/>
+  <path d="M345 220 L349 220 L351 64 L348 64 Z" fill="#b8d8c8" opacity="0.5"/>
+  <rect x="346" y="60" width="13" height="7" rx="2" fill="#5d8570"/>
+  <rect x="347" y="74" width="11" height="12" fill="#8fbfa8"/>
+  <rect x="346" y="100" width="13" height="12" fill="#8fbfa8"/>
+  <!-- pipe run between chimneys and hall -->
+  <path d="M260 196 L284 196 M300 190 L330 190 L330 168" stroke="#6b9a82" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M260 194 L284 194" stroke="#8fbfa8" stroke-width="2.5"/>
+
+  <path d="M10 192 L260 192" stroke="#5d8570" stroke-width="3" opacity="0.6"/>
+  <!-- tanker truck -->
+  <rect x="380" y="190" width="70" height="30" rx="10" fill="url(#wall)"/>
+  <path d="M380 200 Q380 190 392 190 L438 190 Q450 190 450 200" stroke="#9cc4b0" stroke-width="2.5" fill="none"/>
+  <path d="M386 196 H444" stroke="#5d8570" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="415" cy="191" rx="16" ry="3" fill="#9cc4b0" opacity="0.6"/>
+  <rect x="374" y="214" width="82" height="6" fill="#6b9a82"/>
+  <circle cx="398" cy="216" r="6" fill="#4a5a52"/>
+  <circle cx="398" cy="216" r="2.5" fill="#77867c"/>
+  <circle cx="436" cy="216" r="6" fill="#4a5a52"/>
+  <circle cx="436" cy="216" r="2.5" fill="#77867c"/>
+</svg>
