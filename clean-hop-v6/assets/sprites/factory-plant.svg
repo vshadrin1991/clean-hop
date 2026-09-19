@@ -17,9 +17,6 @@
     <linearGradient id="stack" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#9cc4b0"/><stop offset="0.35" stop-color="#7fae95"/><stop offset="1" stop-color="#5d8570"/>
     </linearGradient>
-    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#4a6d9c"/><stop offset="1" stop-color="#2d4470"/>
-    </linearGradient>
   </defs>
 
   <!-- main sawtooth-roof hall -->
@@ -73,19 +70,6 @@
   <!-- pipe run between chimneys and hall -->
   <path d="M260 196 L284 196 M300 190 L330 190 L330 168" stroke="#6b9a82" stroke-width="7" fill="none" stroke-linecap="round"/>
   <path d="M260 194 L284 194" stroke="#8fbfa8" stroke-width="2.5"/>
-
-  <!-- solar panels, tilted on the roofline -->
-  <g transform="rotate(-14 190 84)">
-    <rect x="160" y="78" width="34" height="9" rx="2" fill="url(#panel)"/>
-    <rect x="200" y="78" width="34" height="9" rx="2" fill="url(#panel)"/>
-    <rect x="240" y="78" width="34" height="9" rx="2" fill="url(#panel)"/>
-    <g stroke="#7ea3cf" stroke-width="1" opacity="0.8">
-      <path d="M171 78 V87 M182 78 V87 M211 78 V87 M222 78 V87 M251 78 V87 M262 78 V87"/>
-    </g>
-    <g stroke="#d8ecff" stroke-width="1" opacity="0.7">
-      <path d="M160 80 H194 M200 80 H234 M240 80 H274"/>
-    </g>
-  </g>
 
   <path d="M10 192 L260 192" stroke="#5d8570" stroke-width="3" opacity="0.6"/>
   <!-- tanker truck -->
