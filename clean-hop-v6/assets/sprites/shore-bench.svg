@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="110" height="80" viewBox="0 0 110 80">
+  <defs>
+    <linearGradient id="wood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7e9484"/><stop offset="0.5" stop-color="#5d7364"/><stop offset="1" stop-color="#4e6350"/>
+    </linearGradient>
+    <linearGradient id="woodD" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d7364"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+    <linearGradient id="leg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5d7364"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+  </defs>
+  <!-- legs -->
+  <rect x="16" y="40" width="8" height="36" rx="3" fill="url(#leg)"/>
+  <rect x="86" y="40" width="8" height="36" rx="3" fill="url(#leg)"/>
+  <rect x="12" y="72" width="16" height="5" rx="2" fill="#37473c"/>
+  <rect x="82" y="72" width="16" height="5" rx="2" fill="#37473c"/>
+  <!-- backrest slats -->
+  <rect x="10" y="10" width="90" height="9" rx="4" fill="url(#wood)"/>
+  <rect x="10" y="10" width="90" height="3.5" rx="1.5" fill="#9cb0a2" opacity="0.6"/>
+  <rect x="10" y="22" width="90" height="6" rx="3" fill="url(#woodD)"/>
+  <!-- seat slats -->
+  <rect x="10" y="30" width="90" height="10" rx="4" fill="url(#wood)"/>
+  <rect x="10" y="30" width="90" height="4" rx="2" fill="#9cb0a2" opacity="0.55"/>
+  <path d="M14 35 H96" stroke="#37473c" stroke-width="1.2" opacity="0.5"/>
+  <!-- supports + bolts -->
+  <rect x="14" y="19" width="6" height="14" fill="url(#leg)"/>
+  <rect x="90" y="19" width="6" height="14" fill="url(#leg)"/>
+  <g fill="#37473c">
+    <circle cx="16" cy="14" r="1.6"/><circle cx="94" cy="14" r="1.6"/>
+    <circle cx="16" cy="35" r="1.6"/><circle cx="94" cy="35" r="1.6"/>
+  </g>
+</svg>
