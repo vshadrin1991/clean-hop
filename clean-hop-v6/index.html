@@ -2303,14 +2303,14 @@ function drawPlume(x, y, u, amount, seed, color, rise, drift, speed) {
   /* a dense wisp hugging the stack mouth anchors the column to its source */
   ctx.globalAlpha = amount * 0.5;
   ellF(ctx, x, y - u * 0.04, u * 0.17, u * 0.12);
-  for (var k = 0; k < 13; k++) {
-    var ph = (T * speed + seed + k / 13) % 1;
+  for (var k = 0; k < 24; k++) {
+    var ph = (T * speed + seed + k / 24) % 1;
     var e = ph * ph;                             // drift accelerates downwind
     var py = y - ph * rise;
     var wob = ph * u * 0.38;                     // straight at the lip, sways aloft
-    var px = x + Math.sin(ph * 2.6 + seed * 2 + k * 1.3) * wob + e * drift;
-    var r = u * (0.11 + ph * 0.46);              // puffs overlap into a column
-    ctx.globalAlpha = amount * (1 - ph) * (1 - ph * 0.5) * 0.42;
+    var px = x + Math.sin(ph * 2.6 + seed * 2 + k * 0.5) * wob + e * drift;
+    var r = u * (0.14 + ph * 0.46);              // puffs overlap into a column
+    ctx.globalAlpha = amount * (1 - ph) * (1 - ph * 0.5) * 0.34;
     ellF(ctx, px, py, r, r * (0.86 + ph * 0.10));
   }
   ctx.globalAlpha = 1;
