@@ -3063,21 +3063,8 @@ function drawAim() {
   if (phase !== 'charge') return;
   var p = clamp(charge, 0.04, 1);
   var d = MIN_D + p * (MAX_D - MIN_D);
-  var apex = VH * (0.13 + 0.10 * p);
-  var t = 0.60 + 0.30 * p;
-  var g = 8 * apex / (t * t), v0 = -4 * apex / t, vx = d / t;
 
   ctx.save();
-  for (var i = 1; i <= 16; i++) {
-    var tt = t * i / 16;
-    var x = hop.x + vx * tt - camX;
-    var y = hop.y + v0 * tt + 0.5 * g * tt * tt;
-    ctx.globalAlpha = 0.62 - i * 0.023;
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(x, y, Math.max(1.7, 3.4 - i * 0.09), 0, TAU);
-    ctx.fill();
-  }
   ctx.globalAlpha = 0.9;
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = 2.5;
