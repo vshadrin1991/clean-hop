@@ -1,7 +1,7 @@
 /* Чистый Прыжок - offline copy of the game.
    Every file is served from the device first. When any file changes, bump
    VERSION so installed copies pick up the update on their next online visit. */
-var VERSION = 'clean-hop-v6-1';
+var VERSION = 'clean-hop-v6-2';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png',
@@ -21,7 +21,8 @@ var FILES = [
   'assets/sprites/junk-bottle.svg', 'assets/sprites/junk-can.svg',
   'assets/sprites/leaf.svg', 'assets/sprites/meadow-bush.svg',
   'assets/sprites/meadow-log.svg', 'assets/sprites/meadow-tree.svg',
-  'assets/sprites/shore-bench.svg', 'assets/sprites/shore-bush.svg',
+  'assets/sprites/school.svg', 'assets/sprites/shore-bench.svg',
+  'assets/sprites/shore-bush.svg',
   'assets/sprites/shore-lamp.svg', 'assets/sprites/shore-pine.svg',
   'assets/sprites/shore-poles.svg', 'assets/sprites/shore-tree.svg',
   'assets/sprites/signpost.svg', 'assets/sprites/trash-pile.svg',

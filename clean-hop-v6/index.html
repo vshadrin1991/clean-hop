@@ -727,7 +727,7 @@ var ANIMALS = {
             inner: '#ff9d3d', nose: '#ff9d3d', eye: '#2b2118', iris: '#2f7fd0' },
   fox:    { name: 'Лисёнок', fur: '#ff8a4c', fur2: '#e3672c', pale: '#fff3e6',
             inner: '#ffc3a4', nose: '#3d2a1d', eye: '#2b2118', iris: '#c0782a' },
-  beaver: { name: 'Бобёр', fur: '#a97551', fur2: '#8a5c3d', pale: '#e8cba8',
+  beaver: { name: 'Бобрёнок', fur: '#a97551', fur2: '#8a5c3d', pale: '#e8cba8',
             inner: '#c99a76', nose: '#3d2a1d', eye: '#2b2118', iris: '#5a3f2a' },
   dog:    { name: 'Пёсик', fur: '#e8c07a', fur2: '#c9974c', pale: '#fff4dc',
             inner: '#ffc0a4', nose: '#3d2a1d', eye: '#2b2118', iris: '#4a6fd0' }
@@ -841,6 +841,7 @@ var SPRITES = {
   'factory-chimney': { grime: 1 },
   'farwork-1': { grime: 1 }, 'farwork-2': { grime: 1 },
   'turbine-tower': {}, 'turbine-blades': {},
+  'school': {},
   'shore-lamp': { grime: 1 }, 'shore-tree': { grime: 1 },
   'shore-pine': { grime: 1 }, 'shore-bush': { grime: 1 },
   'shore-bench': { grime: 1 }, 'shore-poles': { grime: 1 }, 'van': { grime: 1 },
@@ -1013,8 +1014,8 @@ function drawAnimal(g, kind, W, o) {
     var dwag = airborne ? -0.55 : Math.sin(tp * 7.5) * 0.75;   // wags twice as fast
     g.strokeStyle = C.fur; g.lineWidth = W * 0.14; g.lineCap = 'round';
     g.beginPath();
-    g.moveTo(-W * 0.30, -W * 0.28);
-    g.quadraticCurveTo(-W * 0.78, -W * (0.36 + dwag * 0.10), -W * 0.54, -W * (0.76 + dwag * 0.12));
+    g.moveTo(-W * 0.32, -W * 0.28);
+    g.quadraticCurveTo(-W * 0.84, -W * (0.34 + dwag * 0.10), -W * 0.68, -W * (0.58 + dwag * 0.10));
     g.stroke();
   } else {                                     // duckling: a little tail flick
     g.fillStyle = C.fur2;
@@ -1026,10 +1027,11 @@ function drawAnimal(g, kind, W, o) {
   }
 
   /* --- feet --- */
-  var footY = airborne ? -W * 0.16 : -W * 0.02;
   g.fillStyle = kind === 'duck' ? '#ff9d3d' : C.fur2;
-  fillRR(g, -W * 0.30, footY, W * 0.22, W * 0.13, W * 0.06);
-  fillRR(g, W * 0.08, footY, W * 0.22, W * 0.13, W * 0.06);
+  if (!airborne) {
+    fillRR(g, -W * 0.30, -W * 0.02, W * 0.22, W * 0.13, W * 0.06);
+    fillRR(g, W * 0.08, -W * 0.02, W * 0.22, W * 0.13, W * 0.06);
+  }
 
   /* --- body block --- */
   g.fillStyle = C.fur;
@@ -1039,6 +1041,11 @@ function drawAnimal(g, kind, W, o) {
   if (kind === 'duck') {                       // folded wing
     g.fillStyle = C.fur2;
     fillRR(g, -W * 0.30, -W * 0.42, W * 0.20, W * 0.26, W * 0.09);
+  }
+  if (airborne) {                              // legs tuck up, still on show
+    g.fillStyle = kind === 'duck' ? '#ff9d3d' : C.fur2;
+    fillRR(g, -W * 0.32, -W * 0.12, W * 0.21, W * 0.13, W * 0.06);
+    fillRR(g, W * 0.11, -W * 0.10, W * 0.21, W * 0.13, W * 0.06);
   }
 
   /* --- ears (drawn before the head so their bases tuck under) --- */
@@ -1086,7 +1093,7 @@ function drawAnimal(g, kind, W, o) {
     ellF(g, -hw * 0.82, headY - hh * 0.72, W * 0.055, W * 0.05);
     ellF(g, hw * 0.82, headY - hh * 0.72, W * 0.055, W * 0.05);
   } else if (kind === 'dog') {               // floppy ears that swing on the jump
-    var flop = airborne ? 0.34 : Math.sin(t * 2.4) * 0.08;
+    var flop = airborne ? -0.34 : Math.sin(t * 2.4) * 0.08;
     g.fillStyle = C.fur2;
     g.save(); g.translate(-hw * 0.80, headY - hh * 0.46); g.rotate(-0.08 - flop);
     fillRR(g, -W * 0.17, 0, W * 0.21, W * 0.58, W * 0.10);
@@ -1728,6 +1735,7 @@ function fallIn(reason) {
   phase = 'fall';
   fallT = 0;
   hop.rotV = rand(-4.5, 4.5);
+  hop.sqz = 0.30; hop.sqzV = 0;                  // stretched thin by the plunge
   hop.onStone = null;
   splat(hop.x, groundY);
   sndSplat();
@@ -2081,13 +2089,18 @@ function update(dt) {
         sparkle(hop.x + rand(-40, 40), hop.y - KW * rand(0.8, 2.4), pick(['#ffd44a', '#ff8fb0', '#7ee06a']));
         sndTwinkle();
       }
-      if (winT > 1.6) gameOver();
+      if (winT > 3.0) gameOver();
     } else if (phase === 'fall') {
       fallT += dt;
-      hop.y += (18 + fallT * 46) * dt;
+      hop.y += (26 + fallT * 60) * dt;           // a plunge, then it keeps settling
+      hop.rotV *= Math.max(0, 1 - dt * 3.4);     // the tumble dies out in the muck
       hop.rot += hop.rotV * dt;
-      hop.alpha = clamp(1 - fallT * 0.95, 0, 1);
-      if (fallT > 0.85) gameOver();
+      hop.alpha = clamp(1 - Math.max(0, fallT - 0.55) / 0.6, 0, 1);
+      if (fallT > 0.35 && fallT - dt <= 0.35)    // rings keep spreading off the spot
+        ripples.push({ x: hop.x, y: groundY + 2, r: 12, life: 1.1, max: 1.1 });
+      if (fallT > 0.75 && fallT - dt <= 0.75)
+        ripples.push({ x: hop.x, y: groundY + 2, r: 9, life: 1.0, max: 1.0 });
+      if (fallT > 1.25) gameOver();
     }
 
     while (!finishSpawned && lastX < camX + VW * 1.9) spawnStone();
@@ -2594,6 +2607,15 @@ function drawRainbow() {
   ctx.restore();
 }
 
+/** Bold rounded font sized so `text` never spills past `maxW`. */
+function signFont(text, px, maxW) {
+  var F = '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+  var size = Math.max(8, Math.round(px));
+  ctx.font = '800 ' + size + 'px ' + F;
+  var fit = ctx.measureText(text).width / maxW;
+  if (fit > 1) ctx.font = '800 ' + Math.max(8, Math.floor(size / fit)) + 'px ' + F;
+}
+
 /** The goal: a flowering meadow with a tree, a signpost and a finish flag. */
 function drawMeadow(s, px, top, w, h) {
   var hw = w * 0.5;
@@ -2608,6 +2630,9 @@ function drawMeadow(s, px, top, w, h) {
     ellF(ctx, px, top - h * 0.4, w * 0.85, w * 0.5);
     ctx.restore();
   }
+
+  /* the school stands behind the meadow, part of the finish */
+  sprB('school', px + w * 0.02, top + h * 0.10, w * 0.8);
 
   /* the bank - a wide island sprite, its keel lost under the waterline */
   var ws = w * 1.04, hs = Math.max(h / 0.93, ws * 0.42);
@@ -2660,8 +2685,7 @@ function drawMeadow(s, px, top, w, h) {
   var sgw = w * 0.13, sgh = sgw * 100 / 80;
   sprB('signpost', sgx, top + 2, sgw);
   ctx.fillStyle = '#3f7a45';
-  ctx.font = '800 ' + Math.max(11, Math.round(w * 0.035)) + 'px ' +
-    '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+  signFont('ФИНИШ', Math.max(11, w * 0.035), sgw * 0.68);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('ФИНИШ', sgx, top + 2 - sgh + sgh * 0.21);
@@ -2720,8 +2744,6 @@ function islandHalfAt(w, f) {
  * The first island: a signpost and a jetty pointing the way to the first stone.
  */
 function drawStartExtras(s, px, top, w, h) {
-  var FONT = '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
-
   /* the jetty, reaching out towards the first jump */
   var jx = px + w * 0.32, jw = w * 0.30;
   spr('jetty', jx, top - 5, jw, (groundY - top) + VH * 0.062 + 8);
@@ -2731,7 +2753,7 @@ function drawStartExtras(s, px, top, w, h) {
   var sgw = w * 0.30, sgh = sgw * 100 / 80;
   sprB('signpost', sgx, top + 2, sgw);
   ctx.fillStyle = '#3f7a45';
-  ctx.font = '800 ' + Math.max(10, Math.round(w * 0.052)) + 'px ' + FONT;
+  signFont('СТАРТ', Math.max(10, w * 0.052), sgw * 0.68);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('СТАРТ', sgx, top + 2 - sgh + sgh * 0.21);
@@ -2976,12 +2998,21 @@ function drawHopper() {
   drawAnimal(ctx, chosen, KW, opts);
   ctx.restore();
 
-  if (phase === 'fall') {                        // light stink puffs, kid-friendly
+  if (phase === 'fall') {
+    var surf = Math.min(py, groundY);            // puffs hover where it went in
     ctx.globalAlpha = 0.5 * hop.alpha;
     ctx.fillStyle = '#9fbf6a';
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 3; i++) {                // light stink puffs, kid-friendly
       ellF(ctx, px + Math.sin(T * 3 + i * 2) * 12 + i * 6,
-           py - KW * (1.5 + i * 0.42), 7 + i * 2.5, 6 + i * 2);
+           surf - KW * (1.2 + i * 0.42), 7 + i * 2.5, 6 + i * 2);
+    }
+    ctx.fillStyle = '#d8ecdc';                   // bubbles burble up behind it
+    for (var b = 0; b < 5; b++) {
+      var bt = (fallT - 0.10 - b * 0.15) / 0.5;
+      if (bt <= 0 || bt >= 1) continue;
+      ctx.globalAlpha = 0.55 * (1 - bt * bt);
+      ellF(ctx, px + Math.sin(b * 5.3) * KW * 0.45 + Math.sin(T * 4 + b * 1.7) * 3,
+           groundY + (1 - bt) * KW * 0.9 + 4, 2.5 + (b % 3), 2.5 + (b % 3));
     }
     ctx.globalAlpha = 1;
   }
