@@ -502,6 +502,7 @@ var elOverTitle = document.getElementById('overTitle');
    ========================================================================== */
 var LS_BEST = 'cleanHop.best.v1', LS_MUTE = 'cleanHop.muted.v1';
 var LS_CHAR = 'cleanHop.animal.v1', LS_LEVEL = 'cleanHop.level.v1';
+var LS_HINT = 'cleanHop.stripHint.v1';
 var best = 0;
 function save(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
 
@@ -589,6 +590,9 @@ function sndSwitch()  { noiseBurst(0.035, 0.16, 6000, 2200); tone('square', 1900
 function sndTvOff()      { noiseBurst(0.20, 0.07, 3200, 500, 0.04); }
 function sndFanOff()     { tone('sawtooth', 190, 55, 0.45, 0.035, 0.04); }
 function sndChargerOff() { tone('sine', 1250, 1250, 0.05, 0.06, 0.05); }
+/* A power strip goes quiet: a clack, then its hum winding down. Caught: a zap. */
+function sndStripOff() { noiseBurst(0.04, 0.14, 5000, 1800); tone('sine', 300, 70, 0.5, 0.06, 0.05); }
+function sndZap()      { noiseBurst(0.16, 0.16, 8000, 2500); tone('square', 110, 55, 0.28, 0.05); }
 
 /* Things left running on the islands. Landing on the island switches it off. */
 var GADGETS = {
@@ -1029,7 +1033,7 @@ var spritesReady = false;
 var SPRITES = {
   'island-1': { grime: 1 }, 'island-2': { grime: 1 }, 'island-3': { grime: 1 },
   'deco-daisy': {}, 'deco-toadstool': {}, 'deco-seedling': {},
-  'deco-berrybush': {}, 'deco-grasstuft': { grime: 1 }, 'energy-vampire': {},
+  'deco-berrybush': {}, 'deco-grasstuft': { grime: 1 }, 'power-strip': {},
   'meadow-tree': {}, 'meadow-log': {}, 'meadow-bush': {}, 'flower': {},
   'cattail': {}, 'signpost': {}, 'flag': {}, 'jetty': {},
   'cloud-1': { grime: 1 }, 'cloud-2': { grime: 1 }, 'cloud-3': { grime: 1 },
@@ -1496,6 +1500,10 @@ var IDLE_VOICE = 10, idleT = 0, voiceAt = IDLE_VOICE;
 var scoreTX = 60, scoreTY = 30;
 var camX = 0, camLo = 0, T = 0;
 var score = 0, stonesCleared = 0, leaves = 0;
+var lastFall = null;             // what ended the run: 'sparks', 'strip', 'sludge'...
+var stripHint = null;            // first power strip ever seen: { s: stone, t: seconds left }
+var stripHintSeen = false;
+try { stripHintSeen = localStorage.getItem(LS_HINT) === '1'; } catch (e) {}
 var energy = 0;                 // things switched off this run - the goal
 var offByKind = {};             // kind -> how many, for the end-of-run tip
 var GADGET_CHANCE = 0.8;        // most islands have something left running
@@ -1640,7 +1648,7 @@ function buildMotes() {
 }
 
 /* ==========================================================================
-   6. Stones, energy vampires and collectibles
+   6. Stones, power strips and collectibles
    ========================================================================== */
 function makeStone(x, baseY, w, type) {
   return {
@@ -1648,8 +1656,11 @@ function makeStone(x, baseY, w, type) {
     amp: 0, msp: 0, mph: 0,
     bsp: rand(1.1, 2.0), bph: rand(0, TAU),
     visited: false, trig: false, tt: 0, sink: 0, sinkV: 0, dead: false,
-    vamp: 0,                                    // 0 = none, else half-width of the vampire
-    vampX: 0,                                   // vampire centre, as an offset from the stone
+    strip: 0,                                   // 0 = none, else half-width of the power strip
+    stripX: 0,                                  // strip centre, as an offset from the stone
+    stripLive: 1,                               // 1 live .. 0 switched off (eased)
+    stripCut: false,                            // its gadget has been switched off
+    stripWait: 0,                               // beat between the gadget click and the strip's
     sparkT: 0,                                  // overloaded-cable spark throttle
     gadget: null,                               // something left running: { kind, dx, on, glow, wait, ph, speed, spin }
     notch: rand(0, TAU),                        // sway phase variation
@@ -1724,18 +1735,18 @@ function spawnStone() {
     s.mph = rand(0, TAU);
   }
 
-  // Energy vampire: sits on the near edge, so the safe zone is the far half.
+  // Overloaded power strip: sits on the near edge, so the safe zone is the far half.
   // Only on stones roomy enough to still leave a fair landing strip.
   if (!calm && stonesCleared >= 6 && type !== 'crumble' && gap < MAX_D * 0.70 &&
       w > VW * 0.10 && Math.random() < 0.14 + 0.26 * diff) {
-    s.vamp = w * 0.17;
-    s.vampX = -w * 0.31;
+    s.strip = w * 0.17;
+    s.stripX = -w * 0.31;
   }
 
   // Something left running in broad daylight: landing here switches it off.
-  // Kept off crumblers (they sink away) and clear of any vampire.
-  if (type !== 'crumble' && Math.random() < GADGET_CHANCE) {
-    var side = s.vamp ? 1 : (Math.random() < 0.5 ? -1 : 1);
+  // Kept off crumblers (they sink away); a power strip always powers one.
+  if (type !== 'crumble' && (s.strip || Math.random() < GADGET_CHANCE)) {
+    var side = s.strip ? 1 : (Math.random() < 0.5 ? -1 : 1);
     s.gadget = { kind: pick(GADGET_KINDS), dx: side * rand(0.24, 0.30), on: true,
                  glow: 1, wait: 0, ph: rand(0, TAU), speed: 1, spin: 0 };
   }
@@ -1877,7 +1888,7 @@ var MSG_MID = [                                   // a decent run
   'Меньше лишнего света — больше энергии для Планеты.',
   'Электростанция уже дымит меньше. Ещё разок?',
   'Маленькие прыжки — большая экономия. Вперёд!',
-  'Энерговампиры отступают. Так держать!',
+  'Искры погасли, удлинители выключены. Так держать!',
   'Небо светлеет с каждым выключателем. Продолжай!'
 ];
 var MSG_NEAR = [                                  // bar was almost full
@@ -1901,13 +1912,17 @@ var TIPS = {
   tv:      ['Никто не смотрит телевизор? Выключи его совсем, а не только пультом.'],
   charger: ['Телефон зарядился — вынь зарядку из розетки.'],
   fan:     ['Вентилятор нужен, только когда ты рядом.'],
+  strip:   ['Не включай много приборов в один удлинитель.',
+            'Уходишь из дома — выключи удлинитель кнопкой.',
+            'Искрит розетка? Не трогай её и позови взрослых!'],
   any:     ['Закрывай дверцу холодильника побыстрее.',
             'Горячая вода — это тоже энергия. Не оставляй кран открытым.',
-            'Энерговампиры — это приборы в режиме ожидания. Выключай их кнопкой.']
+            'Приборы в режиме ожидания тоже тратят энергию. Выключай их кнопкой.']
 };
 
 /** The tip that fits this run: the thing switched off most, else a general one. */
 function pickTip() {
+  if (lastFall === 'sparks' || lastFall === 'strip') return pick(TIPS.strip);
   var best = null, n = 0;
   for (var k in offByKind) if (offByKind[k] > n) { n = offByKind[k]; best = k; }
   return pick(best && TIPS[best] ? TIPS[best] : TIPS.any);
@@ -1939,6 +1954,7 @@ function reset() {
   score = 0; stonesCleared = 0; leaves = 0; energy = 0; offByKind = {};
   T = 0; stoneId = 0; lastWasCrumble = false;
   fallT = 0; overT = 0; shake = 0; charge = 0;
+  lastFall = null; stripHint = null;
   flyers.length = 0; camKick = 0; camKickV = 0; hitStop = 0; winFlash = 0;
   clean = 0; cleanShown = 0; cleanPctShown = -1;
   won = false; finishSpawned = false; finishCued = false; finishStone = null;
@@ -2003,6 +2019,7 @@ function gameOver() {
   var isNew = score > best;
   if (isNew) { best = score; save(bestKey(), String(best)); }
   elOverTitle.textContent = won ? 'Энергия сбережена!'
+    : lastFall === 'sparks' ? 'Ой-ёй! Искры!'
     : (leaves > 0 ? 'Ой-ёй! Зато искорок много.' : 'Ой-ёй!');
   var t0 = performance.now();                    // the score rolls up to its total
   (function tick(now) {
@@ -2024,6 +2041,7 @@ function gameOver() {
 
 function fallIn(reason) {
   if (phase === 'fall') return;
+  lastFall = reason;
   chargeStop();
   phase = 'fall';
   fallT = 0;
@@ -2033,7 +2051,7 @@ function fallIn(reason) {
   splat(hop.x, groundY);
   sndSplat();
   shake = 9;
-  popup(hop.x, groundY - KW * 2.2, reason === 'vampire' ? 'ЭНЕРГОВАМПИР!' : 'ОЙ-ЁЙ!', '#ffd44a');
+  popup(hop.x, groundY - KW * 2.2, reason === 'sparks' ? 'ИСКРЫ!' : 'ОЙ-ЁЙ!', '#ffd44a');
 }
 
 /** Click - the island's gadget goes off, and the energy saved is worth a point. */
@@ -2052,15 +2070,31 @@ function switchOff(s) {
   if (K.snd) K.snd();
   updateHud();
   checkFinishCue();
+  if (s.strip && !s.stripCut) s.stripWait = 0.45;  // a beat later its strip goes too
+}
+
+/** The gadget is off, so its power strip clicks off too - worth two more. */
+function stripSwitchOff(s) {
+  var top = stoneTop(s), sx = s.x + s.stripX;
+  s.stripCut = true;
+  score += 2;
+  popup(sx, top - KW * 3.7, 'УДЛИНИТЕЛЬ ВЫКЛ! +2', '#ffe27a');
+  flyScore(sx - camX, top - KW, '+2', '#ffe27a');
+  sparkle(sx + s.strip * 0.9, top - 4, '#ffe27a');
+  sndStripOff();
+  updateHud();
 }
 
 function land(s, top) {
-  // Landing on the vampire is the miss - jump over it, not into it.
-  if (s.vamp) {
-    var tx = s.x + s.vampX;
-    if (Math.abs(hop.x - tx) < s.vamp + KW * 0.22) {
+  // Landing on the power strip is the miss - jump over it, not into it.
+  if (s.strip) {
+    var tx = s.x + s.stripX;
+    if (Math.abs(hop.x - tx) < s.strip + KW * 0.22) {
       hop.y = top;
-      fallIn('vampire');
+      sparkle(hop.x, top - 4, '#fff3a0');             // it bites back
+      sparkle(hop.x, top - 4, '#ffc93c');
+      if (!s.stripCut) sndZap();
+      fallIn(s.stripCut ? 'strip' : 'sparks');
       return;
     }
   }
@@ -2102,8 +2136,8 @@ function land(s, top) {
 
   // settle onto the stone so the hopper never dangles off the edge
   var limit = s.w * 0.5 - KW * 0.24;
-  if (s.vamp) {                                // ...and never onto the vampire
-    var lo = s.vampX + s.vamp + KW * 0.24;
+  if (s.strip) {                               // ...and never onto the strip
+    var lo = s.stripX + s.strip + KW * 0.24;
     hop.offset = clamp(off, Math.min(lo, limit), limit);
   } else {
     hop.offset = clamp(off, -limit, limit);
@@ -2335,6 +2369,13 @@ function update(dt) {
       G.speed = G.on ? 1 : Math.max(0, G.speed - dt * 0.9);
       G.spin += dt * 16 * G.speed;
     }
+    if (s.strip) {
+      if (s.stripWait > 0 && mode === 'play') {
+        s.stripWait -= dt;
+        if (s.stripWait <= 0) stripSwitchOff(s);
+      }
+      s.stripLive += ((s.stripCut ? 0 : 1) - s.stripLive) * Math.min(1, dt * 5);
+    }
     if (s.trig && !s.dead) {
       s.tt += dt;
       s.sparkT -= dt;
@@ -2353,6 +2394,19 @@ function update(dt) {
       }
     }
   }
+
+  if (!stripHintSeen && mode === 'play') {          // first meeting: say what it is
+    for (var sh = 0; sh < stones.length; sh++) {
+      var ss = stones[sh];
+      if (ss.strip && !ss.visited && ss.x - camX < VW * 0.85) {
+        stripHint = { s: ss, t: 5 };
+        stripHintSeen = true;
+        save(LS_HINT, '1');
+        break;
+      }
+    }
+  }
+  if (stripHint) { stripHint.t -= dt; if (stripHint.t <= 0) stripHint = null; }
 
   if (mode === 'play') {
     if (phase === 'charge') {
@@ -3377,6 +3431,118 @@ function drawFan(G, x, base, h, g) {
   }
 }
 
+/** A yellow-and-black caution band on the grass: exactly where not to land. */
+function drawCaution(x0, x1, y, a) {
+  var h = 4, step = 7;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.beginPath();
+  ctx.rect(x0, y - h / 2, x1 - x0, h);
+  ctx.clip();
+  ctx.fillStyle = '#ffd44a';
+  ctx.fillRect(x0, y - h / 2, x1 - x0, h);
+  ctx.fillStyle = '#20303a';
+  for (var sx = x0 - h; sx < x1; sx += step) {
+    ctx.beginPath();
+    ctx.moveTo(sx, y + h / 2);
+    ctx.lineTo(sx + h, y - h / 2);
+    ctx.lineTo(sx + h + step / 2, y - h / 2);
+    ctx.lineTo(sx + step / 2, y + h / 2);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** One jagged little spark, `len` long, heading along angle `ang`. */
+function zigzag(x, y, len, ang) {
+  var c = Math.cos(ang), s = Math.sin(ang);
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  for (var i = 1; i <= 3; i++) {
+    var d = len * i / 3, o = (i % 2 ? 1 : -1) * len * 0.25;
+    ctx.lineTo(x + c * d - s * o, y + s * d + c * o);
+  }
+  ctx.stroke();
+}
+
+/**
+ * An overloaded power strip on the island's near edge - the part you must
+ * not land on. Live while its gadget runs: red switch, sparks at the
+ * sockets. It goes quiet once that gadget is switched off.
+ */
+function drawPowerStrip(s, px, top) {
+  var cx = px + s.stripX, sr = s.strip;
+  var W = sr * 2.6, H = W * 50 / 80;                 // sprite is 80x50
+  var live = s.stripLive;
+  var L = cx - W / 2, Tp = top + 3 - H;              // sprite's top-left corner
+  var near = phase === 'air' && hop.y < top &&       // someone is sailing over it
+             Math.abs(hop.x - (s.x + s.stripX)) < sr * 4;
+
+  drawCaution(cx - sr, cx + sr, top + 4, 0.55 + 0.45 * live);  // on the grass lip, in front
+  sprB('power-strip', cx, top + 3, W);
+
+  /* the rocker switch: lit red while live, grey once off */
+  var rx = L + 0.8125 * W, ry = Tp + 0.644 * H, rw = 0.0875 * W, rh = 0.08 * H;
+  if (live > 0.02) {
+    var pulse = 0.8 + 0.2 * Math.sin(T * 3 + s.id);
+    var gl = ctx.createRadialGradient(rx + rw / 2, ry + rh / 2, rw * 0.2,
+                                      rx + rw / 2, ry + rh / 2, rw * 1.6);
+    gl.addColorStop(0, 'rgba(255,91,74,' + 0.6 * live * pulse + ')');
+    gl.addColorStop(1, 'rgba(255,91,74,0)');
+    ctx.fillStyle = gl;
+    ellF(ctx, rx + rw / 2, ry + rh / 2, rw * 1.6, rw * 1.6);
+  }
+  ctx.fillStyle = mix('#8a938d', '#ff5b4a', live);
+  fillRR(ctx, rx, ry, rw, rh, Math.max(1, rw * 0.15));
+
+  /* sparks at the crammed sockets: now and then, and fast when threatened */
+  if (live > 0.5 && Math.sin(T * (near ? 15 : 5) + s.id * 1.7) > 0.55) {
+    var len = Math.max(4, W * 0.09);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#ffc93c';
+    ctx.lineWidth = Math.max(1.8, W * 0.028);
+    zigzag(L + 0.40 * W, Tp + 0.66 * H, len, -2.4);
+    zigzag(L + 0.575 * W, Tp + 0.66 * H, len, -0.7);
+    zigzag(L + 0.4875 * W, Tp + 0.44 * H, len, -1.57);
+    ctx.strokeStyle = '#fff3a0';
+    ctx.lineWidth = Math.max(1, W * 0.014);
+    zigzag(L + 0.40 * W, Tp + 0.66 * H, len, -2.4);
+    zigzag(L + 0.575 * W, Tp + 0.66 * H, len, -0.7);
+    zigzag(L + 0.4875 * W, Tp + 0.44 * H, len, -1.57);
+  }
+}
+
+/** The strip's mains cord across the grass to the gadget it keeps running. */
+function drawStripCord(s, px, top) {
+  var G = s.gadget;
+  if (!G) return;
+  var W = s.strip * 2.6, H = W * 50 / 80;
+  var x0 = px + s.stripX + W / 2, y0 = top + 3 - H * 0.06;          // sprite's cord port
+  var x1 = px + G.dx * s.w - gadgetH(G.kind) * 0.22, y1 = top + 1;  // the gadget's foot
+  var mx = (x0 + x1) / 2, my = top + 4;                              // lies on the grass
+  ctx.strokeStyle = '#3d4a45';
+  ctx.lineWidth = Math.max(2, W * 0.03);
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.quadraticCurveTo(mx, my, x1, y1);
+  ctx.stroke();
+  if (s.stripLive < 0.1) return;
+  for (var k = 0; k < 3; k++) {                                      // current flowing out
+    var u = (T * 0.9 + s.id * 0.37 + k / 3) % 1, a = 1 - u;
+    var bx = a * a * x0 + 2 * a * u * mx + u * u * x1;
+    var by = a * a * y0 + 2 * a * u * my + u * u * y1;
+    ctx.globalAlpha = s.stripLive;
+    ctx.fillStyle = 'rgba(255,214,90,0.35)';
+    ellF(ctx, bx, by, W * 0.05, W * 0.05);
+    ctx.fillStyle = '#ffd65a';
+    ellF(ctx, bx, by, W * 0.022, W * 0.022);
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawStone(s) {
   var px = s.x - camX;
   var top = stoneTop(s);
@@ -3476,6 +3642,7 @@ function drawStone(s) {
       }
     }
   }
+  if (s.strip) drawStripCord(s, px, top);
   if (s.gadget) drawGadget(s, px, top);
 
   /* --- type-specific marks --- */
@@ -3522,20 +3689,8 @@ function drawStone(s) {
     }
   }
 
-  /* --- energy vampire: stand-by power, the part you must not land on --- */
-  if (s.vamp) {
-    var vx = px + s.vampX, vr = s.vamp;
-    var weak = s.gadget && !s.gadget.on ? 1 : 0;   // nothing left to drain
-    var bob = Math.sin(T * 3 + s.id) * 2 * (1 - weak * 0.7);
-    if (phase === 'air' && hop.y < top &&          // someone is sailing over it
-        Math.abs(hop.x - (s.x + s.vampX)) < vr * 4) {
-      vx += Math.sin(T * 38) * 2.2;
-    }
-    ctx.fillStyle = 'rgba(46,36,22,0.35)';
-    ellF(ctx, vx, top + 2, vr * 1.1, vr * 0.28);
-    sprB('energy-vampire', vx, top + 3 + weak * 3, vr * 2.4 * (1 - weak * 0.15),
-         { a: 1 - weak * 0.35, rot: bob * 0.02, px: 0.5, py: 1 });
-  }
+  /* --- overloaded power strip: the part you must not land on --- */
+  if (s.strip) drawPowerStrip(s, px, top);
 }
 
 /** Collectible sun spark, slowly turning with a soft glow. */
@@ -3774,6 +3929,35 @@ function drawSurface() {
   ctx.globalAlpha = 1;
 }
 
+/** First power strip ever: a speech bubble pointing at it for five seconds. */
+function drawStripHint() {
+  if (!stripHint) return;
+  var s = stripHint.s, top = stoneTop(s);
+  var x = s.x + s.stripX - camX, y = top - s.strip * 1.9 - KW * 0.4;
+  var a = clamp(Math.min(stripHint.t, 5 - stripHint.t) * 3, 0, 1);  // fades in and out
+  var fs = Math.max(12, Math.round(KW * 0.3));
+  var l1 = 'Осторожно, искры!', l2 = 'Не наступай на полоски — перепрыгни.';
+  ctx.font = '800 ' + fs + 'px "Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+  var bw = Math.max(ctx.measureText(l1).width, ctx.measureText(l2).width) + fs * 1.4;
+  var bh = fs * 3.1;
+  var bx = clamp(x - bw / 2, 8, VW - bw - 8), by = y - bh;
+  ctx.globalAlpha = a;
+  ctx.fillStyle = '#fffaf0';
+  fillRR(ctx, bx, by, bw, bh, fs * 0.8);
+  ctx.beginPath();                                   // the tail, pointing down at it
+  ctx.moveTo(x - fs * 0.5, by + bh - 1);
+  ctx.lineTo(x, by + bh + fs * 0.7);
+  ctx.lineTo(x + fs * 0.5, by + bh - 1);
+  ctx.fill();
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#20303a';
+  ctx.fillText(l1, bx + bw / 2, by + fs * 1.35);
+  ctx.fillStyle = '#5d7a83';
+  ctx.fillText(l2, bx + bw / 2, by + fs * 2.55);
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 1;
+}
+
 function drawAim() {
   if (phase !== 'charge') return;
   var p = clamp(charge, 0.04, 1);
@@ -3926,6 +4110,7 @@ function render() {
   drawSludgeTint();
   drawSurface();
   drawEffects();
+  drawStripHint();
   drawAim();
 
   if (sunBoost > 0.01) {

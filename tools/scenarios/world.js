@@ -5,7 +5,7 @@ let prevLit = Infinity, monotonic = true, stalledAt = -1;
 for (let i = 0; i < 80 && t.clean < 1; i++) {
   const s = t.stones.find(s => !s.visited && s.gadget);
   if (!s) { stalledAt = i; break; }
-  t.hop.x = s.x + s.gadget.dx * s.w;      // the gadget's side, clear of any vampire
+  t.hop.x = s.x + s.gadget.dx * s.w;      // the gadget's side, clear of any strip
   t.land(s, t.stoneTop(s));
   await new Promise(r => setTimeout(r, 600));
   const lit = t.factories.filter(f => f.lightOn > 0.5).length +

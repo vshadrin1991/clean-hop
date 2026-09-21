@@ -1,7 +1,7 @@
 /* Энергопрыжок - offline copy of the game.
    Every file is served from the device first. When any file changes, bump
    VERSION so installed copies pick up the update on their next online visit. */
-var VERSION = 'clean-hop-v8-12';
+var VERSION = 'clean-hop-v8-16';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png',
@@ -10,7 +10,6 @@ var FILES = [
   'assets/sprites/cloud-3.svg', 'assets/sprites/deco-berrybush.svg',
   'assets/sprites/deco-daisy.svg', 'assets/sprites/deco-grasstuft.svg',
   'assets/sprites/deco-seedling.svg', 'assets/sprites/deco-toadstool.svg',
-  'assets/sprites/energy-vampire.svg',
   'assets/sprites/factory-chimney.svg', 'assets/sprites/factory-plant.svg',
   'assets/sprites/factory-tanks.svg', 'assets/sprites/factory-towers.svg',
   'assets/sprites/factory-works.svg', 'assets/sprites/farwork-1.svg',
@@ -24,6 +23,7 @@ var FILES = [
   'assets/sprites/jetty.svg',
   'assets/sprites/meadow-bush.svg',
   'assets/sprites/meadow-log.svg', 'assets/sprites/meadow-tree.svg',
+  'assets/sprites/power-strip.svg',
   'assets/sprites/pylon.svg',
   'assets/sprites/school.svg', 'assets/sprites/shore-bench.svg',
   'assets/sprites/shore-bush.svg',

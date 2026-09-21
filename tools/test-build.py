@@ -25,7 +25,9 @@ window.__t = {
   get score() { return score; }, get clean() { return clean; }, get mode() { return mode; },
   get phase() { return phase; }, get won() { return won; }, get LVL() { return LVL; },
   get energy() { return __get(function () { return energy; }); },
-  get offByKind() { return __get(function () { return offByKind; }); }
+  get offByKind() { return __get(function () { return offByKind; }); },
+  get lastFall() { return __get(function () { return lastFall; }); },
+  get stripHint() { return __get(function () { return stripHint; }); }
 };
 /* headless runs: rAF is throttled without a compositor, so the game loop
    rides on virtual-time-friendly timers instead */

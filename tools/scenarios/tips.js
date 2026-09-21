@@ -4,9 +4,9 @@ r.dispatchEvent(new Event('input', { bubbles: true }));
 document.getElementById('playBtn').click();
 await new Promise(r => setTimeout(r, 300));
 const t = __t;
-// advance on gadget-free, vampire-free islands so nothing else gets switched off
+// advance on gadget-free, strip-free islands so nothing else gets switched off
 async function step() {
-  const n = t.stones.find(s => !s.visited && !s.gadget && !s.vamp &&
+  const n = t.stones.find(s => !s.visited && !s.gadget && !s.strip &&
                                s.type !== 'finish');
   if (!n) return false;
   t.hop.x = n.x;
@@ -40,5 +40,5 @@ const tipEmpty = document.getElementById('tipMsg').textContent;
          tipAfterTVs === 'Никто не смотрит телевизор? Выключи его совсем, а не только пультом.' &&
          ['Закрывай дверцу холодильника побыстрее.',
           'Горячая вода — это тоже энергия. Не оставляй кран открытым.',
-          'Энерговампиры — это приборы в режиме ожидания. Выключай их кнопкой.']
+          'Приборы в режиме ожидания тоже тратят энергию. Выключай их кнопкой.']
            .includes(tipEmpty) })
