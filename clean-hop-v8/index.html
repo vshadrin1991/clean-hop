@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#4fbfec">
-<meta name="description" content="Чистый Прыжок — помоги зверятам сберечь больше энергии: прыгай по островкам, выключай лишний свет и береги Планету, прыжок за прыжком.">
-<title>Чистый Прыжок</title>
+<meta name="theme-color" content="#ffc93c">
+<meta name="description" content="Энергопрыжок — помоги зверятам сберечь больше энергии: прыгай по островкам, выключай всё, что работает зря, и береги Планету!">
+<title>Энергопрыжок</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Чистый Прыжок">
+<meta name="apple-mobile-web-app-title" content="Энергопрыжок">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
 /* ==========================================================================
@@ -26,6 +26,9 @@
   --cream:#fffaf0;
   --leaf:#4fbf5f;
   --leaf-dk:#2f8f43;
+  --volt:#ffc93c;         /* energy: the game's main accent */
+  --volt-dk:#d99a00;
+  --volt-soft:#fff3c9;
   --sun:#ffc84a;
   --sky:#4fbfec;
   --grime:#3a3226;
@@ -85,7 +88,7 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
 .iconbtn:focus-visible{outline:3px solid var(--leaf);outline-offset:2px}
 .iconbtn[hidden]{display:none}
 
-/* cleanliness restored - the run's real progress bar */
+/* energy saved - the run's real progress bar */
 .meter-wrap{
   display:flex;align-items:center;gap:9px;
   background:rgba(255,250,240,.88);border-radius:999px;
@@ -96,22 +99,16 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
   font-size:10px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;
   color:var(--ink-soft);white-space:nowrap;
 }
-.meter{
-  position:relative;width:clamp(70px,26vw,150px);height:11px;
-  background:rgba(32,48,58,.14);border-radius:999px;
-}
-.meter-fill{
-  position:absolute;inset:0 auto 0 0;width:0%;
-  background:linear-gradient(90deg,var(--leaf),#8fe06a);
-  border-radius:999px;transition:width .35s ease;
-}
-.meter-fill::after{                        /* a leaf riding the fill's edge */
-  content:"";position:absolute;right:-9px;top:50%;width:16px;height:16px;
-  transform:translateY(-52%) rotate(-28deg);
-  background:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 4C10 6 4 12 4 20c8 0 14-6 16-16Z' fill='%2357bf55'/%3E%3Cpath d='M6 18C9 12 13 8 18 6' stroke='%23ffffff' stroke-width='1.8' fill='none'/%3E%3C/svg%3E") center/contain no-repeat;
-}
-.meter-pct{font-size:12px;font-weight:800;color:var(--leaf-dk);
-  font-variant-numeric:tabular-nums;min-width:34px;text-align:right}
+.bolt{display:inline-block;width:12px;height:12px;margin-right:4px;vertical-align:-1px;
+  background:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2 4 14h6l-1 8 9-12h-6l1-8Z' fill='%23ffc93c' stroke='%23d99a00' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") center/contain no-repeat}
+.meter{position:relative;width:clamp(70px,26vw,150px);height:14px;
+  border:2px solid rgba(32,48,58,.32);border-radius:5px;background:rgba(32,48,58,.06)}
+.meter::after{content:"";position:absolute;right:-6px;top:50%;width:4px;height:7px;
+  transform:translateY(-50%);border-radius:0 2px 2px 0;background:rgba(32,48,58,.32)}
+.meter-fill{position:absolute;inset:1px auto 1px 1px;width:0%;border-radius:3px;
+  background:linear-gradient(90deg,var(--volt),#7ee06a);transition:width .35s ease}
+.meter-pct{font-size:12px;font-weight:800;color:var(--ink);
+  font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
 
 /* ---------------- overlays ---------------- */
 .overlay{
@@ -133,15 +130,15 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
 }
 .card::before{
   content:"";position:absolute;top:-34px;right:-30px;width:150px;height:150px;
-  background:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Cpath d='M30 54C12 44 6 22 14 8c16-2 30 4 38 18 4 12-6 24-22 28Z' fill='%232f8f43'/%3E%3Cpath d='M30 52C24 34 28 18 44 10' stroke='%23ffffff' stroke-width='2.4' fill='none' stroke-linecap='round' opacity='.5'/%3E%3C/svg%3E") center/contain no-repeat;
-  opacity:.07;transform:rotate(18deg);pointer-events:none;
+  background:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2 4 14h6l-1 8 9-12h-6l1-8Z' fill='%23d99a00'/%3E%3C/svg%3E") center/contain no-repeat;
+  opacity:.08;transform:rotate(18deg);pointer-events:none;
 }
 @keyframes pop{from{transform:scale(.88) translateY(10px);opacity:0}to{transform:none;opacity:1}}
 
 h1{font-size:clamp(30px,8.4vw,42px);line-height:.98;font-weight:800;
   letter-spacing:-.025em;text-wrap:balance;color:var(--ink)}
 h1 em{font-style:normal;color:var(--leaf-dk);
-  background:linear-gradient(0deg,rgba(120,210,110,.32),rgba(120,210,110,.32))
+  background:linear-gradient(0deg,rgba(255,201,60,.45),rgba(255,201,60,.45))
   left bottom/100% .24em no-repeat;padding:0 .04em}
 h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
 
@@ -149,6 +146,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   margin:9px auto 0;max-width:30ch;font-size:13.5px;line-height:1.5;
   font-weight:600;color:var(--ink-soft);text-wrap:balance;
 }
+.howto{margin:8px auto 0;max-width:32ch;font-size:12.5px;line-height:1.4;font-weight:800;color:var(--leaf-dk)}
 .sectionlabel{
   margin:18px 0 9px;font-size:10px;font-weight:800;letter-spacing:.16em;
   text-transform:uppercase;color:var(--ink-soft);
@@ -169,15 +167,15 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 .pick .nm{font-size:10.5px;font-weight:800;color:var(--ink-soft);letter-spacing:.01em;
   background:rgba(255,255,255,.7);padding:2px 8px;border-radius:999px}
 .pick[aria-checked="true"]{
-  background:#dcf3d4;border-color:var(--leaf);
-  box-shadow:0 4px 0 var(--leaf-dk);
+  background:var(--volt-soft);border-color:var(--volt);
+  box-shadow:0 4px 0 var(--volt-dk);
 }
 .pick[aria-checked="true"]::after{
   content:"\2713";position:absolute;top:5px;right:6px;width:16px;height:16px;
-  border-radius:50%;background:var(--leaf);color:#fff;
+  border-radius:50%;background:var(--volt);color:var(--ink);
   font-size:10px;font-weight:800;line-height:16px;text-align:center;
 }
-.pick[aria-checked="true"] .nm{color:var(--leaf-dk)}
+.pick[aria-checked="true"] .nm{color:var(--ink)}
 .pick:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 @media (max-width:340px){ .pick canvas{width:50px;height:50px} }
 
@@ -227,18 +225,18 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 /* ---------------- game over readout ---------------- */
 .final{margin:12px 0 2px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
 .final .num{font-size:62px;font-weight:800;line-height:.86;letter-spacing:-.04em;
-  color:var(--leaf-dk);font-variant-numeric:tabular-nums}
+  color:var(--ink);font-variant-numeric:tabular-nums}
 .final .unit{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-soft);padding-bottom:6px}
 .stats{
-  display:flex;flex-wrap:wrap;justify-content:center;gap:6px 16px;margin-top:8px;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;margin-top:8px;
   font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
   color:var(--ink-soft);font-variant-numeric:tabular-nums;
 }
 .stats>span{display:inline-flex;align-items:center;gap:5px}
 .stats .ic{width:13px;height:13px;background-size:contain;background-repeat:no-repeat;opacity:.8}
 .ic-stone{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 15Q4 8 10 6Q18 4 21 11Q22 17 16 19Q7 21 3 15Z' fill='%238a8f7a'/%3E%3C/svg%3E")}
-.ic-leaf{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 4C10 6 4 12 4 20c8 0 14-6 16-16Z' fill='%2357bf55'/%3E%3Cpath d='M6 18C9 12 13 8 18 6' stroke='%23ffffff' stroke-width='1.6' fill='none'/%3E%3C/svg%3E")}
+.ic-sun{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='%23ffb52e' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='6' fill='%23ffc93c'/%3E%3C/svg%3E")}
 .ic-bulb{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-.5c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 3Z' fill='%23ffd84a'/%3E%3Crect x='9' y='18' width='6' height='3' rx='1' fill='%238a8f7a'/%3E%3C/svg%3E")}
 .ic-star{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3.4 9.3l6-.7Z' fill='%23ffc24a'/%3E%3C/svg%3E")}
 .badge{
@@ -252,12 +250,15 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   margin:12px auto 0;max-width:28ch;font-size:13px;line-height:1.45;
   font-weight:700;color:var(--leaf-dk);text-wrap:balance;
 }
+.tip{margin:10px auto 0;max-width:30ch;padding:8px 12px;border-radius:14px;
+  background:var(--volt-soft);font-size:12.5px;line-height:1.4;font-weight:700;color:var(--ink);text-wrap:balance}
+.tip::before{content:"Совет: ";font-weight:800;color:var(--volt-dk)}
 
 /* victory: the same card, dressed for sunshine */
 .overlay.win{background:radial-gradient(120% 90% at 50% 40%,rgba(255,236,160,.28),rgba(32,48,58,.34))}
 .overlay.win .card{
   background:linear-gradient(180deg,#fffdf2,#fff6e2);
-  box-shadow:0 0 0 3px var(--sun) inset,0 14px 0 -6px rgba(32,48,58,.14),
+  box-shadow:0 0 0 3px var(--volt) inset,0 14px 0 -6px rgba(32,48,58,.14),
              0 22px 40px rgba(32,48,58,.28);
 }
 .overlay.win .card::before{
@@ -265,7 +266,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   background:radial-gradient(circle,#ffe98a 0%,rgba(255,233,138,0) 62%);
 }
 .overlay.win h2{color:var(--leaf-dk)}
-.overlay.win .final .num{color:var(--sun)}
+.overlay.win .final .num{color:var(--volt-dk)}
 
 /* confetti rains while the win card is up */
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;display:none}
@@ -289,12 +290,12 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 /* ---------------- buttons ---------------- */
 .btn{
   pointer-events:auto;margin-top:16px;width:100%;border:0;border-radius:18px;
-  background:var(--leaf);color:#fff;font-family:var(--font);
+  background:var(--volt);color:var(--ink);font-family:var(--font);
   font-size:18px;font-weight:800;letter-spacing:.02em;padding:14px 20px;cursor:pointer;
-  box-shadow:0 5px 0 var(--leaf-dk);
+  box-shadow:0 5px 0 var(--volt-dk);
 }
-.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--leaf-dk)}
-.btn:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--volt-dk)}
+.btn:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
 .btn.ghost{
   margin-top:9px;background:transparent;color:var(--ink-soft);
   box-shadow:none;font-size:14px;padding:9px;
@@ -338,7 +339,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 <noscript>
   <div class="nojs">
     <div class="nojs-card">
-      <h1>Чистый <span>Прыжок</span></h1>
+      <h1>Энерго<span>прыжок</span></h1>
       <p class="nojs-lead">Здесь игра не запустится: это окно только показывает файл, но не запускает его.</p>
       <ul class="nojs-steps">
         <li><b>Компьютер или Android</b>Откройте файл в браузере &mdash; Chrome, Safari, Edge или Firefox.</li>
@@ -360,17 +361,18 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
       <button class="iconbtn" id="pauseBtn" aria-label="Пауза" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6.8" y="5" width="3.6" height="14" rx="1.4" fill="currentColor"/><rect x="13.6" y="5" width="3.6" height="14" rx="1.4" fill="currentColor"/></svg></button>
     </div>
     <div class="meter-wrap">
-      <span class="cap">Очищено</span>
+      <span class="cap"><i class="bolt" aria-hidden="true"></i>Энергия</span>
       <div class="meter"><div class="meter-fill" id="cleanFill"></div></div>
-      <span class="meter-pct" id="cleanPct">0%</span>
+      <span class="meter-pct" id="cleanPct">0/18</span>
     </div>
   </div>
 
   <!-- ---------- start screen / character select ---------- -->
   <div class="overlay" id="menu">
     <div class="card">
-      <h1>Чистый <em>Прыжок</em></h1>
+      <h1>Энерго<em>прыжок</em></h1>
       <p class="tagline">Помоги зверятам сберечь больше энергии &mdash; береги Планету!</p>
+      <p class="howto" id="howto">Прыгай на островки и выключай всё, что работает зря!</p>
 
       <p class="sectionlabel" id="pickLabel">Выбери героя</p>
       <div class="picker" id="picker" role="radiogroup" aria-labelledby="pickLabel"></div>
@@ -379,7 +381,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
       <div class="dial">
         <div class="dial-readout" aria-hidden="true">
           <span class="dial-name" id="diffName">Средний</span>
-          <span class="dial-path" id="diffPath">путь 40 очков</span>
+          <span class="dial-path" id="diffPath">выключи 18</span>
         </div>
         <input type="range" class="dial-range" id="diffRange" min="0" max="100" step="1"
                value="67" aria-labelledby="lvlLabel">
@@ -397,7 +399,8 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   <div class="overlay hidden" id="pause">
     <div class="card">
       <h2>Пауза</h2>
-      <p class="tagline">Отдыхаем &mdash; а лишний свет пусть не горит! Полоса очистки сохранится.</p>
+      <p class="tagline">Отдыхаем &mdash; а лишний свет пусть не горит! Энергия сохранится.</p>
+      <p class="tip" id="pauseTip"></p>
       <button class="btn" id="resumeBtn">Продолжить</button>
       <button class="btn ghost" id="menuBtn">В меню</button>
       <p class="keys">Пауза &mdash; <kbd>Esc</kbd></p>
@@ -412,13 +415,13 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
       <div class="lvlchip" id="lvlChip">Средний</div>
       <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
       <div class="stats">
-        <span><i class="ic ic-stone"></i>Камни <span id="finalStones">0</span></span>
-        <span><i class="ic ic-leaf"></i>Листья <span id="finalLeaves">0</span></span>
-        <span><i class="ic ic-bulb"></i>Лампочки <span id="finalLamps">0</span></span>
+        <span><i class="ic ic-bulb"></i>Выключено <span id="finalEnergy">0</span></span>
+        <span><i class="ic ic-sun"></i>Искорки <span id="finalLeaves">0</span></span>
         <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
       </div>
       <div class="badge hidden" id="newbest">Новый рекорд!</div>
-      <p class="ecomsg" id="ecoMsg">Каждый чистый камень на счету &mdash; попробуй ещё!</p>
+      <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
+      <p class="tip" id="tipMsg"></p>
       <button class="btn" id="againBtn">Ещё раз</button>
       <button class="btn ghost" id="changeBtn">Сменить героя</button>
     </div>
@@ -485,12 +488,13 @@ var elMute = document.getElementById('mute');
 var elPause = document.getElementById('pause');
 var elPauseBtn = document.getElementById('pauseBtn');
 var elFinal = document.getElementById('finalScore');
-var elFinalStones = document.getElementById('finalStones');
+var elFinalEnergy = document.getElementById('finalEnergy');
 var elFinalLeaves = document.getElementById('finalLeaves');
-var elFinalLamps = document.getElementById('finalLamps');
 var elFinalBest = document.getElementById('finalBest');
 var elNewBest = document.getElementById('newbest');
 var elEcoMsg = document.getElementById('ecoMsg');
+var elTipMsg = document.getElementById('tipMsg');
+var elPauseTip = document.getElementById('pauseTip');
 var elOverTitle = document.getElementById('overTitle');
 
 /* ==========================================================================
@@ -581,6 +585,20 @@ function sndCrack()   { noiseBurst(0.14, 0.10, 2400, 400); }
 /* A light switch: a dry click, then the hum of the bulb winding down. */
 function sndSwitch()  { noiseBurst(0.035, 0.16, 6000, 2200); tone('square', 1900, 1900, 0.025, 0.04);
                         tone('sine', 700, 280, 0.22, 0.09, 0.05); }
+/* Per-kind wind-down after the click. */
+function sndTvOff()      { noiseBurst(0.20, 0.07, 3200, 500, 0.04); }
+function sndFanOff()     { tone('sawtooth', 190, 55, 0.45, 0.035, 0.04); }
+function sndChargerOff() { tone('sine', 1250, 1250, 0.05, 0.06, 0.05); }
+
+/* Things left running on the islands. Landing on the island switches it off. */
+var GADGETS = {
+  lamp:    { sprite: 'island-lamp',    h: 1.15, label: 'СВЕТ ВЫКЛ!',       snd: null },
+  tv:      { sprite: 'gadget-tv',      h: 0.85, label: 'ТЕЛЕВИЗОР ВЫКЛ!',  snd: sndTvOff },
+  charger: { sprite: 'gadget-charger', h: 0.80, label: 'ЗАРЯДКА ВЫКЛ!',    snd: sndChargerOff },
+  fan:     { sprite: 'gadget-fan',     h: 1.00, label: 'ВЕНТИЛЯТОР ВЫКЛ!', snd: sndFanOff }
+};
+var GADGET_KINDS = ['lamp', 'lamp', 'tv', 'charger', 'fan'];   // lamps a bit more often
+function gadgetH(kind) { return clamp(KW * GADGETS[kind].h, 26, 60); }
 /* Landing on the meadow: a rising C-major flourish, a held chord, then chimes. */
 function sndFanfare() {
   tone('triangle', 523, 523, 0.15, 0.17, 0.00);   // C
@@ -918,15 +936,15 @@ var ORDER = ['kitten', 'bunny', 'duck', 'fox', 'beaver', 'dog'];
  * Difficulty is one dial, 0 (gentlest) to 100 (hardest). Four named waypoints
  * anchor it and every position in between blends their settings, so the road
  * is exactly as long - and as tough - as the player drags it.
- *   target - points that fill the cleanliness bar: the length of the road
+ *   target - appliances to switch off: the length of the road
  *   ramp   - how quickly gaps widen and stones shrink along the way
  *   swing  - seconds for one sweep of the power meter; slower is easier
  */
 var DIFF_POINTS = [
-  { at: 0,   name: 'Суперпростой', target: 10, ramp: 60, swing: 1.35 },
-  { at: 33,  name: 'Простой',      target: 20, ramp: 40, swing: 0.85 },
-  { at: 67,  name: 'Средний',      target: 40, ramp: 34, swing: 0.85 },
-  { at: 100, name: 'Сложный',      target: 70, ramp: 26, swing: 0.85 }
+  { at: 0,   name: 'Суперпростой', target: 5,  ramp: 60, swing: 1.35 },
+  { at: 33,  name: 'Простой',      target: 10, ramp: 40, swing: 0.85 },
+  { at: 67,  name: 'Средний',      target: 18, ramp: 34, swing: 0.85 },
+  { at: 100, name: 'Сложный',      target: 30, ramp: 26, swing: 0.85 }
 ];
 var LS_DIFF = 'cleanHop.diff.v1';
 
@@ -941,7 +959,7 @@ function diffCfg(v) {
   return {
     value: v,
     name: DIFF_POINTS[band].name,
-    target: Math.round(lerp(a.target, b.target, t) / 5) * 5,
+    target: Math.round(lerp(a.target, b.target, t)),
     ramp: lerp(a.ramp, b.ramp, t),
     swing: lerp(a.swing, b.swing, t),
     calm: band === 0
@@ -963,7 +981,7 @@ var LVL = diffCfg(diffValue);
 
 /* Records are kept per road length: a 25-point road and a 70-point road are
    not the same run, wherever the dial's name boundaries happen to fall. */
-function bestKey() { return LS_BEST + '.path' + LVL.target; }
+function bestKey() { return LS_BEST + '.energy' + LVL.target; }
 function loadBest() {
   try { best = parseInt(localStorage.getItem(bestKey()) || '0', 10) || 0; }
   catch (e) { best = 0; }
@@ -1011,7 +1029,7 @@ var spritesReady = false;
 var SPRITES = {
   'island-1': { grime: 1 }, 'island-2': { grime: 1 }, 'island-3': { grime: 1 },
   'deco-daisy': {}, 'deco-toadstool': {}, 'deco-seedling': {},
-  'deco-berrybush': {}, 'deco-grasstuft': { grime: 1 }, 'trash-pile': {},
+  'deco-berrybush': {}, 'deco-grasstuft': { grime: 1 }, 'energy-vampire': {},
   'meadow-tree': {}, 'meadow-log': {}, 'meadow-bush': {}, 'flower': {},
   'cattail': {}, 'signpost': {}, 'flag': {}, 'jetty': {},
   'cloud-1': { grime: 1 }, 'cloud-2': { grime: 1 }, 'cloud-3': { grime: 1 },
@@ -1024,10 +1042,10 @@ var SPRITES = {
   'school': {},
   'shore-lamp': { grime: 1 }, 'shore-tree': { grime: 1 },
   'shore-pine': { grime: 1 }, 'shore-bush': { grime: 1 },
-  'shore-bench': { grime: 1 }, 'shore-poles': { grime: 1 }, 'van': { grime: 1 },
-  'junk-bottle': {}, 'junk-can': {}, 'junk-bag': {},
-  'fg-grass': { grime: 1 }, 'fg-cattails': { grime: 1 }, 'leaf': {},
-  'island-lamp': {}
+  'shore-bench': { grime: 1 }, 'shore-poles': { grime: 1 },
+  'fg-grass': { grime: 1 }, 'fg-cattails': { grime: 1 }, 'sun-spark': {},
+  'island-lamp': {}, 'gadget-tv': {}, 'gadget-charger': {}, 'gadget-fan': {},
+  'solar-panel': {}, 'pylon': {}
 };
 
 /* Where the animated overlays sit on each factory sprite: smokestacks that
@@ -1470,15 +1488,17 @@ function drawAnimal(g, kind, W, o) {
 var VW = 0, VH = 0, DPR = 1, groundY = 0;
 var KW = 0, MIN_D = 0, MAX_D = 0;
 
-var stones = [], items = [], parts = [], ripples = [], pops = [], clouds = [], junk = [];
+var stones = [], items = [], parts = [], ripples = [], pops = [], clouds = [];
 var cirrus = [], birds = [];
 var fg = [], motes = [], flyers = [], shore = [];
-var truckP = 0;
 var camKick = 0, camKickV = 0, hitStop = 0, winFlash = 0;
 var IDLE_VOICE = 10, idleT = 0, voiceAt = IDLE_VOICE;
 var scoreTX = 60, scoreTY = 30;
 var camX = 0, camLo = 0, T = 0;
-var score = 0, stonesCleared = 0, leaves = 0, lampsOff = 0;
+var score = 0, stonesCleared = 0, leaves = 0;
+var energy = 0;                 // things switched off this run - the goal
+var offByKind = {};             // kind -> how many, for the end-of-run tip
+var GADGET_CHANCE = 0.8;        // most islands have something left running
 var mode = 'menu';       // 'menu' | 'play' | 'over'
 var phase = 'stand';     // 'stand' | 'charge' | 'air' | 'fall'
 var charge = 0, fallT = 0, overT = 0, shake = 0;
@@ -1489,7 +1509,7 @@ var sunBoost = 0, winT = 0, cheerT = 0;
 var stoneId = 0, lastX = 0, lastTop = 0, lastWasCrumble = false;
 var CHARGE_TIME = 0.85, CRUMBLE_FUSE = 1.05;
 var chargeT = 0;                                 // time the jump has been held
-var CLEAN_TARGET = LVL.target;
+var ENERGY_GOAL = LVL.target;
 
 var hop = {
   x: 0, y: 0, vx: 0, vy: 0, g: 2000,
@@ -1524,7 +1544,6 @@ function layout() {
     lastTop += dy;
   }
   buildClouds();
-  buildJunk();
   buildFactories();
   buildForeground();
   buildMotes();
@@ -1575,8 +1594,8 @@ function buildFactories() {
       kind: FKINDS[i % FKINDS.length],
       s: rand(0.84, 1.22),
       seed: rand(0, TAU),
-      lit: [Math.random() < 0.7, Math.random() < 0.5, Math.random() < 0.8,
-            Math.random() < 0.4, Math.random() < 0.65, Math.random() < 0.55]
+      offAt: 0.12 + 0.76 * (i / (n - 1)) + rand(-0.04, 0.04),  // when its lights go out
+      lightOn: 1                                               // 1 lit .. 0 dark, eased
     });
   }
 }
@@ -1596,7 +1615,8 @@ function buildShore() {
   for (var i = 0; i < n; i++) {
     shore.push({ x: (span / n) * i + rand(-13, 13),
                  kind: SHORE_KINDS[i % SHORE_KINDS.length],
-                 s: rand(0.8, 1.28), seed: rand(0, TAU) });
+                 s: rand(0.8, 1.28), seed: rand(0, TAU),
+                 offAt: 0.08 + 0.84 * (i / n), lightOn: 1 });
   }
 }
 
@@ -1619,17 +1639,8 @@ function buildMotes() {
   }
 }
 
-/** Decorative litter bobbing in the sludge - atmosphere, never a hitbox. */
-function buildJunk() {
-  junk.length = 0;
-  for (var i = 0; i < 26; i++) {
-    junk.push({ x: rand(-VW, VW * 3), yo: rand(6, 46), s: rand(0.55, 1.25),
-      kind: (Math.random() * 3) | 0, ph: rand(0, TAU), sp: rand(0.7, 1.5), jolt: 0 });
-  }
-}
-
 /* ==========================================================================
-   6. Stones, trash piles and collectibles
+   6. Stones, energy vampires and collectibles
    ========================================================================== */
 function makeStone(x, baseY, w, type) {
   return {
@@ -1637,9 +1648,10 @@ function makeStone(x, baseY, w, type) {
     amp: 0, msp: 0, mph: 0,
     bsp: rand(1.1, 2.0), bph: rand(0, TAU),
     visited: false, trig: false, tt: 0, sink: 0, sinkV: 0, dead: false,
-    trash: 0,                                   // 0 = none, else half-width of the pile
-    trashX: 0,                                  // pile centre, as an offset from the stone
-    lamp: null,                                 // a light left burning: { dx, on, glow, wait, ph }
+    vamp: 0,                                    // 0 = none, else half-width of the vampire
+    vampX: 0,                                   // vampire centre, as an offset from the stone
+    sparkT: 0,                                  // overloaded-cable spark throttle
+    gadget: null,                               // something left running: { kind, dx, on, glow, wait, ph, speed, spin }
     notch: rand(0, TAU),                        // sway phase variation
     deco: makeDeco(),                           // what grows on top
     roots: 1 + ((Math.random() * 3) | 0),
@@ -1712,20 +1724,20 @@ function spawnStone() {
     s.mph = rand(0, TAU);
   }
 
-  // Trash pile: sits on the near edge, so the safe zone is the far half.
+  // Energy vampire: sits on the near edge, so the safe zone is the far half.
   // Only on stones roomy enough to still leave a fair landing strip.
   if (!calm && stonesCleared >= 6 && type !== 'crumble' && gap < MAX_D * 0.70 &&
       w > VW * 0.10 && Math.random() < 0.14 + 0.26 * diff) {
-    s.trash = w * 0.17;
-    s.trashX = -w * 0.31;
+    s.vamp = w * 0.17;
+    s.vampX = -w * 0.31;
   }
 
-  // A lamp left burning in broad daylight: landing here switches it off.
-  // Kept off crumblers (they sink away) and clear of any trash pile.
-  if (type !== 'crumble' && Math.random() < 0.5) {
-    var side = s.trash ? 1 : (Math.random() < 0.5 ? -1 : 1);
-    s.lamp = { dx: side * rand(0.24, 0.30), on: true, glow: 1, wait: 0,
-               ph: rand(0, TAU) };
+  // Something left running in broad daylight: landing here switches it off.
+  // Kept off crumblers (they sink away) and clear of any vampire.
+  if (type !== 'crumble' && Math.random() < GADGET_CHANCE) {
+    var side = s.vamp ? 1 : (Math.random() < 0.5 ? -1 : 1);
+    s.gadget = { kind: pick(GADGET_KINDS), dx: side * rand(0.24, 0.30), on: true,
+                 glow: 1, wait: 0, ph: rand(0, TAU), speed: 1, spin: 0 };
   }
 
   stones.push(s);
@@ -1733,7 +1745,7 @@ function spawnStone() {
   lastTop = s.baseY;
   lastWasCrumble = (type === 'crumble');
 
-  // A leaf sits on the ideal arc for this gap: reward the well-judged jump.
+  // A sun spark sits on the ideal arc for this gap: reward the well-judged jump.
   if (stones.length >= 3 && Math.random() < 0.45) {
     var pReq = clamp((gap - MIN_D) / (MAX_D - MIN_D), 0, 1);
     var apexReq = VH * (0.13 + 0.10 * pReq);
@@ -1741,7 +1753,7 @@ function spawnStone() {
       x: fromX + gap * 0.5,
       y: fromTop - apexReq * 0.82,
       r: Math.max(13, KW * 0.34),
-      ph: rand(0, TAU), taken: false, kind: 'leaf'
+      ph: rand(0, TAU), taken: false, kind: 'spark'
     });
   }
 }
@@ -1772,9 +1784,6 @@ function splat(x, y) {
   }
   ripples.push({ x: x, y: y + 3, r: 10, life: 2.1, max: 2.1,   // slick spreading out
                  vr: 34, c: '#5d5236', a: 0.34, lw: 3 });
-  for (var k = 0; k < junk.length; k++) {        // the litter nearby gets rocked
-    if (Math.abs((junk[k].x - camX) - (x - camX)) < 150) junk[k].jolt = 1;
-  }
 }
 function dust(x, y) {
   for (var i = 0; i < 9; i++) {
@@ -1859,41 +1868,55 @@ function checkFinishCue() {
 /* Encouragement is chosen by how the run actually went, not at random. */
 var MSG_START = [                                 // fell in the first few hops
   'Первый шаг всегда самый трудный. Пробуй ещё!',
-  'Даже один чистый камень — уже помощь природе.',
+  'Выключишь хоть одну лампочку — уже сбережёшь энергию!',
   'Ничего страшного: зверята готовы к новой попытке.',
-  'Не спеши с зарядом — и всё получится.',
-  'Выключишь хоть одну лампочку — уже сбережёшь энергию!'
+  'Не спеши с зарядом — и всё получится.'
 ];
 var MSG_MID = [                                   // a decent run
-  'Каждый чистый камень на счету — попробуй ещё!',
-  'Земля стала зеленее. Ещё разок?',
-  'Маленькие прыжки — большая уборка. Вперёд!',
-  'Ты расчистил дорожку. Так держать!',
-  'Мусор отступает с каждым прыжком.',
-  'Природа заметила твои старания. Продолжай!',
-  'Каждая выключенная лампочка — помощь Планете!',
-  'Меньше лишнего света — больше энергии для Планеты.'
+  'Каждый выключенный прибор — помощь Планете!',
+  'Меньше лишнего света — больше энергии для Планеты.',
+  'Электростанция уже дымит меньше. Ещё разок?',
+  'Маленькие прыжки — большая экономия. Вперёд!',
+  'Энерговампиры отступают. Так держать!',
+  'Небо светлеет с каждым выключателем. Продолжай!'
 ];
 var MSG_NEAR = [                                  // bar was almost full
-  'Поляна была совсем близко! Ещё один заход.',
-  'Почти дошёл — природа в тебя верит.',
+  'Батарейка была почти полной! Ещё один заход.',
   'До финиша оставалось чуть-чуть. Не сдавайся!',
-  'Так близко! Ещё попытка — и там цветы.',
-  'Ещё чуть-чуть — и вся энергия будет сбережена!'
+  'Ещё чуть-чуть — и вся энергия будет сбережена!',
+  'Так близко! Ещё попытка — и школа заработает от солнца.'
 ];
-var MSG_WIN = [                                   // reached the meadow
-  'Земля снова чистая, и солнце светит вовсю. Спасибо!',
-  'Ты дошёл до поляны! Цветы распустились благодаря тебе.',
-  'Вот что бывает, когда кто-то не проходит мимо мусора.',
-  'Чисто! Бабочки прилетели сказать спасибо.',
-  'Дорога очищена от начала до конца. Ты молодец!',
-  'Свет выключен, энергия сбережена — Планета говорит спасибо!'
+var MSG_WIN = [                                   // reached the finish
+  'Свет выключен, энергия сбережена — Планета говорит спасибо!',
+  'Электростанция отдыхает, а небо снова голубое. Ура!',
+  'Школа теперь работает от солнца и ветра. Спасибо!',
+  'Вот что бывает, когда никто не оставляет свет зря.',
+  'Всё лишнее выключено. Бабочки прилетели сказать спасибо!'
 ];
+
+/* The parting advice: keyed by what the run switched off most. */
+var TIPS = {
+  lamp:    ['Уходишь из комнаты — выключи свет.',
+            'Днём светло и без лампы: просто открой шторы!'],
+  tv:      ['Никто не смотрит телевизор? Выключи его совсем, а не только пультом.'],
+  charger: ['Телефон зарядился — вынь зарядку из розетки.'],
+  fan:     ['Вентилятор нужен, только когда ты рядом.'],
+  any:     ['Закрывай дверцу холодильника побыстрее.',
+            'Горячая вода — это тоже энергия. Не оставляй кран открытым.',
+            'Энерговампиры — это приборы в режиме ожидания. Выключай их кнопкой.']
+};
+
+/** The tip that fits this run: the thing switched off most, else a general one. */
+function pickTip() {
+  var best = null, n = 0;
+  for (var k in offByKind) if (offByKind[k] > n) { n = offByKind[k]; best = k; }
+  return pick(best && TIPS[best] ? TIPS[best] : TIPS.any);
+}
 
 /** Pick the line that matches this run's story. */
 function encouragement(isNew) {
-  if (won) return isNew ? 'Новый рекорд — и чистая земля впридачу!' : pick(MSG_WIN);
-  if (isNew && score >= 5) return 'Новый рекорд отряда чистоты!';
+  if (won) return isNew ? 'Новый рекорд — и вся энергия сбережена!' : pick(MSG_WIN);
+  if (isNew && score >= 5) return 'Новый рекорд отряда энергосбережения!';
   if (clean >= 0.7) return pick(MSG_NEAR);
   if (score < 5) return pick(MSG_START);
   return pick(MSG_MID);
@@ -1905,15 +1928,15 @@ function updateHud() {
   var pct = Math.round(clean * 100);
   if (pct !== cleanPctShown) {
     cleanPctShown = pct;
-    elCleanFill.style.width = pct + '%';
-    elCleanPct.textContent = pct + '%';
+    elCleanFill.style.width = 'max(0px, calc(' + pct + '% - 2px))';
   }
+  elCleanPct.textContent = energy + '/' + ENERGY_GOAL;
 }
 
 function reset() {
   stones.length = 0; items.length = 0; parts.length = 0;
   ripples.length = 0; pops.length = 0;
-  score = 0; stonesCleared = 0; leaves = 0; lampsOff = 0;
+  score = 0; stonesCleared = 0; leaves = 0; energy = 0; offByKind = {};
   T = 0; stoneId = 0; lastWasCrumble = false;
   fallT = 0; overT = 0; shake = 0; charge = 0;
   flyers.length = 0; camKick = 0; camKickV = 0; hitStop = 0; winFlash = 0;
@@ -1956,7 +1979,11 @@ function startGame() {
 /** Freeze the whole world: no time passes, so nothing drifts or crumbles. */
 function setPaused(v) {
   paused = v;
-  if (v) { cancelPress(); elPause.classList.remove('hidden'); }
+  if (v) {
+    cancelPress();
+    elPauseTip.textContent = pick(TIPS.any);   // something to try while you rest
+    elPause.classList.remove('hidden');
+  }
   else elPause.classList.add('hidden');
 }
 function toMenu() {
@@ -1975,20 +2002,20 @@ function gameOver() {
   chargeStop();
   var isNew = score > best;
   if (isNew) { best = score; save(bestKey(), String(best)); }
-  elOverTitle.textContent = won ? 'Ты справился!'
-    : (leaves > 0 ? 'Ой-ёй! Зато улов хорош.' : 'Ой-ёй!');
+  elOverTitle.textContent = won ? 'Энергия сбережена!'
+    : (leaves > 0 ? 'Ой-ёй! Зато искорок много.' : 'Ой-ёй!');
   var t0 = performance.now();                    // the score rolls up to its total
   (function tick(now) {
     var p = clamp((now - t0) / 650, 0, 1);
     elFinal.textContent = Math.round(score * (1 - Math.pow(1 - p, 3)));
     if (p < 1 && mode === 'over') requestAnimationFrame(tick);
   })(t0);
-  elFinalStones.textContent = stonesCleared;
+  elFinalEnergy.textContent = energy + ' из ' + ENERGY_GOAL;
   elFinalLeaves.textContent = leaves;
-  elFinalLamps.textContent = lampsOff;
   elFinalBest.textContent = best;
   elNewBest.classList.toggle('hidden', !isNew);
   elEcoMsg.textContent = encouragement(isNew);
+  elTipMsg.textContent = pickTip();
   elOver.classList.toggle('win', won);
   elOver.classList.remove('hidden');
   updateHud();
@@ -2006,32 +2033,34 @@ function fallIn(reason) {
   splat(hop.x, groundY);
   sndSplat();
   shake = 9;
-  popup(hop.x, groundY - KW * 2.2, reason === 'trash' ? 'УПС!' : 'ОЙ-ЁЙ!', '#ffd44a');
+  popup(hop.x, groundY - KW * 2.2, reason === 'vampire' ? 'ЭНЕРГОВАМПИР!' : 'ОЙ-ЁЙ!', '#ffd44a');
 }
 
-/** Click - the island's light goes out, and the energy saved is worth a point. */
+/** Click - the island's gadget goes off, and the energy saved is worth a point. */
 function switchOff(s) {
-  var L = s.lamp, top = stoneTop(s);
-  var lx = s.x + L.dx * s.w, ly = top - lampH() * 0.83;
-  L.on = false;
-  lampsOff++;
+  var G = s.gadget, K = GADGETS[G.kind], top = stoneTop(s);
+  var gx = s.x + G.dx * s.w, gy = top - gadgetH(G.kind) * 0.8;
+  G.on = false;
+  energy++;
+  offByKind[G.kind] = (offByKind[G.kind] || 0) + 1;
   score += 1;
-  clean = clamp(score / CLEAN_TARGET, 0, 1);
-  popup(lx, top - KW * 2.9, 'СВЕТ ВЫКЛ! +1', '#a8f07a');
-  flyScore(lx - camX, ly, '+1', '#a8f07a');
-  sparkle(lx, ly, '#a8f07a');
+  clean = clamp(energy / ENERGY_GOAL, 0, 1);
+  popup(gx, top - KW * 2.9, K.label, '#a8f07a');
+  flyScore(gx - camX, gy, '+1', '#a8f07a');
+  sparkle(gx, gy, '#a8f07a');
   sndSwitch();
+  if (K.snd) K.snd();
   updateHud();
   checkFinishCue();
 }
 
 function land(s, top) {
-  // Landing in the trash pile is the miss - jump over it, not into it.
-  if (s.trash) {
-    var tx = s.x + s.trashX;
-    if (Math.abs(hop.x - tx) < s.trash + KW * 0.22) {
+  // Landing on the vampire is the miss - jump over it, not into it.
+  if (s.vamp) {
+    var tx = s.x + s.vampX;
+    if (Math.abs(hop.x - tx) < s.vamp + KW * 0.22) {
       hop.y = top;
-      fallIn('trash');
+      fallIn('vampire');
       return;
     }
   }
@@ -2065,18 +2094,16 @@ function land(s, top) {
       camKick = 4.5; camKickV = 0;
       sndScore();
     }
-    clean = clamp(score / CLEAN_TARGET, 0, 1);
     updateHud();
-    checkFinishCue();
-    if (s.lamp && s.lamp.on) s.lamp.wait = 0.2;   // a beat later: click, lights out
+    if (s.gadget && s.gadget.on) s.gadget.wait = 0.2;   // a beat later: click, lights out
   } else {
     sndLand();
   }
 
   // settle onto the stone so the hopper never dangles off the edge
   var limit = s.w * 0.5 - KW * 0.24;
-  if (s.trash) {                                // ...and never into the pile
-    var lo = s.trashX + s.trash + KW * 0.24;
+  if (s.vamp) {                                // ...and never onto the vampire
+    var lo = s.vampX + s.vamp + KW * 0.24;
     hop.offset = clamp(off, Math.min(lo, limit), limit);
   } else {
     hop.offset = clamp(off, -limit, limit);
@@ -2216,18 +2243,18 @@ function setDifficulty(v) {
   diffValue = clamp(Math.round(v), 0, 100);
   LVL = diffCfg(diffValue);
   save(LS_DIFF, String(diffValue));
-  CLEAN_TARGET = LVL.target;
+  ENERGY_GOAL = LVL.target;
   if (parseInt(elDiffRange.value, 10) !== diffValue) elDiffRange.value = String(diffValue);
 
   var hue = Math.round(lerp(122, 6, diffValue / 100));   // a green road to a red one
   elDiffRange.parentNode.style.setProperty('--dialc', 'hsl(' + hue + ',62%,40%)');
   elDiffName.textContent = LVL.name;
-  elDiffPath.textContent = 'путь ' + LVL.target + ' очков';
-  elDiffRange.setAttribute('aria-valuetext', LVL.name + ', путь ' + LVL.target + ' очков');
-  elLvlChip.textContent = LVL.name + ' · путь ' + LVL.target;
+  elDiffPath.textContent = 'выключи ' + LVL.target;
+  elDiffRange.setAttribute('aria-valuetext', LVL.name + ', цель — выключить ' + LVL.target + ' приборов');
+  elLvlChip.textContent = LVL.name + ' · цель ' + LVL.target;
 
   loadBest();                                    // each road length keeps its own record
-  clean = clamp(score / CLEAN_TARGET, 0, 1);
+  clean = clamp(energy / ENERGY_GOAL, 0, 1);
   updateHud();
 
   if (LVL.name !== prevName) sndScore();         // a chime for a new name,
@@ -2285,25 +2312,39 @@ function update(dt) {
   if (won) sunBoost = Math.min(1, sunBoost + dt * 0.75);
 
   for (var i = 0; i < clouds.length; i++) clouds[i].x -= clouds[i].spd * dt;
-  truckP += dt * 22;
-  for (var jk = 0; jk < junk.length; jk++) {
-    if (junk[jk].jolt > 0) junk[jk].jolt = Math.max(0, junk[jk].jolt - dt * 1.6);
+  for (var fi = 0; fi < factories.length; fi++) {            // lights out, one by one
+    var fa = factories[fi], want = clean >= fa.offAt ? 0 : 1;
+    fa.lightOn += (want - fa.lightOn) * Math.min(1, dt * 6);
   }
-
+  for (var si = 0; si < shore.length; si++) {                // street lamps the same
+    var so = shore[si], wantL = clean >= so.offAt ? 0 : 1;
+    so.lightOn += (wantL - so.lightOn) * Math.min(1, dt * 6);
+  }
   for (var i2 = 0; i2 < stones.length; i2++) {
     var s = stones[i2];
     s.x = stoneX(s);
     if (s.impactT > 0) s.impactT = Math.max(0, s.impactT - dt);
-    if (s.lamp) {
-      if (s.lamp.on && s.lamp.wait > 0 && mode === 'play') {
-        s.lamp.wait -= dt;
-        if (s.lamp.wait <= 0) switchOff(s);
-      } else if (!s.lamp.on && s.lamp.glow > 0) {
-        s.lamp.glow = Math.max(0, s.lamp.glow - dt * 3);   // the glow dies out
+    if (s.gadget) {
+      var G = s.gadget;
+      if (G.on && G.wait > 0 && mode === 'play') {
+        G.wait -= dt;
+        if (G.wait <= 0) switchOff(s);
+      } else if (!G.on && G.glow > 0) {
+        G.glow = Math.max(0, G.glow - dt * 3);        // the glow dies out
       }
+      G.speed = G.on ? 1 : Math.max(0, G.speed - dt * 0.9);
+      G.spin += dt * 16 * G.speed;
     }
     if (s.trig && !s.dead) {
       s.tt += dt;
+      s.sparkT -= dt;
+      if (s.sparkT <= 0) {                        // the overloaded cable spits sparks
+        s.sparkT = 0.12;
+        parts.push({ x: s.x + rand(-0.25, 0.25) * s.w,
+                     y: stoneTop(s) + stoneH(s) * 0.2,
+                     vx: rand(-60, 60), vy: rand(-140, -60), g: 500,
+                     r: rand(1.4, 2.6), life: 0.3, max: 0.3, c: '#ffd44a' });
+      }
       if (s.tt > CRUMBLE_FUSE) {
         if (!s.broke) { s.broke = true; breakStone(s); }
         s.sinkV += 340 * dt;
@@ -2345,13 +2386,11 @@ function update(dt) {
           o.taken = true;
           leaves++;
           score += 3;
-          clean = clamp(score / CLEAN_TARGET, 0, 1);
-          popup(o.x, o.y - 8, 'ЛИСТИК +3', '#7ee06a');
-          flyScore(o.x - camX, o.y, '+3', '#7ee06a');
-          sparkle(o.x, o.y, '#7ee06a');
+          popup(o.x, o.y - 8, 'ИСКОРКА +3', '#ffc93c');
+          flyScore(o.x - camX, o.y, '+3', '#ffc93c');
+          sparkle(o.x, o.y, '#ffc93c');
           sndLeaf();
           updateHud();
-          checkFinishCue();
         }
       }
 
@@ -2666,13 +2705,21 @@ function drawPlume(x, y, u, amount, seed, color, rise, drift, speed) {
 }
 
 /** A wind turbine that fades in and spins as the land recovers. */
-function drawTurbine(x, base, u, amount) {
+function drawTurbine(x, base, u, amount, speed) {
   if (amount < 0.04) return;
   var th = u * 2.5;
   sprB('turbine-tower', x, base, th * 0.375, { a: amount });
   var bs = u * 3.1;
   spr('turbine-blades', x - bs / 2, base - th - bs / 2, bs, bs,
-      { a: amount, rot: T * 1.1 });
+      { a: amount, rot: T * 1.1 * (speed || 1) });
+}
+
+/** A pair of solar panels that fade in as energy is saved. */
+function drawSolar(x, base, u, amount) {
+  if (amount < 0.2) return;
+  var a = clamp((amount - 0.2) * 1.6, 0, 1);
+  sprB('solar-panel', x, base, u * 1.3, { a: a });
+  sprB('solar-panel', x + u * 1.25, base, u * 1.3, { a: a });
 }
 
 /** A hazier, smaller band further back - depth without extra detail. */
@@ -2699,7 +2746,7 @@ function drawFactory(f, x, base, u, body, trim, win, smoke) {
   /* windows glow amber through the smog, go quiet as daylight returns */
   if (m.win) {
     var flick = 0.55 + Math.sin(T * 2.4 + f.seed) * 0.18;
-    ctx.globalAlpha = clamp((1 - cleanShown) * flick, 0, 0.7);
+    ctx.globalAlpha = clamp(f.lightOn * flick, 0, 0.7);
     ctx.fillStyle = '#d9a758';
     ctx.fillRect(x + m.win[0] * ws, base - hs + m.win[1] * hs,
                  m.win[2] * ws, m.win[3] * hs);
@@ -2734,8 +2781,9 @@ function drawFactory(f, x, base, u, body, trim, win, smoke) {
     ctx.globalAlpha = 1;
   }
 
-  /* what replaces the smoke: a turbine and a tree, fading in with the clean-up */
+  /* what replaces the smoke: a turbine, panels and a tree, in with the savings */
   drawTurbine(x + u * 4.2, base, u, cleanShown);
+  drawSolar(x + u * 2.2, base, u, cleanShown);
   if (cleanShown > 0.05) {
     sprB('shore-tree', x - u * 1.3, base, u * 1.15, { a: cleanShown });
   }
@@ -2757,6 +2805,47 @@ function drawSkyline() {
   grd.addColorStop(1, mix(P.far, P.city, 0.75));
   ctx.fillStyle = grd;
   ctx.fillRect(0, base, VW, groundY + 4 - base);
+
+  /* power lines feeding the town: pulses hurry while demand is high */
+  var pw = VH * 0.10, ph = pw * 3;                 // pylon sprite is 40x120
+  var pstep = VW * 0.55;
+  var pulseV = 0.25 + 0.75 * (1 - cleanShown);
+  var prev = null;
+  for (var k = Math.floor((camX * par - 90) / pstep);
+       k * pstep - camX * par < VW + 90; k++) {
+    var px2 = k * pstep - camX * par;
+    sprB('pylon', px2, base, pw, { a: 0.8 });
+    var cur = [px2 - pw * 0.40, base - ph * 0.85,   // top crossarm, both tips
+               px2 + pw * 0.40, base - ph * 0.85,
+               px2 - pw * 0.35, base - ph * 0.717,  // lower crossarm
+               px2 + pw * 0.35, base - ph * 0.717];
+    if (prev) {
+      ctx.strokeStyle = '#56625a';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      for (var wn = 0; wn < 4; wn++) {
+        var x1 = prev[wn * 2], y1 = prev[wn * 2 + 1];
+        var x2 = cur[wn * 2], y2 = cur[wn * 2 + 1];
+        var mx = (x1 + x2) / 2, my = Math.max(y1, y2) + pstep * 0.07;
+        ctx.moveTo(x1, y1);
+        ctx.quadraticCurveTo(mx, my, x2, y2);
+      }
+      ctx.stroke();
+      /* bright pulses riding the wires, slowing as less energy is burned */
+      ctx.fillStyle = 'rgba(255,217,90,0.85)';
+      for (var dn = 0; dn < 3; dn++) {
+        var wn2 = (dn + k) % 4;                     // dots spread over the wires
+        var xa = prev[wn2 * 2], ya = prev[wn2 * 2 + 1];
+        var xb = cur[wn2 * 2], yb = cur[wn2 * 2 + 1];
+        var cx = (xa + xb) / 2, cy = Math.max(ya, yb) + pstep * 0.07;
+        var tt = (T * pulseV + dn / 3 + k * 0.37) % 1;
+        var u1 = 1 - tt;
+        ellF(ctx, u1 * u1 * xa + 2 * u1 * tt * cx + tt * tt * xb,
+              u1 * u1 * ya + 2 * u1 * tt * cy + tt * tt * yb, 2.1, 2.1);
+      }
+    }
+    prev = cur;
+  }
 
   for (var i = 0; i < factories.length; i++) {
     var f = factories[i];
@@ -2824,7 +2913,6 @@ function drawForeground() {
 function drawShore() {
   var par = 0.32, span = VW * 1.9;
   var base = groundY - VH * 0.040;
-  var lampGlow = 0.16 + 0.30 * (1 - cleanShown);   // brighter through the smog
 
   for (var i = 0; i < shore.length; i++) {
     var o = shore[i];
@@ -2835,6 +2923,7 @@ function drawShore() {
     var sway = Math.sin(T * 0.8 + o.seed) * 0.04;
 
     if (o.kind === 'lamp') {
+      var lampGlow = (0.16 + 0.30 * o.lightOn);    // brighter through the smog
       var lw = u * 0.95, lh = lw * 160 / 90;
       sprB('shore-lamp', x + lw * 0.345, base, lw);
       var hx = x + lw * 0.401, hy = base - lh * 0.79;
@@ -2856,7 +2945,7 @@ function drawShore() {
       ctx.fillStyle = gl2;
       ellF(ctx, hx, hy, u * 0.52, u * 0.38);
       ctx.fillStyle = '#fff0b8';                   // the bulb itself
-      ctx.globalAlpha = 0.7 + 0.3 * (1 - cleanShown);
+      ctx.globalAlpha = 0.7 + 0.3 * o.lightOn;
       ellF(ctx, hx, hy, u * 0.075, u * 0.05);
       ctx.globalAlpha = 1;
 
@@ -2884,21 +2973,6 @@ function drawShore() {
     }
   }
 
-  /* a little van doing its rounds along the shore */
-  var tx = truckP - camX * par;
-  tx = ((tx + 240) % span + span) % span - 240;
-  if (tx > -120 && tx < VW + 120) {
-    var tu = VH * 0.038;
-    sprB('van', tx + tu * 1.1, base - tu * 0.02, tu * 2.4);
-    var vg = ctx.createRadialGradient(tx + tu * 2.28, base - tu * 0.62, tu * 0.02,
-                                      tx + tu * 2.28, base - tu * 0.62, tu * 0.32);
-    vg.addColorStop(0, 'rgba(255,217,132,' + (0.5 + 0.4 * (1 - cleanShown)) * 0.8 + ')');
-    vg.addColorStop(1, 'rgba(255,217,132,0)');
-    ctx.fillStyle = vg;
-    ellF(ctx, tx + tu * 2.28, base - tu * 0.62, tu * 0.32, tu * 0.24);
-    ctx.fillStyle = '#fff0b8';
-    ellF(ctx, tx + tu * 2.28, base - tu * 0.62, tu * 0.1, tu * 0.075);
-  }
 }
 
 function drawHills(par, amp, base, color, seed) {
@@ -2955,22 +3029,6 @@ function drawSludge() {
   ctx.globalAlpha = 1;
 }
 
-/** Litter bobbing in the sludge. Decoration only - it is never a hitbox. */
-function drawJunk() {
-  var names = ['junk-bottle', 'junk-can', 'junk-bag'];
-  for (var i = 0; i < junk.length; i++) {
-    var j = junk[i];
-    var span = VW * 3.4;
-    var x = j.x - camX;
-    x = ((x + 200) % span + span) % span - 200;
-    if (x < -60 || x > VW + 60) continue;
-    var y = groundY + j.yo + Math.sin(T * j.sp + j.ph) * 3
-            + (j.jolt ? Math.sin(T * 17 + j.ph) * 6 * j.jolt : 0);
-    var s = j.s * (14 + j.yo * 0.1);
-    sprC(names[j.kind], x, y, s * 2.3, { a: clamp(1 - cleanShown * 0.5, 0.35, 1) });
-  }
-}
-
 /** A rainbow arching over the goal once it is reached. */
 function drawRainbow() {
   if (!won || !finishStone || sunBoost < 0.02) return;
@@ -3015,6 +3073,20 @@ function drawMeadow(s, px, top, w, h) {
 
   /* the school stands behind the meadow, part of the finish */
   sprB('school', px + w * 0.02, top + h * 0.10, w * 0.8);
+
+  /* solar panels on the gym roof, glinting once the sun wins */
+  var sw8 = w * 0.8, sh8 = sw8 / 2;                   // school sprite is 480x240
+  var sL = px + w * 0.02 - sw8 / 2, sT = top + h * 0.10 - sh8;
+  for (var sp = 0; sp < 3; sp++) {
+    sprB('solar-panel', sL + sw8 * (100 + sp * 25) / 480, sT + sh8 * 47 / 240,
+         sw8 * 24 / 480);
+  }
+  if (won) {                                          // a glint sweeps the panels
+    var gl8 = (T * 0.6) % 1;
+    ctx.fillStyle = 'rgba(255,255,255,' + 0.5 * Math.sin(gl8 * Math.PI) + ')';
+    ctx.fillRect(sL + sw8 * (96 + gl8 * 80) / 480, sT + sh8 * 38 / 240,
+                 sw8 * 6 / 480, sh8 * 9 / 240);
+  }
 
   /* the bank - a wide island sprite, its keel lost under the waterline */
   var ws = w * 1.04, hs = Math.max(h / 0.93, ws * 0.42);
@@ -3064,10 +3136,14 @@ function drawMeadow(s, px, top, w, h) {
     ellF(ctx, px - hw * 0.62 + st2 * w * 0.10, top + 6 - st2 * 1.5, 9 - st2, 3.4);
   }
 
+  /* a small turbine on the bank spins faster as the sun takes over */
+  drawTurbine(px + w * 0.46, top + 3, w * 0.07, 1, 1 + 2 * sunBoost);
+
   /* signpost */
   var sgx = px + w * 0.15;
   var sgw = w * 0.13, sgh = sgw * 100 / 80;
   sprB('signpost', sgx, top + 2, sgw);
+
   ctx.fillStyle = '#3f7a45';
   signFont('ФИНИШ', Math.max(11, w * 0.035), sgw * 0.68);
   ctx.textAlign = 'center';
@@ -3155,25 +3231,16 @@ function drawStartExtras(s, px, top, w, h) {
   ctx.fill();
 }
 
-/** Height of an island lamp, in step with the hopper. */
-function lampH() { return clamp(KW * 1.15, 30, 60); }
-
 /**
  * A lamp left burning on an island: a warm halo and rays while it is on,
  * a cold grey bulb once someone has landed and clicked it off.
  */
-function drawLamp(s, px, top) {
-  var L = s.lamp;
-  var lh = lampH(), lw = lh * 0.4;
-  var lx = px + L.dx * s.w, base = top + 2;
-  var bx = lx, by = base - lh * 0.83, br = lw * 0.275;
-  var g = L.glow;
-  if (!L.on) g *= 0.5 + 0.5 * Math.abs(Math.sin(T * 40));  // it stutters out
-  else g *= 0.9 + 0.1 * Math.sin(T * 3.2 + L.ph);
+function drawLamp(G, x, base, h, g) {
+  var lw = h * 0.4, bx = x, by = base - h * 0.83, br = lw * 0.275;
 
   if (g > 0.01) {
     ctx.fillStyle = 'rgba(255,221,140,' + 0.30 * g + ')';  // light pooled on the grass
-    ellF(ctx, lx, base - 1, lw * 1.6, lw * 0.32);
+    ellF(ctx, x, base - 1, lw * 1.6, lw * 0.32);
     var hg = ctx.createRadialGradient(bx, by, br * 0.4, bx, by, br * 4.4);
     hg.addColorStop(0, 'rgba(255,226,140,' + 0.8 * g + ')');
     hg.addColorStop(1, 'rgba(255,226,140,0)');
@@ -3186,21 +3253,21 @@ function drawLamp(s, px, top) {
     ctx.beginPath();
     for (var r = 0; r < 7; r++) {
       var a = -Math.PI / 2 + (r - 3) * 0.52;
-      var r0 = br * 1.55, r1 = br * (2.25 + 0.2 * Math.sin(T * 4 + r + L.ph));
+      var r0 = br * 1.55, r1 = br * (2.25 + 0.2 * Math.sin(T * 4 + r + G.ph));
       ctx.moveTo(bx + Math.cos(a) * r0, by + Math.sin(a) * r0);
       ctx.lineTo(bx + Math.cos(a) * r1, by + Math.sin(a) * r1);
     }
     ctx.stroke();
   }
 
-  sprB('island-lamp', lx, base, lw);
+  sprB('island-lamp', x, base, lw);
 
   /* the switch on the pole: lever up while the light burns */
-  var sw = lw * 0.36, sh = lh * 0.12, sx = lx - sw / 2, sy = base - lh * 0.44;
+  var sw = lw * 0.36, sh = h * 0.12, sx = x - sw / 2, sy = base - h * 0.44;
   ctx.fillStyle = '#eef2ea';
   fillRR(ctx, sx, sy, sw, sh, sw * 0.25);
-  ctx.fillStyle = L.on ? '#e0a33a' : '#6f8a73';
-  fillRR(ctx, sx + sw * 0.3, sy + sh * (L.on ? 0.14 : 0.5), sw * 0.4, sh * 0.36, sw * 0.1);
+  ctx.fillStyle = G.on ? '#e0a33a' : '#6f8a73';
+  fillRR(ctx, sx + sw * 0.3, sy + sh * (G.on ? 0.14 : 0.5), sw * 0.4, sh * 0.36, sw * 0.1);
 
   /* the glass bulb, warm or cold, with its filament */
   ctx.fillStyle = mix('#b8c0bb', '#ffe27f', clamp(g * 1.1, 0, 1));
@@ -3224,6 +3291,90 @@ function drawLamp(s, px, top) {
   ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.75)';                // glint on the glass
   ellF(ctx, bx - br * 0.42, by - br * 0.4, br * 0.18, br * 0.28);
+}
+
+/** Common set-up for anything left running, then the kind's own drawing. */
+function drawGadget(s, px, top) {
+  var G = s.gadget, h = gadgetH(G.kind);
+  var x = px + G.dx * s.w, base = top + 2;
+  var g = G.glow;                                          // 1 running, 0 off
+  if (!G.on) g *= 0.5 + 0.5 * Math.abs(Math.sin(T * 40));  // it stutters out
+  else g *= 0.9 + 0.1 * Math.sin(T * 3.2 + G.ph);
+  if (G.kind === 'lamp') drawLamp(G, x, base, h, g);
+  else if (G.kind === 'tv') drawTV(G, x, base, h, g);
+  else if (G.kind === 'charger') drawCharger(G, x, base, h, g);
+  else drawFan(G, x, base, h, g);
+}
+
+/** A TV playing to nobody: a flickering colour screen; off, it collapses to a line. */
+function drawTV(G, x, base, h, g) {
+  var w = h;                                               // sprite is square
+  if (g > 0.01) {                                          // screen light spilling out
+    var hg = ctx.createRadialGradient(x, base - h * 0.55, h * 0.1, x, base - h * 0.55, h * 0.9);
+    hg.addColorStop(0, 'rgba(160,220,255,' + 0.45 * g + ')');
+    hg.addColorStop(1, 'rgba(160,220,255,0)');
+    ctx.fillStyle = hg;
+    ellF(ctx, x, base - h * 0.55, h * 0.9, h * 0.9);
+  }
+  sprB('gadget-tv', x, base, w);
+  var sx = x - w / 2 + w * 0.20, sy = base - h + h * 0.217, sw = w * 0.60, sh = h * 0.433;
+  if (G.on) {
+    ctx.fillStyle = ['#7ad3e8', '#8fe07a', '#ffd44a', '#ff9fc4'][((T * 1.6 + G.ph) | 0) % 4];
+    ctx.globalAlpha = 0.75 + 0.25 * g;
+    fillRR(ctx, sx, sy, sw, sh, 2);
+    ctx.globalAlpha = 1;
+  } else if (G.glow > 0) {                                 // the old CRT "blip"
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = G.glow;
+    ctx.fillRect(x - sw * 0.5 * G.glow, sy + sh / 2 - 1, sw * G.glow, 2);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** A charger left in a socket: blinking LED; off, the plug sits pulled out. */
+function drawCharger(G, x, base, h, g) {
+  var w = h * 40 / 70;
+  sprB('gadget-charger', x, base, w);
+  var cx = x, cy = base - h + h * 0.243, out = (1 - G.glow) * w * 0.55;
+  ctx.fillStyle = '#f4f6f2';                               // the plug
+  fillRR(ctx, cx - w * 0.16 + out, cy - w * 0.14, w * 0.32, w * 0.28, 3);
+  ctx.strokeStyle = '#4e6350';                             // its cable to the grass
+  ctx.lineWidth = Math.max(1.2, w * 0.05);
+  ctx.beginPath();
+  ctx.moveTo(cx + out + w * 0.16, cy);
+  ctx.quadraticCurveTo(cx + out + w * 0.6, cy + h * 0.3, cx + w * 0.4, base - 1);
+  ctx.stroke();
+  var blink = G.on && Math.sin(T * 5 + G.ph) > 0;
+  ctx.fillStyle = blink ? '#6fe06a' : '#8a938d';           // the LED
+  ellF(ctx, cx, base - h + h * 0.143, w * 0.07, w * 0.07);
+}
+
+/** A fan spinning in an empty room: blades coast to a stop after the click. */
+function drawFan(G, x, base, h, g) {
+  var w = h * 50 / 80;
+  sprB('gadget-fan', x, base, w);
+  var cx = x, cy = base - h + h * 0.30, r = w * 0.34;
+  ctx.fillStyle = 'rgba(200,232,240,0.9)';
+  for (var b = 0; b < 3; b++) {
+    var a = G.spin + b * TAU / 3;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a);
+    ellF(ctx, r * 0.5, 0, r * 0.5, r * 0.22);
+    ctx.restore();
+  }
+  ctx.fillStyle = '#37473c';                               // the hub
+  ellF(ctx, cx, cy, r * 0.22, r * 0.22);
+  if (G.speed > 0.2) {                                     // breeze lines
+    ctx.strokeStyle = 'rgba(255,255,255,' + 0.5 * G.speed + ')';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (var l = 0; l < 3; l++) {
+      var ly = cy - r * 0.6 + l * r * 0.6, lx = cx + r * 1.3 + ((T * 60 + l * 17) % (r * 1.5));
+      ctx.moveTo(lx, ly); ctx.lineTo(lx + r * 0.5, ly);
+    }
+    ctx.stroke();
+  }
 }
 
 function drawStone(s) {
@@ -3325,7 +3476,7 @@ function drawStone(s) {
       }
     }
   }
-  if (s.lamp) drawLamp(s, px, top);
+  if (s.gadget) drawGadget(s, px, top);
 
   /* --- type-specific marks --- */
   if (s.type === 'start') {
@@ -3350,13 +3501,16 @@ function drawStone(s) {
     ctx.stroke();
 
   } else if (s.type === 'crumble') {
-    ctx.strokeStyle = 'rgba(40,30,16,0.5)';
+    /* an overloaded cable zig-zags across the top - it sparks, then the
+       island gives out */
+    ctx.strokeStyle = '#3a3a3a';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(px - w * 0.2, top + h * 0.16);
-    ctx.lineTo(px - w * 0.07, top + h * 0.44);
-    ctx.moveTo(px + w * 0.17, top + h * 0.14);
-    ctx.lineTo(px + w * 0.25, top + h * 0.5);
+    ctx.moveTo(px - w * 0.30, top + h * 0.10);
+    ctx.lineTo(px - w * 0.15, top + h * 0.32);
+    ctx.lineTo(px - w * 0.02, top + h * 0.14);
+    ctx.lineTo(px + w * 0.12, top + h * 0.34);
+    ctx.lineTo(px + w * 0.27, top + h * 0.12);
     ctx.stroke();
     if (s.trig) {
       var left = clamp(1 - s.tt / CRUMBLE_FUSE, 0, 1);
@@ -3368,20 +3522,23 @@ function drawStone(s) {
     }
   }
 
-  /* --- trash pile: the part of the island you must not land on --- */
-  if (s.trash) {
-    var tx2 = px + s.trashX, tr = s.trash;
-    if (phase === 'air' && hop.y < top &&        // someone is sailing over it
-        Math.abs(hop.x - (s.x + s.trashX)) < tr * 4) {
-      tx2 += Math.sin(T * 38) * 2.2;
+  /* --- energy vampire: stand-by power, the part you must not land on --- */
+  if (s.vamp) {
+    var vx = px + s.vampX, vr = s.vamp;
+    var weak = s.gadget && !s.gadget.on ? 1 : 0;   // nothing left to drain
+    var bob = Math.sin(T * 3 + s.id) * 2 * (1 - weak * 0.7);
+    if (phase === 'air' && hop.y < top &&          // someone is sailing over it
+        Math.abs(hop.x - (s.x + s.vampX)) < vr * 4) {
+      vx += Math.sin(T * 38) * 2.2;
     }
-    ctx.fillStyle = 'rgba(46,36,22,0.5)';
-    ellF(ctx, tx2, top + 2, tr * 1.15, tr * 0.3);
-    sprB('trash-pile', tx2, top + 3, tr * 2.3);
+    ctx.fillStyle = 'rgba(46,36,22,0.35)';
+    ellF(ctx, vx, top + 2, vr * 1.1, vr * 0.28);
+    sprB('energy-vampire', vx, top + 3 + weak * 3, vr * 2.4 * (1 - weak * 0.15),
+         { a: 1 - weak * 0.35, rot: bob * 0.02, px: 0.5, py: 1 });
   }
 }
 
-/** Collectible leaf, gently spinning with a soft glow. */
+/** Collectible sun spark, slowly turning with a soft glow. */
 function drawItems() {
   for (var i = 0; i < items.length; i++) {
     var o = items[i];
@@ -3389,10 +3546,10 @@ function drawItems() {
     var x = o.x - camX, y = o.y + Math.sin(T * 2 + o.ph) * 5;
     if (x < -60 || x > VW + 60) continue;
     ctx.globalAlpha = 0.18;
-    ctx.fillStyle = '#b9f5a0';
+    ctx.fillStyle = '#ffe79a';
     ellF(ctx, x, y, o.r * 1.28, o.r * 1.28);
     ctx.globalAlpha = 1;
-    sprC('leaf', x, y, o.r * 2.1, { rot: Math.sin(T * 1.6 + o.ph) * 0.35 - 0.4 });
+    sprC('sun-spark', x, y, o.r * 2.2, { rot: T * 0.8 + o.ph });
   }
 }
 
@@ -3761,7 +3918,6 @@ function render() {
   drawHills(0.22, VH * 0.11, groundY + 2, P.near, 2.6);
   drawShore();
   drawSludge();
-  drawJunk();
 
   for (var i = 0; i < stones.length; i++) drawStone(stones[i]);
   drawItems();

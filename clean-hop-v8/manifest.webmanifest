@@ -1,12 +1,12 @@
 {
-  "name": "Чистый Прыжок",
-  "short_name": "Чистый Прыжок",
+  "name": "Энергопрыжок",
+  "short_name": "Энергопрыжок",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#3a3226",
-  "theme_color": "#4fbfec",
+  "theme_color": "#ffc93c",
   "icons": [
     {
       "src": "icon-192.png",

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="50" height="80" viewBox="0 0 50 80">
+  <defs>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b8270"/><stop offset="0.4" stop-color="#4e6350"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+  </defs>
+  <!-- round base -->
+  <ellipse cx="25" cy="77" rx="20" ry="5" fill="url(#pole)"/>
+  <ellipse cx="25" cy="75.5" rx="14" ry="3" fill="#7e9484" opacity="0.5"/>
+  <!-- pole -->
+  <rect x="23" y="30" width="4" height="46" fill="url(#pole)"/>
+  <!-- back guard ring: the game spins the blades inside it -->
+  <circle cx="25" cy="24" r="20" fill="none" stroke="#7e9484" stroke-width="2" opacity="0.6"/>
+  <circle cx="25" cy="24" r="13" fill="none" stroke="#7e9484" stroke-width="1.4" opacity="0.45"/>
+</svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7ee06a"/>
+      <stop offset="1" stop-color="#ffd44a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- bulb base, under the glass -->
+  <rect x="206" y="318" width="100" height="72" rx="14" fill="#8a8f7a"
+        stroke="#20303a" stroke-width="12"/>
+  <line x1="220" y1="352" x2="292" y2="352" stroke="#20303a" stroke-width="8" stroke-linecap="round"/>
+  <line x1="222" y1="370" x2="290" y2="370" stroke="#20303a" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- the bulb's glass -->
+  <circle cx="256" cy="215" r="118" fill="#fffaf0" stroke="#20303a" stroke-width="14"/>
+
+  <!-- a green leaf inside the glass: what the saved energy grows -->
+  <path d="M256 268 C 214 242 206 190 232 158 C 284 168 302 220 284 262 C 275 271 264 272 256 268 Z"
+        fill="#2f8f43"/>
+  <path d="M250 256 C 246 220 252 192 268 174" fill="none" stroke="#fffaf0"
+        stroke-width="7" stroke-linecap="round"/>
+
+  <!-- a small bolt, top-right -->
+  <path d="M410 72 L372 152 h27 l-10 58 50 -86 h-27 l10 -52 Z"
+        fill="#ffd44a" stroke="#20303a" stroke-width="9" stroke-linejoin="round"/>
+</svg>
