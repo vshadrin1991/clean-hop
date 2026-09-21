@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="100" viewBox="0 0 40 100">
+  <defs>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b8270"/><stop offset="0.4" stop-color="#4e6350"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e2c992"/><stop offset="0.45" stop-color="#b7955a"/><stop offset="1" stop-color="#8a6d3c"/>
+    </linearGradient>
+  </defs>
+  <!-- foot -->
+  <path d="M9 100 Q9 92 16 91 L24 91 Q31 92 31 100 Z" fill="url(#pole)"/>
+  <path d="M11 99 Q11 93 16 92.5 L19 92.5" stroke="#7e9484" stroke-width="1.2" fill="none" opacity="0.6"/>
+  <!-- pole (the wall switch is drawn by the game at ~y 60) -->
+  <rect x="17.5" y="38" width="5" height="56" rx="2.2" fill="url(#pole)"/>
+  <rect x="17.5" y="38" width="1.6" height="56" fill="#7e9484" opacity="0.5"/>
+  <!-- collar under the socket -->
+  <path d="M12.5 36 L27.5 36 L25.5 41 L14.5 41 Z" fill="url(#pole)"/>
+  <path d="M12.5 36 L27.5 36 L27 37.4 L13 37.4 Z" fill="#7e9484" opacity="0.6"/>
+  <!-- brass screw socket: the glass bulb sits on top, its centre at ~(20,17) -->
+  <rect x="15" y="27" width="10" height="10" rx="1.6" fill="url(#brass)"/>
+  <path d="M15 30.2 L25 31.2 M15 33.4 L25 34.4" stroke="#7a5f33" stroke-width="1" opacity="0.7"/>
+</svg>

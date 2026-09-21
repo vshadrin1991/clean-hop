@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="160" viewBox="0 0 90 160">
+  <defs>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6b8270"/><stop offset="0.4" stop-color="#4e6350"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+    <linearGradient id="hood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5d7364"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+    <radialGradient id="bulb" cx="0.5" cy="0.4" r="0.9">
+      <stop offset="0" stop-color="#fff2c4"/><stop offset="0.6" stop-color="#ffd984"/><stop offset="1" stop-color="#e8b45a"/>
+    </radialGradient>
+  </defs>
+  <!-- pole with base flange -->
+  <rect x="14" y="10" width="7" height="150" rx="3" fill="url(#pole)"/>
+  <rect x="14" y="10" width="2" height="150" fill="#7e9484" opacity="0.5"/>
+  <rect x="10" y="152" width="15" height="8" rx="2" fill="url(#pole)"/>
+  <rect x="15.5" y="60" width="4" height="3" rx="1" fill="#37473c" opacity="0.6"/>
+  <!-- curved arm -->
+  <path d="M17 14 Q44 2 50 22 L44 24 Q38 10 17 20 Z" fill="url(#pole)"/>
+  <path d="M18 15 Q42 5 48 21" stroke="#7e9484" stroke-width="1.5" fill="none" opacity="0.6"/>
+  <!-- lamp head housing (bulb glow anchor at ~50,34) -->
+  <path d="M38 18 L62 18 L56 34 L44 34 Z" fill="url(#hood)"/>
+  <path d="M38 18 L62 18 L60 22 L40 22 Z" fill="#7e9484" opacity="0.6"/>
+  <path d="M40 18 Q50 12 60 18" stroke="#37473c" stroke-width="2" fill="none"/>
+  <ellipse cx="50" cy="34" rx="9" ry="5" fill="url(#bulb)"/>
+  <ellipse cx="50" cy="33" rx="4" ry="2" fill="#fff6d8"/>
+</svg>
