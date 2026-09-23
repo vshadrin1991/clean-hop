@@ -121,6 +121,9 @@ window.__t = {
     return typeof popAlpha === 'function' ? popAlpha(o) : undefined; }); },
   get leaves() { return __get(function () { return leaves; }); },
   set leaves(v) { leaves = v; },
+  /* art.js probe: a sprite's inlined SVG source (null with --no-inline) */
+  spriteSrc: function (n) { return __get(function () {
+    return (typeof DATA_SPRITES !== 'undefined' && DATA_SPRITES[n]) || null; }); },
   startGame: function () { __get(function () { startGame(); }); }
 };
 var INTRO_ON = /[#&]intro/.test(location.hash);

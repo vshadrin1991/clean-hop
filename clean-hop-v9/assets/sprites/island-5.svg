@@ -10,13 +10,8 @@
   <path d="M122 22 L196 22 Q208 62 184 96 Q158 128 120 136 Q128 84 122 22 Z" fill="#46543f" opacity="0.22"/>
   <path d="M60 62 Q118 74 182 60 M74 98 Q122 108 168 96" stroke="#46543f" stroke-width="5" opacity="0.22" fill="none" stroke-linecap="round"/>
   <path d="M44 22 L120 22 Q74 30 52 42 Q45 33 44 22 Z" fill="#ffffff" opacity="0.11"/>
-  <path d="M104 22 L106 8 Q106 3 112 3 L128 3 Q134 3 134 8 L136 22 Z" fill="#7d5f42"/>
-  <ellipse cx="120" cy="5" rx="14" ry="4" fill="#9a7a54"/>
-  <path d="M110 12 q10 4 20 0" stroke="#5f4630" stroke-width="2.5" fill="none"/>
-  <path d="M120 3 q-2-4 -6-5 M120 3 q3-4 7-4" stroke="#5fd35a" stroke-width="3" fill="none" stroke-linecap="round"/>
   <path d="M42 22 Q38 8 54 7 Q72 2 90 7 Q108 1 128 6 Q146 1 164 7 Q178 2 192 8 Q204 10 202 24 L199 32 Q190 26 180 34 Q168 27 156 35 Q144 28 132 36 Q120 30 108 36 Q96 30 84 35 Q72 29 60 34 Q50 28 45 33 Q41 29 42 22 Z" fill="#4fb574"/>
   <path d="M42 21 Q39 10 54 9 Q72 4 90 9 Q108 3 128 8 Q146 2 164 9 Q178 4 192 10 Q202 12 201 22 Q166 27 122 27 Q70 27 42 21 Z" fill="#5fd35a"/>
   <path d="M62 12 Q92 5 122 6 Q152 5 184 12 Q152 9 122 9 Q92 9 62 12 Z" fill="#9cf27d" opacity="0.85"/>
   <path d="M54 32 q-5 9 -2 17 M60 34 q-3 7 0 12 M186 32 q5 8 2 15 M180 34 q3 6 1 11" stroke="#4fb574" stroke-width="4" fill="none" stroke-linecap="round"/>
-  <path d="M108 22 q-8 5 -16 5 M132 22 q8 5 16 5" stroke="#5f4630" stroke-width="3" fill="none" stroke-linecap="round"/>
 </svg>

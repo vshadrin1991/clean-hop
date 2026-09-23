@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="240" height="110" viewBox="0 0 240 110">
+  <defs>
+    <!-- the cloud's own outline: the underside shade may not leave it -->
+    <clipPath id="body">
+      <ellipse cx="60" cy="64" rx="40" ry="32"/>
+      <ellipse cx="112" cy="42" rx="52" ry="40"/>
+      <ellipse cx="172" cy="56" rx="46" ry="36"/>
+      <ellipse cx="212" cy="72" rx="28" ry="22"/>
+      <rect x="20" y="64" width="204" height="30" rx="15"/>
+    </clipPath>
+  </defs>
   <g fill="#eef6fd">
     <ellipse cx="60" cy="64" rx="40" ry="32"/>
     <ellipse cx="112" cy="42" rx="52" ry="40"/>
@@ -6,7 +16,7 @@
     <ellipse cx="212" cy="72" rx="28" ry="22"/>
     <rect x="20" y="64" width="204" height="30" rx="15"/>
   </g>
-  <path d="M20 84 Q56 102 122 102 Q188 102 224 84 L224 90 Q210 108 122 108 Q34 108 20 90 Z" fill="#a9c0d4"/>
+  <path d="M0 84 Q120 92 240 84 L240 110 L0 110 Z" fill="#a9c0d4" clip-path="url(#body)"/>
   <g fill="#ffffff">
     <ellipse cx="56" cy="52" rx="30" ry="22"/>
     <ellipse cx="108" cy="30" rx="40" ry="27"/>

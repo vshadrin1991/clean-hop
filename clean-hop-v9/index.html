@@ -22,13 +22,15 @@
 
 :root{
   --ink:#20303a;          /* green-biased near-black, chosen not inherited */
-  --ink-soft:#5d7a83;
+  --ink-soft:#4f6b74;
   --cream:#fffaf0;
   --leaf:#4fbf5f;
   --leaf-dk:#2f8f43;
   --volt:#ffc93c;         /* energy: the game's main accent */
   --volt-dk:#d99a00;
   --volt-soft:#fff3c9;
+  --leaf-ink:#25793a;      /* green text on cream, 5.2:1 */
+  --volt-ink:#946000;      /* amber text on light yellow, 4.8:1 */
   --sun:#ffc84a;
   --sky:#4fbfec;
   --grime:#3a3226;
@@ -170,13 +172,15 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
 }
 .cbody::-webkit-scrollbar{display:none}
 .cfoot{position:relative;flex:0 0 auto}
-/* a soft edge so a scrolled-away body reads as "there is more above" */
-.cfoot::before{
-  content:"";position:absolute;left:0;right:0;top:0;height:16px;
-  transform:translateY(-100%);pointer-events:none;
-  background:linear-gradient(rgba(255,250,240,0),var(--cream));
+/* a body that can still scroll fades out at its lower edge - a mask, so it
+   works on any card background; a card that fits shows no fade at all */
+.card.more .cbody{
+  -webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);
+          mask-image:linear-gradient(#000 calc(100% - 22px),transparent);
 }
+.cbody{padding-bottom:6px}              /* room for a bubble's shadow */
 .card .strip{display:block;width:100%;height:56px;margin:-4px auto 6px}
+.card .strip.empty{display:none}
 .card::before{
   content:"";position:absolute;top:-34px;right:-30px;width:150px;height:150px;
   background:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M13 2 4 14h6l-1 8 9-12h-6l1-8Z' fill='%23d99a00'/%3E%3C/svg%3E") center/contain no-repeat;
@@ -189,7 +193,7 @@ h1{font-size:clamp(30px,8.4vw,42px);line-height:.98;font-weight:800;
 h1 em{font-style:normal;color:var(--leaf-dk);
   background:linear-gradient(0deg,rgba(255,201,60,.45),rgba(255,201,60,.45))
   left bottom/100% .24em no-repeat;padding:0 .04em}
-h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:var(--ink)}
 
 .tagline{
   margin:9px auto 0;max-width:30ch;font-size:13.5px;line-height:1.5;
@@ -227,40 +231,6 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 .pick[aria-checked="true"] .nm{color:var(--ink)}
 .pick:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 @media (max-width:340px){ .pick canvas{width:50px;height:50px} }
-
-/* short screens: phones held sideways, small phones upright, and laptop
-   windows that are not maximised. The card shrinks so its body rarely
-   has to scroll; the footer button stays put either way. */
-@media (max-height:620px){
-  .card{padding:16px 16px 14px;border-radius:24px}
-  h1{font-size:clamp(22px,6vw,30px)}
-  .tagline{margin-top:6px;font-size:12px;line-height:1.35}
-  .howto{margin-top:6px;font-size:11.5px}
-  .sectionlabel{margin:10px 0 6px}
-  .picker{gap:6px}
-  .pick{padding:6px 4px 5px;border-radius:16px}
-  .pick canvas{width:46px;height:46px}
-  .dial-name{font-size:15px}
-  .dial-ticks{height:6px}
-  .card .strip{height:42px}
-  .final{margin:8px 0 0}
-  .final .num{font-size:48px}
-  .badge{margin-top:7px}
-  .ecomsg{margin-top:8px;font-size:12px}
-  .tip{margin-top:8px;font-size:11.5px;padding:6px 10px}
-  .btn{margin-top:10px;padding:11px;font-size:16px}
-  .btn.ghost{margin-top:6px}
-  .keys{display:none}
-}
-/* sideways on a phone: all six animals in one row, wider card */
-@media (max-height:460px) and (orientation:landscape){
-  .card{width:min(560px,94vw)}
-  .tagline,.howto{display:none}
-  h1{font-size:22px}
-  .picker{grid-template-columns:repeat(6,1fr)}
-  .pick canvas{width:40px;height:40px}
-  .pick .nm{font-size:9px;padding:1px 6px}
-}
 
 /* ---------------- difficulty dial ---------------- */
 .dial{pointer-events:auto;padding:2px 2px 0;--dialc:var(--leaf-dk)}
@@ -302,40 +272,60 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 .lvlchip{
   display:inline-block;margin-top:8px;padding:4px 11px;border-radius:999px;
   background:rgba(32,48,58,.08);color:var(--ink-soft);
-  font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
 }
 
 /* ---------------- game over readout ---------------- */
 .final{margin:12px 0 2px;display:flex;align-items:flex-end;justify-content:center;gap:10px}
 .final .num{font-size:62px;font-weight:800;line-height:.86;letter-spacing:-.04em;
   color:var(--ink);font-variant-numeric:tabular-nums}
-.final .unit{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+.final .unit{font-size:13px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
   color:var(--ink-soft);padding-bottom:6px}
 .stats{
-  display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;margin-top:8px;
-  font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:8px;
+  font-size:13.5px;font-weight:800;letter-spacing:.02em;text-transform:none;
   color:var(--ink-soft);font-variant-numeric:tabular-nums;
 }
 .stats>span{display:inline-flex;align-items:center;gap:5px}
-.stats .ic{width:13px;height:13px;background-size:contain;background-repeat:no-repeat;opacity:.8}
+.stats .ic{width:15px;height:15px;background-size:contain;background-repeat:no-repeat;opacity:.8}
 .ic-stone{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 15Q4 8 10 6Q18 4 21 11Q22 17 16 19Q7 21 3 15Z' fill='%238a8f7a'/%3E%3C/svg%3E")}
 .ic-sun{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg stroke='%23ffb52e' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1'/%3E%3C/g%3E%3Ccircle cx='12' cy='12' r='6' fill='%23ffc93c'/%3E%3C/svg%3E")}
 .ic-bulb{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-.5c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 3Z' fill='%23ffd84a'/%3E%3Crect x='9' y='18' width='6' height='3' rx='1' fill='%238a8f7a'/%3E%3C/svg%3E")}
 .ic-star{background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 5.9-5.3-3-5.3 3 1.2-5.9L3.4 9.3l6-.7Z' fill='%23ffc24a'/%3E%3C/svg%3E")}
 .badge{
   display:inline-block;margin-top:10px;background:var(--sun);color:#5a3b00;
-  font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  font-size:13px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
   padding:5px 12px;border-radius:999px;animation:wiggle 1.1s ease-in-out infinite;
 }
 .badge.hidden{display:none}
 @keyframes wiggle{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
 .ecomsg{
-  margin:12px auto 0;max-width:28ch;font-size:13px;line-height:1.45;
-  font-weight:700;color:var(--leaf-dk);text-wrap:balance;
+  margin:12px auto 0;max-width:30ch;font-size:16px;line-height:1.4;
+  font-weight:700;color:var(--leaf-ink);text-wrap:balance;
 }
-.tip{margin:10px auto 0;max-width:30ch;padding:8px 12px;border-radius:14px;
-  background:var(--volt-soft);font-size:12.5px;line-height:1.4;font-weight:700;color:var(--ink);text-wrap:balance}
-.tip::before{content:"Совет: ";font-weight:800;color:var(--volt-dk)}
+
+/* ---- the hero gives the tip: portrait + speech bubble ---- */
+.advice{display:flex;align-items:flex-end;gap:10px;margin:16px auto 0;max-width:340px;
+  text-align:left;transform-origin:20% 100%;
+  animation:advice-in .45s .75s cubic-bezier(.2,1.5,.4,1) both}
+.advice-face{flex:0 0 64px;width:64px;height:64px;display:block;
+  animation:face-hop .55s 1s ease-out both}
+#pause .advice{animation-delay:.12s}
+#pause .advice-face{animation-delay:.3s}
+.bubble{position:relative;flex:1 1 auto;background:#fff;border:2px solid var(--volt);
+  border-radius:18px 18px 18px 6px;padding:9px 14px 11px;
+  box-shadow:0 3px 0 rgba(217,154,0,.22)}
+.bubble::before{content:"";position:absolute;left:-8px;bottom:12px;width:12px;height:12px;
+  background:#fff;border-left:2px solid var(--volt);border-bottom:2px solid var(--volt);
+  transform:rotate(45deg)}
+.advice-who{font-size:13px;font-weight:800;color:var(--volt-ink);margin:0 0 3px}
+.tip{margin:0;font-size:17px;line-height:1.35;font-weight:700;color:var(--ink);text-wrap:pretty}
+.tip mark{color:inherit;font-weight:800;border-radius:3px;padding:0 .06em;
+  background:linear-gradient(0deg,#ffe27a 0,#ffe27a 55%,transparent 55%)}
+/* scale in from the corner, never slide: a slide would poke out of the
+   card body, which clips */
+@keyframes advice-in{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
+@keyframes face-hop{0%,100%{transform:none}35%{transform:translateY(-8px)}70%{transform:translateY(1px)}}
 
 /* victory: the same card, dressed for sunshine */
 .overlay.win{background:radial-gradient(120% 90% at 50% 40%,rgba(255,236,160,.28),rgba(32,48,58,.34))}
@@ -349,7 +339,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   background:radial-gradient(circle,#ffe98a 0%,rgba(255,233,138,0) 62%);
 }
 .overlay.win h2{color:var(--leaf-dk)}
-.overlay.win .final .num{color:var(--volt-dk)}
+.overlay.win .final .num{color:#b87c00}
 
 /* confetti rains while the win card is up */
 .confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;display:none}
@@ -374,20 +364,71 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 .btn{
   pointer-events:auto;margin-top:16px;width:100%;border:0;border-radius:18px;
   background:var(--volt);color:var(--ink);font-family:var(--font);
-  font-size:18px;font-weight:800;letter-spacing:.02em;padding:14px 20px;cursor:pointer;
+  font-size:20px;font-weight:800;letter-spacing:.02em;padding:14px 20px;cursor:pointer;
   box-shadow:0 5px 0 var(--volt-dk);
 }
 .btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--volt-dk)}
 .btn:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
 .btn.ghost{
   margin-top:9px;background:transparent;color:var(--ink-soft);
-  box-shadow:none;font-size:14px;padding:9px;
+  box-shadow:none;font-size:16px;padding:9px;
 }
 .btn.ghost:active{transform:none}
 .keys{margin-top:11px;font-size:10.5px;font-weight:800;letter-spacing:.11em;
   text-transform:uppercase;color:var(--ink-soft)}
 .keys kbd{font-family:var(--font);font-size:10.5px;background:rgba(32,48,58,.09);
   border-radius:6px;padding:3px 7px;margin:0 1px}
+
+/* short screens: phones held sideways, small phones upright, and laptop
+   windows that are not maximised. The card shrinks so its body rarely
+   has to scroll; the footer button stays put either way. */
+@media (max-height:620px){
+  .card{padding:16px 16px 14px;border-radius:24px}
+  h1{font-size:clamp(22px,6vw,30px)}
+  .tagline{margin-top:6px;font-size:12px;line-height:1.35}
+  .howto{margin-top:6px;font-size:11.5px}
+  .sectionlabel{margin:10px 0 6px}
+  .picker{gap:6px}
+  .pick{padding:6px 4px 5px;border-radius:16px}
+  .pick canvas{width:46px;height:46px}
+  .dial-name{font-size:15px}
+  .dial-ticks{height:6px}
+  .card .strip{height:42px}
+  .final{margin:8px 0 0}
+  .final .num{font-size:48px}
+  .badge{margin-top:7px}
+  .ecomsg{margin-top:8px;font-size:13.5px}
+  .stats{font-size:12px}
+  .advice{margin-top:8px}
+  .advice-face{flex-basis:44px;width:44px;height:44px}
+  .bubble{padding:6px 11px 8px}
+  .advice-who{font-size:11.5px}
+  .tip{font-size:14px}
+  .btn{margin-top:10px;padding:11px;font-size:16px}
+  .btn.ghost{margin-top:6px;font-size:16px}
+  .keys{display:none}
+}
+/* sideways on a phone: all six animals in one row, wider card */
+@media (max-height:460px) and (orientation:landscape){
+  .card{width:min(560px,94vw)}
+  .tagline,.howto{display:none}
+  h1{font-size:22px}
+  .picker{grid-template-columns:repeat(6,1fr)}
+  .pick canvas{width:40px;height:40px}
+  .pick .nm{font-size:9px;padding:1px 6px}
+  /* the over card: result on the left, what the hero says on the right.
+     flex-start, not center: a centred column that overflows spills off the
+     top too, where no scroll can reach it */
+  #over .cbody{display:flex;align-items:flex-start;gap:16px}
+  #over .sum{flex:1 1 0;min-width:0}
+  #over .say{flex:1.2 1 0;min-width:0;align-self:center}
+  #over .card .strip{display:none}
+  #over h2{font-size:22px;line-height:1.1}
+  #over .final{margin-top:6px}
+  #over .final .num{font-size:36px}
+  #over .ecomsg{margin-top:0}
+  #over .advice{margin-top:8px}
+}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
@@ -488,7 +529,13 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
       <div class="cbody">
         <h2>Пауза</h2>
         <p class="tagline">Отдыхаем &mdash; а лишний свет пусть не горит! Энергия сохранится.</p>
-        <p class="tip" id="pauseTip"></p>
+        <div class="advice">
+          <canvas class="advice-face" id="pauseFace" aria-hidden="true"></canvas>
+          <div class="bubble">
+            <p class="advice-who" id="pauseWho"></p>
+            <p class="tip" id="pauseTip"></p>
+          </div>
+        </div>
       </div>
       <div class="cfoot">
         <button class="btn" id="resumeBtn">Продолжить</button>
@@ -503,18 +550,28 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
     <div class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="card">
       <div class="cbody">
-        <canvas class="strip" id="overStrip" height="56" aria-hidden="true"></canvas>
-        <h2 id="overTitle">Ой-ёй!</h2>
-        <div class="lvlchip" id="lvlChip">Средний</div>
-        <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
-        <div class="stats">
-          <span><i class="ic ic-bulb"></i>Выключено <span id="finalEnergy">0</span></span>
-          <span><i class="ic ic-sun"></i>Искорки <span id="finalLeaves">0</span></span>
-          <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
+        <div class="sum">
+          <canvas class="strip" id="overStrip" height="56" aria-hidden="true"></canvas>
+          <h2 id="overTitle">Ой-ёй!</h2>
+          <div class="lvlchip" id="lvlChip">Средний</div>
+          <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
+          <div class="stats">
+            <span><i class="ic ic-bulb"></i>Выключено <span id="finalEnergy">0</span></span>
+            <span><i class="ic ic-sun"></i>Искорки <span id="finalLeaves">0</span></span>
+            <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
+          </div>
+          <div class="badge hidden" id="newbest">Новый рекорд!</div>
         </div>
-        <div class="badge hidden" id="newbest">Новый рекорд!</div>
-        <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
-        <p class="tip" id="tipMsg"></p>
+        <div class="say">
+          <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
+          <div class="advice">
+            <canvas class="advice-face" id="tipFace" aria-hidden="true"></canvas>
+            <div class="bubble">
+              <p class="advice-who" id="tipWho"></p>
+              <p class="tip" id="tipMsg"></p>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="cfoot">
         <button class="btn" id="againBtn">Ещё раз</button>
@@ -593,6 +650,10 @@ var elNewBest = document.getElementById('newbest');
 var elEcoMsg = document.getElementById('ecoMsg');
 var elTipMsg = document.getElementById('tipMsg');
 var elPauseTip = document.getElementById('pauseTip');
+var elTipFace = document.getElementById('tipFace');
+var elTipWho = document.getElementById('tipWho');
+var elPauseFace = document.getElementById('pauseFace');
+var elPauseWho = document.getElementById('pauseWho');
 var elOverTitle = document.getElementById('overTitle');
 
 /* ==========================================================================
@@ -2275,17 +2336,17 @@ var MSG_WIN = [                                   // reached the finish
 
 /* The parting advice: keyed by what the run switched off most. */
 var TIPS = {
-  lamp:    ['Уходишь из комнаты — выключи свет.',
-            'Днём светло и без лампы: просто открой шторы!'],
-  tv:      ['Никто не смотрит телевизор? Выключи его совсем, а не только пультом.'],
-  charger: ['Телефон зарядился — вынь зарядку из розетки.'],
-  fan:     ['Вентилятор нужен, только когда ты рядом.'],
-  strip:   ['Не включай много приборов в один удлинитель.',
-            'Уходишь из дома — выключи удлинитель кнопкой.',
-            'Искрит розетка? Не трогай её и позови взрослых!'],
-  any:     ['Закрывай дверцу холодильника побыстрее.',
-            'Горячая вода — это тоже энергия. Не оставляй кран открытым.',
-            'Приборы в режиме ожидания тоже тратят энергию. Выключай их кнопкой.']
+  lamp:    ['Уходишь из комнаты — *щёлкни выключателем*. Лампочке тоже нужен отдых!',
+            'Днём светло и без лампы: *просто открой шторы*!'],
+  tv:      ['Никто не смотрит? *Выключи телевизор совсем* — пульт оставляет его дремать.'],
+  charger: ['Телефон зарядился? *Вынь зарядку из розетки* — иначе она греется зря.'],
+  fan:     ['Уходишь — *выключи вентилятор*. Пустому стулу не жарко!'],
+  strip:   ['*Не втыкай много вилок* в один удлинитель — ему тяжело, и он может заискрить.',
+            'Уходишь из дома? *Выключи удлинитель кнопкой* — и все приборы уснут разом.',
+            'Искрит розетка? *Не трогай её и позови взрослых!*'],
+  any:     ['Открываешь холодильник — *закрывай дверцу побыстрее*, пусть холод не убегает!',
+            'Горячая вода — это тоже энергия. *Закрывай кран*, пока чистишь зубы.',
+            'Приборы «спят», но всё равно едят энергию. *Выключай их кнопкой*.']
 };
 
 /** The tip that fits this run: the thing switched off most, else a general one. */
@@ -2296,6 +2357,46 @@ function pickTip() {
   return pick(best && TIPS[best] ? TIPS[best] : TIPS.any);
 }
 
+/* The hero gives the advice: its face, its voice, and the tip with the one
+   thing to do highlighted. A tip marks that action as *...*. */
+function setTipText(el, tip) {
+  el.textContent = '';
+  var parts = String(tip).split('*');
+  for (var i = 0; i < parts.length; i++) {
+    if (!parts[i]) continue;
+    if (i % 2) {
+      var m = document.createElement('mark');
+      m.textContent = parts[i];
+      el.appendChild(m);
+    } else el.appendChild(document.createTextNode(parts[i]));
+  }
+}
+function paintFace(c) {
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var cssW = c.clientWidth || 64, cssH = c.clientHeight || 64;
+  c.width = Math.round(cssW * dpr);
+  c.height = Math.round(cssH * dpr);
+  var g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, cssW, cssH);
+  g.save();
+  g.translate(cssW * 0.5, cssH * 0.96);
+  animalStamped(g, chosen, cssW * 0.62, { t: 0 });
+  g.restore();
+}
+function showAdvice(face, who, text, tip) {
+  var an = ANIMALS[chosen], vo = VOICES[chosen];
+  who.textContent = (vo ? vo.say + ' ' : '') + an.name + ' советует:';
+  setTipText(text, tip);
+  paintFace(face);
+}
+/* A card whose body can still scroll fades its lower edge; one that fits
+   shows no fade at all. */
+function syncMore(overlay) {
+  var card = overlay.querySelector('.card'), b = overlay.querySelector('.cbody');
+  if (!card || !b) return;
+  card.classList.toggle('more', b.scrollTop + b.clientHeight < b.scrollHeight - 2);
+}
 /** Pick the line that matches this run's story. */
 function encouragement(isNew) {
   if (won) return isNew ? 'Новый рекорд — и вся энергия сбережена!' : pick(MSG_WIN);
@@ -2457,8 +2558,9 @@ function setPaused(v) {
   paused = v;
   if (v) {
     cancelPress();
-    elPauseTip.textContent = pick(TIPS.any);   // something to try while you rest
     elPause.classList.remove('hidden');
+    showAdvice(elPauseFace, elPauseWho, elPauseTip, pick(TIPS.any));
+    syncMore(elPause);
   }
   else elPause.classList.add('hidden');
 }
@@ -2480,8 +2582,8 @@ function paintOverStrip() {
   var cv = document.getElementById('overStrip');
   var kinds = [];
   for (var k in offByKind) if (offByKind[k] > 0) kinds.push(k);
-  if (!kinds.length || !spritesReady) { cv.style.display = 'none'; return; }
-  cv.style.display = 'block';
+  cv.classList.toggle('empty', !kinds.length || !spritesReady);
+  if (!kinds.length || !spritesReady) return;
   var dpr = Math.min(2, window.devicePixelRatio || 1);
   var W = cv.clientWidth || 320, H = 56;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -2551,12 +2653,17 @@ function gameOver() {
   elFinalBest.textContent = best;
   elNewBest.classList.toggle('hidden', !isNew);
   elEcoMsg.textContent = encouragement(isNew);
-  elTipMsg.textContent = pickTip();
   elOver.classList.toggle('win', won);
   elOver.classList.remove('hidden');
+  showAdvice(elTipFace, elTipWho, elTipMsg, pickTip());
+  syncMore(elOver);
   paintOverStrip();
   updateHud();
   if (won) sndWinCard(); else sndOver();
+  var vc = chosen;                       // the hero says it as the bubble pops in
+  setTimeout(function () {
+    if (mode === 'over' && VOICES[vc]) VOICES[vc].snd();
+  }, REDUCED ? 0 : 900);
 }
 
 function fallIn(reason) {
@@ -5229,6 +5336,12 @@ function frame(ts) {
 loadSprites(function () { paintPortraits(); });  // picker art pops in when ready
 buildPicker();
 buildDifficulty();
+['menu', 'pause', 'over'].forEach(function (id) {
+  var ov = document.getElementById(id), b = ov.querySelector('.cbody');
+  if (b) b.addEventListener('scroll', function () { syncMore(ov); });
+  window.addEventListener('resize', function () { syncMore(ov); });
+  syncMore(ov);
+});
 setDifficulty(diffValue);
 layout();
 reset();

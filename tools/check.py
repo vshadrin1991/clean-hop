@@ -90,5 +90,19 @@ else:
             problems.append('FMETA ' + kind + ': panes ' + str(got) +
                             ' != svg glass ' + str(want))
 
+# v9.3 tips: every tip marks exactly one action as *...* and stays short
+tb = re.search(r'var TIPS = \{(.*?)\n\};', html, re.S)
+if not tb:
+    problems.append('no TIPS block found')
+else:
+    tips = re.findall(r"'((?:[^'\\]|\\.)*)'", tb.group(1))
+    if len(tips) < 10:
+        problems.append('TIPS: only %d tips found' % len(tips))
+    for tip in tips:
+        if tip.count('*') != 2:
+            problems.append('tip needs exactly one *action*: ' + tip)
+        if len(tip.replace('*', '')) > 80:
+            problems.append('tip over 80 characters: ' + tip)
+
 print('\n'.join(problems) if problems else 'OK')
 sys.exit(1 if problems else 0)

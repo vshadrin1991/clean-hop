@@ -95,8 +95,8 @@ if (fell && fell.mode === 'over') {
     tip = document.getElementById('tipMsg').textContent;
   }
 }
-const TIPS_STRIP = ['Не включай много приборов в один удлинитель.',
-                    'Уходишь из дома — выключи удлинитель кнопкой.',
+const TIPS_STRIP = ['Не втыкай много вилок в один удлинитель — ему тяжело, и он может заискрить.',
+                    'Уходишь из дома? Выключи удлинитель кнопкой — и все приборы уснут разом.',
                     'Искрит розетка? Не трогай её и позови взрослых!'];
 ({ goal: t.LVL.target, found: !!vs, seen, lonely, safe, fell, offPopup, ouchPopup, scoreGain,
    hintShown, liveFound: !!live, livePopup, lastFall: t.lastFall, title, tip,
