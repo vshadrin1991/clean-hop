@@ -2380,8 +2380,8 @@ function paintFace(c) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, cssW, cssH);
   g.save();
-  g.translate(cssW * 0.5, cssH * 0.96);
-  animalStamped(g, chosen, cssW * 0.62, { t: 0 });
+  g.translate(cssW * 0.5, cssH * 0.90);
+  animalStamped(g, chosen, cssW * 0.50, { t: 0 });
   g.restore();
 }
 function showAdvice(face, who, text, tip) {
@@ -2989,8 +2989,8 @@ function paintPortraits() {
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, cssW, cssH);
     g.save();
-    g.translate(cssW * 0.5, cssH * 0.94);
-    animalStamped(g, portraits[i].kind, cssW * 0.56, { t: 0 });
+    g.translate(cssW * 0.5, cssH * 0.90);
+    animalStamped(g, portraits[i].kind, cssW * 0.50, { t: 0 });
     g.restore();
   }
 }
