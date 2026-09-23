@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="120" viewBox="0 0 40 120">
+  <g stroke="#6b7a70" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <!-- legs tapering to the waist -->
+    <path d="M10 120 L16 44 M30 120 L24 44"/>
+    <path d="M16 44 H24 M13.4 84 H26.6 M11.6 102 H28.4"/>
+    <!-- lattice zig-zag between the legs -->
+    <path d="M16 44 L26.6 84 M24 44 L13.4 84 M13.4 84 L28.4 102 M26.6 84 L11.6 102 M11.6 102 L20 120 M28.4 102 L20 120"/>
+    <!-- neck up to the top crossarm -->
+    <path d="M20 44 V8 M20 8 L4 18 M20 8 L36 18"/>
+    <!-- crossarms -->
+    <path d="M4 18 H36 M6 34 H34"/>
+  </g>
+  <!-- insulator tips the wires hang from -->
+  <circle cx="4" cy="18" r="2" fill="#6b7a70"/>
+  <circle cx="36" cy="18" r="2" fill="#6b7a70"/>
+</svg>

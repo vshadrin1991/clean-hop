@@ -1,46 +1,53 @@
 #!/usr/bin/env python3
 """Run a tools/scenarios/*.js file against the instrumented test build in
-headless Chrome and print its result object:
+headless Chrome (via the DevTools protocol) and print its result object:
     python3 tools/run-scenario.py tools/scenarios/energy-model.js
-The scenario file stays verbatim - it can also be pasted into the test
-build's console by hand (top-level await works there)."""
-import os, pathlib, re, subprocess, sys, tempfile
+    python3 tools/run-scenario.py tools/scenarios/visual.js --size 390x844
+The scenario file stays verbatim - it runs as an awaited async expression,
+so top-level await and the trailing ( ... ) result literal both work."""
+import json, os, pathlib, subprocess, sys, tempfile
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import chrome
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
 
 scenario = pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')
-# the console snippet ends in a bare ( ... ) result expression - capture it
+size = (1280, 720)
+if '--size' in sys.argv:                       # --size WxH for visual.js
+    w, h = sys.argv[sys.argv.index('--size') + 1].split('x')
+    size = (int(w), int(h))
+cpu = 0                                        # --cpu 6 = 6x throttle
+if '--cpu' in sys.argv:
+    cpu = int(sys.argv[sys.argv.index('--cpu') + 1])
+url_extra = ''                                 # --url fps -> #fps meter etc.
+if '--url' in sys.argv:
+    url_extra = '#' + sys.argv[sys.argv.index('--url') + 1]
+build_dir = 'clean-hop-test'                   # --no-inline: real file:// sprites
+build_args = [str(ROOT / 'tools/test-build.py')]
+if '--no-inline' in sys.argv:
+    build_args.append('--no-inline')
+    build_dir = 'clean-hop-test-file'
+# the scenario ends in a bare ( ... ) result expression - return it
 i = scenario.rfind('\n(')
 if i < 0:
     sys.exit('scenario has no result expression')
-scenario = scenario[:i] + '\n__r = (' + scenario[i + 2:]
+expr = ('(async () => {\n' + scenario[:i] +
+        '\nreturn ' + scenario[i + 1:] + ';\n})()')
 
-subprocess.run([sys.executable, str(ROOT / 'tools/test-build.py')],
-               check=True, capture_output=True)
+subprocess.run([sys.executable] + build_args, check=True, capture_output=True)
 out = pathlib.Path(os.environ.get('CLEAN_HOP_TEST',
-                   pathlib.Path(tempfile.gettempdir()) / 'clean-hop-test'))
-page = out / '_scenario.html'
-src = (out / 'index.html').read_text(encoding='utf-8')
-src += ('\n<script>\n(async function () {\nvar __r;\ntry {\n' + scenario +
-        '\n} catch (e) { __r = { error: String(e && e.stack || e) }; }\n'
-        'var pre = document.createElement("pre");\n'
-        'pre.id = "scenario-out";\n'
-        'pre.textContent = "SCENARIO " + JSON.stringify(__r);\n'
-        'document.body.appendChild(pre);\n'
-        '})();\n</script>\n')
-page.write_text(src, encoding='utf-8')
-try:
-    r = subprocess.run([CHROME, '--headless=new', '--disable-gpu',
-                        '--mute-audio', '--virtual-time-budget=30000',
-                        '--dump-dom', 'file://' + str(page)],
-                       capture_output=True, text=True, timeout=180)
-    m = re.search(r'SCENARIO (.*?)</pre>', r.stdout, re.S)
-    if m:
-        print(m.group(1))
-    else:
-        print('NO RESULT')
-        print(r.stdout[-3000:])
-        print(r.stderr[-1000:])
-finally:
-    page.unlink()
+                   pathlib.Path(tempfile.gettempdir()) / build_dir))
+
+res = chrome.run([{
+    'type': 'eval', 'id': pathlib.Path(sys.argv[1]).stem,
+    'url': 'file://' + str(out / 'index.html') + url_extra,
+    'w': size[0], 'h': size[1], 'cpu': cpu, 'expr': expr,
+    'ready': "document.readyState === 'complete' && !!window.__t",
+    'timeout': 120000}])[0]
+
+if res.get('ok'):
+    print(json.dumps(res['result'], ensure_ascii=False))
+else:
+    print('NO RESULT')
+    print(res.get('error') or res.get('ex'))

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="bl" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#eef5f0"/><stop offset="0.7" stop-color="#f8fcfa"/><stop offset="1" stop-color="#dde8e2"/>
+    </linearGradient>
+    <linearGradient id="blEdge" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#c4d4ca" stop-opacity="0"/><stop offset="1" stop-color="#b0c2b6"/>
+    </linearGradient>
+    <radialGradient id="hub" cx="0.4" cy="0.35" r="1">
+      <stop offset="0" stop-color="#f2f7f4"/><stop offset="1" stop-color="#c8d6ce"/>
+    </radialGradient>
+  </defs>
+  <g>
+    <path d="M80 80 Q98 46 85 6 Q70 46 80 80 Z" fill="url(#bl)"/>
+    <path d="M80 80 Q90 50 85 6 Q82 46 79 80 Z" fill="url(#blEdge)" opacity="0.5"/>
+    <path d="M80 80 Q98 46 85 6 Q70 46 80 80 Z" fill="url(#bl)" transform="rotate(120 80 80)"/>
+    <path d="M80 80 Q90 50 85 6 Q82 46 79 80 Z" fill="url(#blEdge)" opacity="0.5" transform="rotate(120 80 80)"/>
+    <path d="M80 80 Q98 46 85 6 Q70 46 80 80 Z" fill="url(#bl)" transform="rotate(240 80 80)"/>
+    <path d="M80 80 Q90 50 85 6 Q82 46 79 80 Z" fill="url(#blEdge)" opacity="0.5" transform="rotate(240 80 80)"/>
+  </g>
+  <circle cx="80" cy="80" r="8" fill="url(#hub)"/>
+  <circle cx="80" cy="80" r="8" fill="none" stroke="#b8c8be" stroke-width="1"/>
+  <circle cx="77" cy="77" r="2" fill="#ffffff" opacity="0.8"/>
+</svg>

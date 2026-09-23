@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="240" viewBox="0 0 480 240">
+  <defs>
+    <linearGradient id="sBrick" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b8715a"/><stop offset="0.55" stop-color="#a55f47"/><stop offset="1" stop-color="#96543c"/>
+    </linearGradient>
+    <linearGradient id="sWall" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eaa88d"/><stop offset="0.55" stop-color="#e29c81"/><stop offset="1" stop-color="#d68e76"/>
+    </linearGradient>
+    <linearGradient id="sBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6ede4"/><stop offset="1" stop-color="#e9dccd"/>
+    </linearGradient>
+    <linearGradient id="sGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef9ff"/><stop offset="0.5" stop-color="#cfe6f2"/><stop offset="1" stop-color="#a8cade"/>
+    </linearGradient>
+    <linearGradient id="sPorch" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#faf5ec"/><stop offset="1" stop-color="#ece2d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- classroom wing: long, three floors of ribbon windows -->
+  <rect x="196" y="84" width="272" height="156" fill="url(#sWall)"/>
+  <rect x="194" y="76" width="276" height="10" rx="2" fill="#b98a72"/>
+  <rect x="196" y="84" width="6" height="156" fill="#f2c0a8" opacity="0.5"/>
+  <!-- rooftop signboard, letters spanning the whole wing -->
+  <rect x="202" y="50" width="260" height="22" rx="3" fill="#f6ecdd" stroke="#b98a72" stroke-width="1.5"/>
+  <text x="332" y="67" text-anchor="middle" font-size="21" font-weight="800"
+        font-family="Trebuchet MS,Avenir Next,Segoe UI,sans-serif"
+        fill="#7a4a38" textLength="236" lengthAdjust="spacing">Гимназия №7</text>
+
+  <!-- pale ribbons the windows sit in -->
+  <rect x="196" y="90" width="272" height="32" fill="url(#sBand)"/>
+  <rect x="196" y="138" width="272" height="32" fill="url(#sBand)"/>
+  <rect x="196" y="186" width="272" height="32" fill="url(#sBand)"/>
+  <!-- window grid: 13 per floor, porch range skipped on the ground floor -->
+  <g fill="url(#sGlass)" stroke="#b9a08c" stroke-width="1.5">
+    <rect x="204" y="93" width="14" height="26" rx="1.5"/><rect x="224" y="93" width="14" height="26" rx="1.5"/><rect x="244" y="93" width="14" height="26" rx="1.5"/><rect x="264" y="93" width="14" height="26" rx="1.5"/><rect x="284" y="93" width="14" height="26" rx="1.5"/><rect x="305" y="93" width="14" height="26" rx="1.5"/><rect x="325" y="93" width="14" height="26" rx="1.5"/><rect x="345" y="93" width="14" height="26" rx="1.5"/><rect x="365" y="93" width="14" height="26" rx="1.5"/><rect x="385" y="93" width="14" height="26" rx="1.5"/><rect x="406" y="93" width="14" height="26" rx="1.5"/><rect x="426" y="93" width="14" height="26" rx="1.5"/><rect x="446" y="93" width="14" height="26" rx="1.5"/>
+    <rect x="204" y="141" width="14" height="26" rx="1.5"/><rect x="224" y="141" width="14" height="26" rx="1.5"/><rect x="244" y="141" width="14" height="26" rx="1.5"/><rect x="264" y="141" width="14" height="26" rx="1.5"/><rect x="284" y="141" width="14" height="26" rx="1.5"/><rect x="305" y="141" width="14" height="26" rx="1.5"/><rect x="325" y="141" width="14" height="26" rx="1.5"/><rect x="345" y="141" width="14" height="26" rx="1.5"/><rect x="365" y="141" width="14" height="26" rx="1.5"/><rect x="385" y="141" width="14" height="26" rx="1.5"/><rect x="406" y="141" width="14" height="26" rx="1.5"/><rect x="426" y="141" width="14" height="26" rx="1.5"/><rect x="446" y="141" width="14" height="26" rx="1.5"/>
+    <rect x="204" y="189" width="14" height="26" rx="1.5"/><rect x="224" y="189" width="14" height="26" rx="1.5"/><rect x="244" y="189" width="14" height="26" rx="1.5"/><rect x="264" y="189" width="14" height="26" rx="1.5"/><rect x="284" y="189" width="14" height="26" rx="1.5"/><rect x="305" y="189" width="14" height="26" rx="1.5"/><rect x="325" y="189" width="14" height="26" rx="1.5"/><rect x="406" y="189" width="14" height="26" rx="1.5"/><rect x="426" y="189" width="14" height="26" rx="1.5"/><rect x="446" y="189" width="14" height="26" rx="1.5"/>
+  </g>
+  <!-- window mullions -->
+  <g stroke="#b9a08c" stroke-width="1" opacity="0.55">
+    <path d="M211 93 V119 M231 93 V119 M251 93 V119 M271 93 V119 M291 93 V119 M312 93 V119 M332 93 V119 M352 93 V119 M372 93 V119 M392 93 V119 M413 93 V119 M433 93 V119 M453 93 V119"/>
+    <path d="M211 141 V167 M231 141 V167 M251 141 V167 M271 141 V167 M291 141 V167 M312 141 V167 M332 141 V167 M352 141 V167 M372 141 V167 M392 141 V167 M413 141 V167 M433 141 V167 M453 141 V167"/>
+    <path d="M211 189 V215 M231 189 V215 M251 189 V215 M271 189 V215 M291 189 V215 M312 189 V215 M332 189 V215 M413 189 V215 M433 189 V215 M453 189 V215"/>
+  </g>
+  <!-- downspouts and the plinth line -->
+  <g stroke="#c08a76" stroke-width="2.5" opacity="0.75">
+    <path d="M220 86 V240 M300 86 V186 M461 86 V240"/>
+  </g>
+  <rect x="196" y="222" width="272" height="18" fill="#cf9078"/>
+
+  <!-- entrance porch: white box, flat canopy, steps, blue sign -->
+  <rect x="336" y="234" width="68" height="6" fill="#cfc2b2"/>
+  <rect x="340" y="228" width="60" height="6" fill="#ddd0bf"/>
+  <rect x="344" y="178" width="52" height="62" fill="url(#sPorch)"/>
+  <rect x="338" y="168" width="64" height="10" rx="2" fill="#e6dccc"/>
+  <rect x="362" y="170" width="16" height="6" rx="1.5" fill="#4a86c8"/>
+  <rect x="356" y="190" width="28" height="46" fill="url(#sGlass)" stroke="#b9a894" stroke-width="1.5"/>
+  <path d="M370 190 V236" stroke="#b9a894" stroke-width="1.5"/>
+  <!-- shrubs flanking the door -->
+  <ellipse cx="332" cy="234" rx="10" ry="8" fill="#4f9660"/>
+  <ellipse cx="329" cy="231" rx="5" ry="3.5" fill="#6ab478"/>
+  <ellipse cx="408" cy="234" rx="10" ry="8" fill="#4f9660"/>
+  <ellipse cx="405" cy="231" rx="5" ry="3.5" fill="#6ab478"/>
+
+  <!-- glazed stair link between the blocks -->
+  <rect x="172" y="108" width="24" height="132" fill="#c58b74"/>
+  <rect x="170" y="100" width="28" height="10" rx="2" fill="#8a5a44"/>
+  <g fill="url(#sGlass)" stroke="#8a5a44" stroke-width="1.4">
+    <rect x="178" y="116" width="12" height="24" rx="1"/>
+    <rect x="178" y="146" width="12" height="24" rx="1"/>
+    <rect x="178" y="176" width="12" height="24" rx="1"/>
+    <rect x="178" y="206" width="12" height="24" rx="1"/>
+  </g>
+
+  <!-- gym hall: the tall blank brick block -->
+  <rect x="92" y="54" width="80" height="186" fill="url(#sBrick)"/>
+  <rect x="90" y="46" width="84" height="10" rx="2" fill="#8a5a44"/>
+  <rect x="92" y="54" width="6" height="186" fill="#c98a6e" opacity="0.5"/>
+  <g stroke="#8a4c36" stroke-width="1" opacity="0.22">
+    <path d="M92 84 H172 M92 114 H172 M92 144 H172 M92 174 H172 M92 204 H172"/>
+  </g>
+  <!-- tall stair window on its left edge, one high window -->
+  <rect x="98" y="64" width="10" height="120" fill="url(#sGlass)" stroke="#8a5a44" stroke-width="1.5"/>
+  <g stroke="#8a5a44" stroke-width="1" opacity="0.6">
+    <path d="M98 94 H108 M98 124 H108 M98 154 H108"/>
+  </g>
+  <rect x="146" y="72" width="16" height="14" rx="2" fill="url(#sGlass)" stroke="#8a5a44" stroke-width="1.5"/>
+
+  <!-- low brick annex with the side door -->
+  <rect x="28" y="104" width="64" height="136" fill="url(#sBrick)"/>
+  <rect x="26" y="96" width="68" height="10" rx="2" fill="#8a5a44"/>
+  <rect x="28" y="104" width="5" height="136" fill="#c98a6e" opacity="0.5"/>
+  <g stroke="#8a4c36" stroke-width="1" opacity="0.22">
+    <path d="M28 134 H92 M28 164 H92 M28 194 H92"/>
+  </g>
+  <g fill="url(#sGlass)" stroke="#8a5a44" stroke-width="1.5">
+    <rect x="36" y="116" width="18" height="20" rx="2"/>
+    <rect x="66" y="116" width="18" height="20" rx="2"/>
+    <rect x="36" y="168" width="18" height="20" rx="2"/>
+    <rect x="66" y="168" width="18" height="20" rx="2"/>
+  </g>
+  <!-- darker plinth under the brick blocks -->
+  <rect x="28" y="228" width="168" height="12" fill="#8a4c36" opacity="0.85"/>
+  <rect x="40" y="206" width="16" height="34" fill="#6b463a"/>
+  <rect x="34" y="232" width="28" height="4" fill="#b8a894"/>
+  <rect x="32" y="236" width="32" height="4" fill="#a89a88"/>
+</svg>

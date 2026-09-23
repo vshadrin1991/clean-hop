@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="220" viewBox="0 0 480 220">
+  <defs>
+    <linearGradient id="hallC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8fbca4"/><stop offset="0.6" stop-color="#7fae95"/><stop offset="1" stop-color="#6d9c85"/>
+    </linearGradient>
+    <linearGradient id="big" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9cc4b0"/><stop offset="0.35" stop-color="#7fae95"/><stop offset="1" stop-color="#54796a"/>
+    </linearGradient>
+    <linearGradient id="glassC" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2fbff"/><stop offset="1" stop-color="#a9cede"/>
+    </linearGradient>
+    <linearGradient id="shed" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ba68f"/><stop offset="1" stop-color="#5d8570"/>
+    </linearGradient>
+  </defs>
+
+  <!-- boiler hall -->
+  <rect x="120" y="140" width="150" height="80" fill="url(#hallC)"/>
+  <rect x="120" y="140" width="6" height="80" fill="#5d8570" opacity="0.4"/>
+  <rect x="120" y="140" width="150" height="5" fill="#8fbfa8"/>
+  <rect x="120" y="212" width="150" height="8" fill="#5d8570" opacity="0.5"/>
+  <path d="M120 196 H270" stroke="#5d8570" stroke-width="1.2" opacity="0.3"/>
+  <!-- window band (FMETA panes) -->
+  <g fill="url(#glassC)" stroke="#5d8570" stroke-width="1.6">
+    <rect x="136" y="156" width="20" height="20" rx="2"/><rect x="166" y="156" width="20" height="20" rx="2"/><rect x="196" y="156" width="20" height="20" rx="2"/><rect x="226" y="156" width="20" height="20" rx="2"/>
+  </g>
+  <g stroke="#5d8570" stroke-width="1" opacity="0.6">
+    <path d="M146 156 V176 M176 156 V176 M206 156 V176 M236 156 V176"/>
+    <path d="M136 166 H156 M166 166 H186 M196 166 H216 M226 166 H246"/>
+  </g>
+
+  <!-- tall stack: FMETA stack at x~234, top y~9; beacon same point -->
+  <path d="M216 220 L252 220 L244 14 L224 14 Z" fill="url(#big)"/>
+  <path d="M216 220 L222 220 L229 14 L224 14 Z" fill="#c4e2d2" opacity="0.55"/>
+  <path d="M246 220 L252 220 L244 14 L241 14 Z" fill="#466252" opacity="0.5"/>
+  <!-- brick banding -->
+  <path d="M222 30 L246 30 M223 52 L245 52 M224 74 L244 74 M226 96 L243 96 M227 118 L242 118 M228 140 L240 140 M229 162 L239 162 M230 184 L238 184" stroke="#5d8570" stroke-width="3"/>
+  <path d="M222 30 L246 30 M224 74 L244 74 M227 118 L242 118 M230 184 L238 184" stroke="#9cc4b0" stroke-width="1" opacity="0.6"/>
+  <!-- corbelled crown -->
+  <rect x="219" y="10" width="30" height="8" rx="3" fill="#5d8570"/>
+  <rect x="219" y="10" width="30" height="3" rx="1.5" fill="#8fbfa8"/>
+  <rect x="221" y="4" width="26" height="6" rx="2" fill="#6b9a82"/>
+  <circle cx="234" cy="6" r="6" fill="#ff5b4a"/>
+  <circle cx="232" cy="4" r="2" fill="#ffb0a4"/>
+
+  <!-- annex shed -->
+  <rect x="60" y="180" width="44" height="40" fill="url(#shed)"/>
+  <rect x="60" y="180" width="44" height="4" fill="#9cc4b0" opacity="0.7"/>
+  <rect x="66" y="190" width="14" height="12" rx="2" fill="url(#glassC)" stroke="#4a6d5c" stroke-width="1.4"/>
+  <path d="M73 190 V202 M66 196 H80" stroke="#4a6d5c" stroke-width="1"/>
+  <path d="M104 200 L120 200" stroke="#6b9a82" stroke-width="6"/>
+  <path d="M104 198 L120 198" stroke="#8fbfa8" stroke-width="2"/>
+
+  <!-- tanker truck -->
+  <rect x="330" y="196" width="66" height="24" rx="9" fill="url(#big)"/>
+  <path d="M334 202 H392" stroke="#5d8570" stroke-width="1.5" opacity="0.6"/>
+  <ellipse cx="362" cy="197" rx="14" ry="3" fill="#9cc4b0" opacity="0.6"/>
+  <rect x="324" y="214" width="78" height="6" fill="#6b9a82"/>
+</svg>

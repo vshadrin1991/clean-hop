@@ -5,21 +5,26 @@ document.getElementById('playBtn').click();
 await new Promise(r => setTimeout(r, 300));
 const t = __t;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-// hop one island forward, gadget side if it has one; skip strips and crumblers
+// hop one island forward, gadget side if it has one; never onto a strip.
+// Crumblers and the finish are fair game - landing the meadow ends the run
+// so the outer loop can restart and sample the early islands again, which
+// is where strips live (they only spawn on roomy ones now).
 async function step() {
   const n = t.stones.find(s => !s.visited && !s.strip &&
-                               s.type !== 'finish' && s.type !== 'crumble');
+                               s.type !== 'finish' && s.type !== 'crumble')
+        || t.stones.find(s => !s.visited && !s.strip && s.type === 'crumble')
+        || t.stones.find(s => !s.visited && !s.strip && s.type === 'finish');
   if (!n) return false;
   t.hop.x = n.x + (n.gadget ? n.gadget.dx * n.w : 0);
   t.land(n, t.stoneTop(n));
-  await sleep(420);
+  await sleep(n.type === 'finish' ? 3600 : 420);
   return true;
 }
 // every hazard island must carry a gadget for the strip to power
 let lonely = 0, seen = 0, hintShown = false;
 for (let run = 0; run < 3; run++) {
   for (let i = 0; i < 30 && t.mode === 'play'; i++) {
-    if (t.stripHint) hintShown = true;
+    if (t.stripHint || t.stripHintSeen) hintShown = true;
     t.stones.forEach(s => { if (s.strip && !s.__seen) { s.__seen = 1; seen++; if (!s.gadget) lonely++; } });
     if (!(await step())) break;
   }
@@ -44,6 +49,11 @@ for (let run = 0; run < 5 && !vs; run++) {
 }
 let safe = null, fell = null, offPopup = false, ouchPopup = false, scoreGain = 0;
 if (vs) {
+  // linger a beat with the strip unvisited and in range: the first-meeting
+  // hint fires on approach
+  await sleep(700);
+  if (t.stripHint || t.stripHintSeen) hintShown = true;
+  t.stones.forEach(s => { if (s.strip && !s.__seen) { s.__seen = 1; seen++; if (!s.gadget) lonely++; } });
   // the gadget's half is safe: land there - gadget off, then its strip too
   const before = t.score;
   t.hop.x = vs.x + (vs.gadget ? vs.gadget.dx * vs.w : vs.w * 0.28);
