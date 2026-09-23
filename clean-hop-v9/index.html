@@ -128,14 +128,24 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
 
 /* landscape phones and other short screens: one compact row, small pills */
 @media (max-height:500px){
-  .hud{flex-direction:row;flex-wrap:wrap;align-items:center}
+  .hud{flex-direction:row;flex-wrap:nowrap;align-items:center;gap:6px}
+  .pill{padding:6px 11px 7px}
   .pill .val{font-size:16px}
-  .iconbtn{width:38px;height:38px;flex:0 0 38px;font-size:16px}
+  .meter-wrap{padding:6px 11px;gap:6px;min-width:0}
+  .meter{width:clamp(56px,14vw,120px)}
+  .meter-pct{font-size:11px;min-width:34px}
+}
+/* a narrow sideways phone drops the words and keeps the numbers */
+@media (max-height:500px) and (max-width:720px){
+  .pill .lbl{display:none}
+  .meter-wrap .capw{display:none}
 }
 
 /* ---------------- overlays ---------------- */
 .overlay{
-  position:absolute;inset:0;display:flex;padding:20px;
+  position:absolute;inset:0;display:flex;
+  padding:calc(20px + env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right))
+          calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left));
   pointer-events:none;overflow:auto;
   background:radial-gradient(120% 90% at 50% 45%,rgba(32,48,58,.06),rgba(32,48,58,.42));
   backdrop-filter:blur(6px) saturate(1.1);
@@ -145,11 +155,26 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
 
 .card{
   position:relative;overflow:hidden;
-  width:min(400px,92vw);margin:auto;text-align:center;background:var(--cream);
+  width:min(400px,92vw);
+  max-height:100%;                       /* the overlay's padded box */
+  display:flex;flex-direction:column;
+  margin:auto;text-align:center;background:var(--cream);
   border-radius:30px;padding:24px 22px 22px;pointer-events:auto;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.7),
              0 14px 0 -6px rgba(32,48,58,.14),0 22px 40px rgba(32,48,58,.28);
   animation:pop .34s cubic-bezier(.2,1.5,.4,1) both;
+}
+.cbody{
+  overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.cbody::-webkit-scrollbar{display:none}
+.cfoot{position:relative;flex:0 0 auto}
+/* a soft edge so a scrolled-away body reads as "there is more above" */
+.cfoot::before{
+  content:"";position:absolute;left:0;right:0;top:0;height:16px;
+  transform:translateY(-100%);pointer-events:none;
+  background:linear-gradient(rgba(255,250,240,0),var(--cream));
 }
 .card .strip{display:block;width:100%;height:56px;margin:-4px auto 6px}
 .card::before{
@@ -202,6 +227,40 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
 .pick[aria-checked="true"] .nm{color:var(--ink)}
 .pick:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 @media (max-width:340px){ .pick canvas{width:50px;height:50px} }
+
+/* short screens: phones held sideways, small phones upright, and laptop
+   windows that are not maximised. The card shrinks so its body rarely
+   has to scroll; the footer button stays put either way. */
+@media (max-height:620px){
+  .card{padding:16px 16px 14px;border-radius:24px}
+  h1{font-size:clamp(22px,6vw,30px)}
+  .tagline{margin-top:6px;font-size:12px;line-height:1.35}
+  .howto{margin-top:6px;font-size:11.5px}
+  .sectionlabel{margin:10px 0 6px}
+  .picker{gap:6px}
+  .pick{padding:6px 4px 5px;border-radius:16px}
+  .pick canvas{width:46px;height:46px}
+  .dial-name{font-size:15px}
+  .dial-ticks{height:6px}
+  .card .strip{height:42px}
+  .final{margin:8px 0 0}
+  .final .num{font-size:48px}
+  .badge{margin-top:7px}
+  .ecomsg{margin-top:8px;font-size:12px}
+  .tip{margin-top:8px;font-size:11.5px;padding:6px 10px}
+  .btn{margin-top:10px;padding:11px;font-size:16px}
+  .btn.ghost{margin-top:6px}
+  .keys{display:none}
+}
+/* sideways on a phone: all six animals in one row, wider card */
+@media (max-height:460px) and (orientation:landscape){
+  .card{width:min(560px,94vw)}
+  .tagline,.howto{display:none}
+  h1{font-size:22px}
+  .picker{grid-template-columns:repeat(6,1fr)}
+  .pick canvas{width:40px;height:40px}
+  .pick .nm{font-size:9px;padding:1px 6px}
+}
 
 /* ---------------- difficulty dial ---------------- */
 .dial{pointer-events:auto;padding:2px 2px 0;--dialc:var(--leaf-dk)}
@@ -385,7 +444,7 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
       <button class="iconbtn" id="pauseBtn" aria-label="Пауза" hidden><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><rect x="6.8" y="5" width="3.6" height="14" rx="1.4" fill="currentColor"/><rect x="13.6" y="5" width="3.6" height="14" rx="1.4" fill="currentColor"/></svg></button>
     </div>
     <div class="meter-wrap">
-      <span class="cap"><i class="bolt" aria-hidden="true"></i>Энергия</span>
+      <span class="cap"><i class="bolt" aria-hidden="true"></i><span class="capw">Энергия</span></span>
       <div class="meter"><div class="meter-fill" id="cleanFill"></div></div>
       <span class="meter-pct" id="cleanPct">0/18</span>
       <span class="meter-extra" id="energyExtra"></span>
@@ -395,40 +454,47 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   <!-- ---------- start screen / character select ---------- -->
   <div class="overlay" id="menu">
     <div class="card">
-      <h1>Энерго<em>прыжок</em></h1>
-      <p class="tagline">Помоги зверятам сберечь больше энергии &mdash; береги Планету!</p>
-      <p class="howto" id="howto">Прыгай на островки и выключай всё, что работает зря!</p>
+      <div class="cbody">
+        <h1>Энерго<em>прыжок</em></h1>
+        <p class="tagline">Помоги зверятам сберечь больше энергии &mdash; береги Планету!</p>
+        <p class="howto" id="howto">Прыгай на островки и выключай всё, что работает зря!</p>
 
-      <p class="sectionlabel" id="pickLabel">Выбери героя</p>
-      <div class="picker" id="picker" role="radiogroup" aria-labelledby="pickLabel"></div>
+        <p class="sectionlabel" id="pickLabel">Выбери героя</p>
+        <div class="picker" id="picker" role="radiogroup" aria-labelledby="pickLabel"></div>
 
-      <p class="sectionlabel" id="lvlLabel">Сложность &mdash; потяни ползунок</p>
-      <div class="dial">
-        <div class="dial-readout" aria-hidden="true">
-          <span class="dial-name" id="diffName">Средний</span>
-          <span class="dial-path" id="diffPath">выключи 18</span>
-        </div>
-        <input type="range" class="dial-range" id="diffRange" min="0" max="100" step="1"
-               value="67" aria-labelledby="lvlLabel">
-        <div class="dial-ticks" aria-hidden="true">
-          <i style="left:0%"></i><i style="left:33%"></i><i style="left:67%"></i><i style="left:100%"></i>
+        <p class="sectionlabel" id="lvlLabel">Сложность &mdash; потяни ползунок</p>
+        <div class="dial">
+          <div class="dial-readout" aria-hidden="true">
+            <span class="dial-name" id="diffName">Средний</span>
+            <span class="dial-path" id="diffPath">выключи 18</span>
+          </div>
+          <input type="range" class="dial-range" id="diffRange" min="0" max="100" step="1"
+                 value="67" aria-labelledby="lvlLabel">
+          <div class="dial-ticks" aria-hidden="true">
+            <i style="left:0%"></i><i style="left:33%"></i><i style="left:67%"></i><i style="left:100%"></i>
+          </div>
         </div>
       </div>
-
-      <button class="btn" id="playBtn">Начать игру</button>
-      <p class="keys">Держи <kbd>Пробел</kbd> &middot; отпусти для прыжка</p>
+      <div class="cfoot">
+        <button class="btn" id="playBtn">Начать игру</button>
+        <p class="keys" id="keysMenu">Держи <kbd>Пробел</kbd> &middot; отпусти для прыжка</p>
+      </div>
     </div>
   </div>
 
   <!-- ---------- pause ---------- -->
   <div class="overlay hidden" id="pause">
     <div class="card">
-      <h2>Пауза</h2>
-      <p class="tagline">Отдыхаем &mdash; а лишний свет пусть не горит! Энергия сохранится.</p>
-      <p class="tip" id="pauseTip"></p>
-      <button class="btn" id="resumeBtn">Продолжить</button>
-      <button class="btn ghost" id="menuBtn">В меню</button>
-      <p class="keys">Пауза &mdash; <kbd>Esc</kbd></p>
+      <div class="cbody">
+        <h2>Пауза</h2>
+        <p class="tagline">Отдыхаем &mdash; а лишний свет пусть не горит! Энергия сохранится.</p>
+        <p class="tip" id="pauseTip"></p>
+      </div>
+      <div class="cfoot">
+        <button class="btn" id="resumeBtn">Продолжить</button>
+        <button class="btn ghost" id="menuBtn">В меню</button>
+        <p class="keys" id="keysPause">Пауза &mdash; <kbd>Esc</kbd></p>
+      </div>
     </div>
   </div>
 
@@ -436,20 +502,24 @@ h2{font-size:clamp(24px,7vw,32px);font-weight:800;letter-spacing:-.01em;color:va
   <div class="overlay hidden" id="over">
     <div class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
     <div class="card">
-      <canvas class="strip" id="overStrip" height="56" aria-hidden="true"></canvas>
-      <h2 id="overTitle">Ой-ёй!</h2>
-      <div class="lvlchip" id="lvlChip">Средний</div>
-      <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
-      <div class="stats">
-        <span><i class="ic ic-bulb"></i>Выключено <span id="finalEnergy">0</span></span>
-        <span><i class="ic ic-sun"></i>Искорки <span id="finalLeaves">0</span></span>
-        <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
+      <div class="cbody">
+        <canvas class="strip" id="overStrip" height="56" aria-hidden="true"></canvas>
+        <h2 id="overTitle">Ой-ёй!</h2>
+        <div class="lvlchip" id="lvlChip">Средний</div>
+        <div class="final"><span class="num" id="finalScore">0</span><span class="unit">Очков</span></div>
+        <div class="stats">
+          <span><i class="ic ic-bulb"></i>Выключено <span id="finalEnergy">0</span></span>
+          <span><i class="ic ic-sun"></i>Искорки <span id="finalLeaves">0</span></span>
+          <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
+        </div>
+        <div class="badge hidden" id="newbest">Новый рекорд!</div>
+        <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
+        <p class="tip" id="tipMsg"></p>
       </div>
-      <div class="badge hidden" id="newbest">Новый рекорд!</div>
-      <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
-      <p class="tip" id="tipMsg"></p>
-      <button class="btn" id="againBtn">Ещё раз</button>
-      <button class="btn ghost" id="changeBtn">Сменить героя</button>
+      <div class="cfoot">
+        <button class="btn" id="againBtn">Ещё раз</button>
+        <button class="btn ghost" id="changeBtn">Сменить героя</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1772,7 +1842,7 @@ function layout() {
      multiple of it, so proportions hold from a phone to a big monitor */
   T_OR = clamp((ar - 0.6) / 0.9, 0, 1);          // 0 = portrait, 1 = landscape
   var SPAN = lerp(7, 14, T_OR);                  // how many B fit across the width
-  B = Math.min(VH * 0.11 / Z, (VW / Z) / SPAN);
+  B = Math.min(VH * lerp(0.11, 0.13, T_OR) / Z, (VW / Z) / SPAN);
   B = clamp(B * Z, 48, 150) / Z;                 // on screen: never under 48, never over 150
   U = B / 1.07;
   KW = U;                                        // hero-plane sizes ride on U
@@ -2710,6 +2780,17 @@ window.addEventListener('keydown', function (e) {
 window.addEventListener('keyup', function (e) {
   if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') release();
 });
+
+/* A touch screen has no space bar and no Esc: same controls, other words. */
+var COARSE = (typeof matchMedia === 'function' &&
+              matchMedia('(pointer: coarse)').matches) ||
+             (navigator.maxTouchPoints || 0) > 0;
+if (COARSE) {
+  var elKeysMenu = document.getElementById('keysMenu');
+  var elKeysPause = document.getElementById('keysPause');
+  if (elKeysMenu) elKeysMenu.textContent = 'Держи палец на экране · отпусти для прыжка';
+  if (elKeysPause) elKeysPause.textContent = 'Пауза — кнопка ⏸ вверху';
+}
 
 elMute.addEventListener('click', function () { audioInit(); setMuted(!A.muted); });
 elPauseBtn.addEventListener('click', function () { if (mode === 'play') setPaused(!paused); });

@@ -77,9 +77,13 @@ if (Bpx < 47 || Bpx > 152)
   fails.push('r1: B ' + Math.round(Bpx) + 'px outside 48-150');
 if (heroPx < 44) fails.push('r1: hero drawn ' + Math.round(heroPx) + 'px < ~48');
 if (t.VW / t.VH >= 1) {
-  const rr = heroPx / t.VH;
-  if (rr < 0.09 || rr > 0.13)
-    fails.push('r1: hero ' + (rr * 100).toFixed(1) + '% of VH outside 9-13%');
+  const rr = heroPx / t.VH;                    // v9.2: the band moved up
+  const lo = t.VW / t.VH >= 1.5 ? 0.113 : 0.095;
+  /* on very tall screens the 150px B*Z cap binds before 0.13*VH can -
+     the band only applies while the hero is below the cap */
+  if (Bpx < 149 && (rr < lo || rr > 0.135))
+    fails.push('r1: hero ' + (rr * 100).toFixed(1) + '% of VH outside ' +
+               (lo * 100).toFixed(1) + '-13.5%');
 }
 
 // r3: gadget order lamp>fan>tv>charger; lamp <= 1.3 hero; charger <= 0.55
