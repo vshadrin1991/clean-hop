@@ -124,6 +124,13 @@ window.__t = {
   /* art.js probe: a sprite's inlined SVG source (null with --no-inline) */
   spriteSrc: function (n) { return __get(function () {
     return (typeof DATA_SPRITES !== 'undefined' && DATA_SPRITES[n]) || null; }); },
+  /* egg.js probes: the secret long-hold jump */
+  get eggArmed() { return __get(function () { return eggArmed; }); },
+  get eggSecret() { return __get(function () { return eggSecret; }); },
+  get finishStone() { return __get(function () { return finishStone; }); },
+  get chargeT() { return __get(function () { return chargeT; }); },
+  set chargeT(v) { chargeT = v; },
+  eggTarget: function () { return __get(function () { return eggTarget(); }); },
   startGame: function () { __get(function () { startGame(); }); }
 };
 var INTRO_ON = /[#&]intro/.test(location.hash);

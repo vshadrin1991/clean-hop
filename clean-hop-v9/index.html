@@ -1866,6 +1866,10 @@ var charge = 0, fallT = 0, overT = 0, shake = 0;
 var paused = false;
 var clean = 0, cleanShown = 0, cleanPctShown = -1;
 var won = false, finishSpawned = false, finishCued = false, finishStone = null;
+/* The secret (an Easter egg): hold the jump for EGG_HOLD seconds and the aim
+   flies off to the finish meadow; let go and the hero leaps all the way there. */
+var EGG_HOLD = 10;
+var eggArmed = false, eggSecret = false, eggGap = 0, eggT = 0, eggTrailT = 0;
 var sunBoost = 0, winT = 0, cheerT = 0;
 var introT = 0, INTRO = 1.4;                  // menu -> play: the lights come on
 var introBanner = false, bannerT = 0, introClicks = 0;
@@ -2078,27 +2082,36 @@ function stoneH(s) { return Math.max(30, s.w * 0.44, (groundY - s.baseY) + 24); 
  * Append the next stone. Gaps are clamped so every jump is provably inside
  * the hopper's envelope, even at the worst phase of two drifting stones.
  */
+/** Where the finish meadow's top sits - one place for the spawner and the
+    secret jump's aim. */
+function finishBaseY() { return groundY - 34 * clamp(VW / 900, 0.7, 1.2); }
+function finishGap(gap) {
+  return clamp(gap === undefined ? rand(VW * 0.32, VW * 0.42) : gap,
+               MIN_D + VW * 0.10 + 10, MAX_D * 0.80);
+}
+/** The finish meadow, `gap` past the last island (a random gap if none). */
+function spawnFinish(gap) {
+  var f = makeStone(lastX + finishGap(gap), finishBaseY(),
+                    Math.max(VW * 0.55, 260), 'finish');
+  f.bsp = 0; f.bph = 0;                        // a meadow does not bob
+  f.flowers = [];
+  for (var fi = 0; fi < 16; fi++) {
+    f.flowers.push({ dx: rand(-0.46, 0.46), dy: rand(4, 30),
+      c: pick(['#ffd44a', '#ff8fb0', '#ffffff', '#c48cff']), r: rand(2.6, 4.4) });
+  }
+  stones.push(f);
+  finishStone = f;
+  lastX = f.ax; lastTop = f.baseY; lastW = f.w;
+  finishSpawned = true;
+  return f;
+}
+
 function spawnStone() {
   if (finishSpawned) return;
 
   // The bar is full: the next thing ahead is the finish meadow, and nothing
   // after it. Wide and low-set, so the last hop is a generous one.
-  if (clean >= 1) {
-    var gapF = clamp(rand(VW * 0.32, VW * 0.42), MIN_D + VW * 0.10 + 10, MAX_D * 0.80);
-    var f = makeStone(lastX + gapF, groundY - 34 * clamp(VW / 900, 0.7, 1.2),
-                      Math.max(VW * 0.55, 260), 'finish');
-    f.bsp = 0; f.bph = 0;                      // a meadow does not bob
-    f.flowers = [];
-    for (var fi = 0; fi < 16; fi++) {
-      f.flowers.push({ dx: rand(-0.46, 0.46), dy: rand(4, 30),
-        c: pick(['#ffd44a', '#ff8fb0', '#ffffff', '#c48cff']), r: rand(2.6, 4.4) });
-    }
-    stones.push(f);
-    finishStone = f;
-    lastX = f.ax; lastTop = f.baseY; lastW = f.w;
-    finishSpawned = true;
-    return;
-  }
+  if (clean >= 1) { spawnFinish(); return; }
 
   var diff = clamp(score / LVL.ramp, 0, 1);
   var maxAmp = VW * 0.05;
@@ -2399,6 +2412,7 @@ function syncMore(overlay) {
 }
 /** Pick the line that matches this run's story. */
 function encouragement(isNew) {
+  if (won && eggSecret) return 'Тсс! Это был секретный прыжок. А энергию береги по-настоящему!';
   if (won) return isNew ? 'Новый рекорд — и вся энергия сбережена!' : pick(MSG_WIN);
   if (isNew && score >= 5) return 'Новый рекорд отряда энергосбережения!';
   if (clean >= 0.7) return pick(MSG_NEAR);
@@ -2444,6 +2458,7 @@ function reset() {
   elCleanFill.style.setProperty('--seg',
     ENERGY_GOAL > 24 ? '100%' : (100 / ENERGY_GOAL) + '%');
   won = false; finishSpawned = false; finishCued = false; finishStone = null;
+  eggArmed = false; eggSecret = false; eggT = 0; hop.egg = null;
   sunBoost = 0; winT = 0; cheerT = 0;
   elOver.classList.remove('win');
 
@@ -2635,9 +2650,9 @@ function gameOver() {
   setPaused(false);
   elPauseBtn.hidden = true;
   chargeStop();
-  var isNew = score > best;
+  var isNew = !eggSecret && score > best;       // a secret shortcut sets no record
   if (isNew) { best = score; save(bestKey(), String(best)); }
-  elOverTitle.textContent = won ? 'Энергия сбережена!'
+  elOverTitle.textContent = won ? (eggSecret ? 'Секретный прыжок!' : 'Энергия сбережена!')
     : lastFall === 'sparks' ? 'Ой-ёй! Искры!'
     : sparkTitle(leaves);
   var t0 = performance.now();                    // the score rolls up to its total
@@ -2668,6 +2683,8 @@ function gameOver() {
 
 function fallIn(reason) {
   if (phase === 'fall') return;
+  hop.egg = null;
+  eggArmed = false;
   lastFall = reason;
   chargeStop();
   phase = 'fall';
@@ -2722,6 +2739,7 @@ function stripSwitchOff(s) {
 }
 
 function land(s, top) {
+  hop.egg = null;
   // Landing on the power strip is the miss - jump over it, not into it.
   if (s.strip) {
     var tx = s.x + s.stripX;
@@ -2830,6 +2848,47 @@ function doJump() {
   chargeStop();
   sndJump(p);
 }
+/** Held long enough: the secret reveals itself. */
+function armEgg() {
+  eggArmed = true;
+  eggT = 0;                                      // the aim glides out over 0.8 s
+  eggGap = finishGap();                          // where a new meadow would appear
+  charge = 1;
+  chargeStop();                                  // no ten-second whine: a chime instead
+  sndTwinkle();
+  sparkle(hop.x, hop.y - KW * 0.8, '#ffd44a');
+  sparkle(hop.x, hop.y - KW * 0.8, '#ffffff');
+  /* centred on the screen, not on the hero: a long word near the left
+     edge of a narrow phone would run off it */
+  popup(camX + VW / 2, hop.y - KW * 2.6, 'СЕКРЕТНЫЙ ПРЫЖОК!', '#ffd44a', LABEL_DUR);
+}
+/** The secret jump's landing spot: the meadow if it is already there, else
+    the spot where it will appear. World units: { x, top }. */
+function eggTarget() {
+  if (finishStone) return { x: finishStone.x, top: stoneTop(finishStone) };
+  return { x: lastX + finishGap(eggGap), top: finishBaseY() };
+}
+/** Let go while armed: one tall arc that comes down on the meadow's centre. */
+function doEggJump() {
+  eggSecret = clean < 1;                         // the goal was not reached yet
+  var f = finishStone || spawnFinish(eggGap);
+  var dx = f.x - hop.x, dy = stoneTop(f) - hop.y;    // dy > 0: the meadow sits lower
+  var H = VH * 0.34 / Z;                         // apex height above the take-off
+  var T = clamp(0.9 + dx / (VW * 1.4), 1.1, 2.0);    // flight time
+  var k = (Math.sqrt(2 * H) + Math.sqrt(Math.max(0, 2 * H + 2 * dy))) / T;
+  hop.g = k * k;
+  hop.vy = -k * Math.sqrt(2 * H);
+  hop.vx = dx / T;
+  hop.egg = f;                                   // only this island may catch us
+  hop.onStone = null;
+  hop.sqz = 0.2; hop.sqzV = 0;
+  phase = 'air';
+  charge = 0;
+  eggArmed = false;
+  eggTrailT = 0;
+  chargeStop();
+  sndJump(1);
+}
 
 /* ==========================================================================
    9. Input - pointer events ride on the canvas, so overlay buttons never
@@ -2842,14 +2901,17 @@ function press() {
   if (mode === 'menu') { startGame(); return; }
   if (mode === 'over') { if (overT > 0.45) startGame(); return; }
   if (introT > 0) { skipIntro(); return; }        // a tap skips, not charges
-  if (mode === 'play' && phase === 'stand') { phase = 'charge'; charge = 0; chargeT = 0; chargeStart(); }
+  if (mode === 'play' && phase === 'stand') {
+    phase = 'charge'; charge = 0; chargeT = 0; eggArmed = false; chargeStart();
+  }
 }
 function release() {
-  if (mode === 'play' && phase === 'charge') doJump();
+  if (mode === 'play' && phase === 'charge') { if (eggArmed) doEggJump(); else doJump(); }
   else chargeStop();
 }
 function cancelPress() {
   if (mode === 'play' && phase === 'charge') { phase = 'stand'; charge = 0; }
+  eggArmed = false;
   chargeStop();
 }
 
@@ -3150,8 +3212,12 @@ function update(dt) {
       // Dynamic power: the meter swings to full and back again for as long as
       // the jump is held, so the leap is decided by *when* you let go.
       chargeT += dt;
-      charge = 0.5 - 0.5 * Math.cos(Math.PI * chargeT / LVL.swing);
-      chargeUpdate(charge);
+      if (!eggArmed && chargeT >= EGG_HOLD) armEgg();
+      if (eggArmed) { charge = 1; eggT += dt; }
+      else {
+        charge = 0.5 - 0.5 * Math.cos(Math.PI * chargeT / LVL.swing);
+        chargeUpdate(charge);
+      }
     }
 
     if (phase === 'stand' || phase === 'charge') {
@@ -3167,6 +3233,16 @@ function update(dt) {
       hop.x += hop.vx * dt;
       hop.y += hop.vy * dt;
       hop.rot = clamp(Math.atan2(hop.vy, hop.vx) * 0.32, -0.5, 0.5);
+      if (hop.egg && !REDUCED) {                 // a golden trail on the secret leap
+        eggTrailT -= dt;
+        if (eggTrailT <= 0) {
+          eggTrailT = 0.035;
+          for (var ei = 0; ei < 2; ei++)
+            parts.push({ x: hop.x + rand(-6, 6), y: hop.y - KW * rand(0.2, 0.8),
+              vx: rand(-30, 30), vy: rand(-20, 30), g: 60, r: rand(1.8, 3.4),
+              life: rand(0.45, 0.8), max: 0.8, c: pick(['#ffd44a', '#fff3a0', '#ffffff']) });
+        }
+      }
 
       // collectibles
       for (var it = 0; it < items.length; it++) {
@@ -3189,6 +3265,7 @@ function update(dt) {
         for (var k = 0; k < stones.length; k++) {
           var c = stones[k];
           if (c.dead) continue;
+          if (hop.egg && c !== hop.egg) continue;   // the secret leap flies over the rest
           var top = stoneTop(c);
           if (top > groundY - 1) continue;
           if (prevY <= top && hop.y >= top && Math.abs(hop.x - c.x) <= c.w * 0.5 + 3) {
@@ -5081,8 +5158,63 @@ function drawIntroBanner() {
   ctx.restore();
 }
 
+/** Armed: the ring glides out to the meadow along a golden arc; off screen,
+    an arrow at the edge points the way. */
+function drawEggAim() {
+  var tg = eggTarget();
+  var k = 1 - Math.pow(1 - clamp(eggT / 0.8, 0, 1), 3);
+  var rx = lerp(hop.x + MAX_D, tg.x, k) - camX, ry = lerp(hop.y, tg.top, k);
+  var hx = hop.x - camX, H = VH * 0.34 / Z;
+  var edge = VW / 2 + (VW / 2) / Z - 30;          // right edge, before the zoom
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,212,74,0.9)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.setLineDash([8, 9]);
+  ctx.lineDashOffset = -T * 40;                   // the dashes flow toward the target
+  ctx.beginPath();
+  ctx.moveTo(hx, hop.y - KW * 0.4);
+  ctx.quadraticCurveTo((hx + rx) / 2, Math.min(hop.y, ry) - 2 * H, rx, ry);
+  ctx.stroke();
+  ctx.setLineDash([]);
+  if (rx <= edge) {                               // the ring, when it is in view
+    ctx.strokeStyle = '#ffd44a';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.ellipse(rx, ry + 4, 22, 8, 0, 0, TAU);
+    ctx.stroke();
+  } else {                                        // or an arrow at the edge
+    var ay = clamp(ry - KW * 1.2, VH * 0.25, groundY - KW);
+    ctx.fillStyle = '#ffd44a';
+    ctx.strokeStyle = 'rgba(28,38,26,0.85)';
+    ctx.lineWidth = 4;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(edge + 18, ay);
+    ctx.lineTo(edge - 4, ay - 16);
+    ctx.lineTo(edge - 4, ay + 16);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+    ctx.font = '800 ' + Math.round(Math.max(13, KW * 0.34)) + 'px ' +
+      '"Avenir Next Rounded","Trebuchet MS","Segoe UI",system-ui,sans-serif';
+    ctx.textAlign = 'right';
+    ctx.strokeText('ФИНИШ', edge - 10, ay + 5);
+    ctx.fillText('ФИНИШ', edge - 10, ay + 5);
+    ctx.lineJoin = 'miter';
+  }
+  var bw = Math.max(56, KW * 1.5), bh = 9;        // the bar: full, gold, pulsing
+  var bx = hx - bw / 2, by = hop.y - KW * 2.3;
+  ctx.fillStyle = 'rgba(20,34,26,0.34)';
+  rr(ctx, bx - 2, by - 2, bw + 4, bh + 4, (bh + 4) / 2); ctx.fill();
+  ctx.globalAlpha = 0.75 + 0.25 * Math.sin(T * 10);
+  ctx.fillStyle = '#ffd44a';
+  rr(ctx, bx, by, bw, bh, bh / 2); ctx.fill();
+  ctx.restore();
+}
 function drawAim() {
   if (phase !== 'charge') return;
+  if (eggArmed) { drawEggAim(); return; }
   var p = clamp(charge, 0.04, 1);
   var d = MIN_D + p * (MAX_D - MIN_D);
 
