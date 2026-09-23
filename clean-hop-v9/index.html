@@ -379,6 +379,23 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
 .keys kbd{font-family:var(--font);font-size:10.5px;background:rgba(32,48,58,.09);
   border-radius:6px;padding:3px 7px;margin:0 1px}
 
+/* ---------------- Easter eggs ---------------- */
+.eggtoast{
+  position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));z-index:5;
+  transform:translate(-50%,10px);opacity:0;pointer-events:none;white-space:nowrap;
+  background:var(--volt);color:var(--ink);box-shadow:0 4px 0 var(--volt-dk);
+  font-size:14px;font-weight:800;letter-spacing:.06em;padding:8px 16px;border-radius:999px;
+  transition:opacity .25s ease,transform .25s ease;
+}
+.eggtoast.show{opacity:1;transform:translate(-50%,0)}
+.advice-face{cursor:pointer}
+.pick .nm.say{background:var(--volt);color:var(--ink)}
+#title{cursor:pointer}
+#title .lamp{text-shadow:0 0 16px rgba(255,201,60,.65);
+  transition:color .12s ease,text-shadow .12s ease}
+#title .lamp.off{color:#9aa6a0;text-shadow:none}
+.badge.medal{background:#7ee06a;color:#1b4a24}
+
 /* short screens: phones held sideways, small phones upright, and laptop
    windows that are not maximised. The card shrinks so its body rarely
    has to scroll; the footer button stays put either way. */
@@ -496,7 +513,7 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   <div class="overlay" id="menu">
     <div class="card">
       <div class="cbody">
-        <h1>Энерго<em>прыжок</em></h1>
+        <h1 id="title"><span class="lamp" id="titleLamp">Энерго</span><em>прыжок</em></h1>
         <p class="tagline">Помоги зверятам сберечь больше энергии &mdash; береги Планету!</p>
         <p class="howto" id="howto">Прыгай на островки и выключай всё, что работает зря!</p>
 
@@ -561,6 +578,7 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
             <span><i class="ic ic-star"></i>Рекорд <span id="finalBest">0</span></span>
           </div>
           <div class="badge hidden" id="newbest">Новый рекорд!</div>
+          <div class="badge medal hidden" id="medal">Мастер выключателей!</div>
         </div>
         <div class="say">
           <p class="ecomsg" id="ecoMsg">Каждый выключенный прибор &mdash; помощь Планете!</p>
@@ -579,6 +597,9 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
       </div>
     </div>
   </div>
+
+  <!-- ---------- Easter eggs: «found it» toast ---------- -->
+  <div class="eggtoast" id="eggToast" role="status" aria-live="polite"></div>
 </div>
 
 <script>
@@ -1883,7 +1904,8 @@ var hop = {
   rot: 0, rotV: 0, sqz: 0, sqzV: 0,
   onStone: null, offset: 0, blinkT: 2.5, blink: 0, alpha: 1,
   act: null, actLeft: 0, actDur: 1, actT: 3,      // idle micro-performances
-  tailPhase: 0, speak: 0
+  tailPhase: 0, speak: 0,
+  sleep: 0, zT: 0                                 // 8b: sleep mode
 };
 
 function layout() {
@@ -2402,6 +2424,7 @@ function showAdvice(face, who, text, tip) {
   who.textContent = (vo ? vo.say + ' ' : '') + an.name + ' советует:';
   setTipText(text, tip);
   paintFace(face);
+  faceTaps = 0;                                  // 8b: taps count per card
 }
 /* A card whose body can still scroll fades its lower edge; one that fits
    shows no fade at all. */
@@ -2435,7 +2458,7 @@ function updateHud() {
 function reset() {
   stones.length = 0; items.length = 0; parts.length = 0;
   ripples.length = 0; pops.length = 0;
-  score = 0; stonesCleared = 0; leaves = 0; energy = 0; offByKind = {};
+  score = 0; stonesCleared = 0; leaves = 0; energy = 0; offByKind = {}; stripsOff = 0;
   T = 0; stoneId = 0; lastWasCrumble = false;
   fallT = 0; overT = 0; shake = 0; charge = 0;
   lastFall = null; stripHint = null;
@@ -2473,7 +2496,7 @@ function reset() {
   hop.sqz = 0; hop.sqzV = 0; hop.alpha = 1;
   hop.onStone = start; hop.offset = 0;
   hop.act = null; hop.actLeft = 0; hop.actT = rand(2.5, 4.5);
-  hop.tailPhase = 0; hop.speak = 0;
+  hop.tailPhase = 0; hop.speak = 0; hop.sleep = 0; hop.zT = 0;
   idleT = 0; voiceAt = IDLE_VOICE;
 
   camLo = start.ax - camHeroOff();
@@ -2671,6 +2694,7 @@ function gameOver() {
   elOver.classList.toggle('win', won);
   elOver.classList.remove('hidden');
   showAdvice(elTipFace, elTipWho, elTipMsg, pickTip());
+  eggsAtGameOver();                              // 8b: medal, diver, bedtime
   syncMore(elOver);
   paintOverStrip();
   updateHud();
@@ -2730,6 +2754,7 @@ function switchOff(s) {
 function stripSwitchOff(s) {
   var top = stoneTop(s), sx = s.x + s.stripX;
   s.stripCut = true;
+  stripsOff++;                                   // 8b: for the switch master
   score += 2;
   popup(sx, top - KW * 3.7, 'УДЛИНИТЕЛЬ ВЫКЛ! +2', '#ffe27a', LABEL_DUR);
   flyScore(sx, top - KW, '+2', '#ffe27a');
@@ -2871,6 +2896,7 @@ function eggTarget() {
 /** Let go while armed: one tall arc that comes down on the meadow's centre. */
 function doEggJump() {
   eggSecret = clean < 1;                         // the goal was not reached yet
+  eggFound('secret-jump');
   var f = finishStone || spawnFinish(eggGap);
   var dx = f.x - hop.x, dy = stoneTop(f) - hop.y;    // dy > 0: the meadow sits lower
   var H = VH * 0.34 / Z;                         // apex height above the take-off
@@ -2891,6 +2917,212 @@ function doEggJump() {
 }
 
 /* ==========================================================================
+   8b. Easter eggs. Small secrets a young player finds by tapping, waiting
+       and playing. None adds points or touches a record. Each is noted in
+       localStorage the first time it is found and plays again every time.
+   ========================================================================== */
+var LS_EGGS = 'cleanHop.eggs.v1';
+/* Every egg, in the order the face-tap hints walk through them. A hint
+   marks the thing to try as *...*, like the tips do; an egg whose hint is
+   null is never suggested. */
+var EGGS = [
+  { id: 'secret-jump', hint: 'Говорят, если *долго-долго держать прыжок*, можно долететь до самого финиша…' },
+  { id: 'chatter', hint: null },
+  { id: 'tickle', hint: 'А если в меню *много раз подряд нажать на героя*? Ой, я боюсь щекотки!' },
+  { id: 'title', hint: 'Название игры светится, как лампа. А его можно *выключить*?' },
+  { id: 'sleep', hint: 'Если *долго-долго не прыгать*, я могу задремать…' },
+  { id: 'master', hint: 'Выключи за один забег *лампу, телевизор, зарядку и вентилятор* — получишь медаль!' },
+  { id: 'diver', hint: 'Упадёшь с самого первого прыжка *три раза подряд* — узнаешь секрет. Бульк!' },
+  { id: 'bedtime', hint: null }
+];
+var eggsFound = {};
+function loadEggs() {
+  eggsFound = {};
+  try {
+    var ids = JSON.parse(localStorage.getItem(LS_EGGS) || '[]');
+    if (Array.isArray(ids)) for (var i = 0; i < ids.length; i++) eggsFound[ids[i]] = true;
+  } catch (e) {}
+}
+loadEggs();
+
+var elEggToast = document.getElementById('eggToast'), eggToastT = 0;
+/** The one-line «found it» toast at the bottom of the screen. */
+function eggToast(text) {
+  elEggToast.textContent = text;
+  elEggToast.classList.add('show');
+  clearTimeout(eggToastT);
+  eggToastT = setTimeout(function () { elEggToast.classList.remove('show'); }, 1800);
+}
+/** Note an egg as found. The first time it chimes, shows the toast and
+    returns true; after that it stays quiet and returns false. */
+function eggFound(id) {
+  if (eggsFound[id]) return false;
+  eggsFound[id] = true;
+  var ids = [];
+  for (var k in eggsFound) ids.push(k);
+  save(LS_EGGS, JSON.stringify(ids));
+  sndTwinkle();
+  eggToast('✨ Секрет найден!');
+  return true;
+}
+
+/* A5 «Болтушка»: tap the hero's face on the pause or game-over card and
+   it speaks again, with a hint for an egg not found yet. The third tap on
+   one card is an egg of its own. */
+var FUN_LINES = [
+  'Все секреты найдены! Теперь ты — *мастер энергосбережения*.',
+  'Секретов больше нет… Главный секрет простой: *выключай свет, когда уходишь*!'
+];
+var hintAt = 0, faceTaps = 0;
+/** The next hint, walking round the eggs not found yet; a fun line once
+    every hinted egg is found. */
+function nextHint() {
+  for (var i = 0; i < EGGS.length; i++) {
+    var e = EGGS[(hintAt + i) % EGGS.length];
+    if (e.hint && !eggsFound[e.id]) {
+      hintAt = (hintAt + i + 1) % EGGS.length;
+      return e.hint;
+    }
+  }
+  return pick(FUN_LINES);
+}
+function faceTap(face, text) {
+  audioInit();
+  if (VOICES[chosen]) VOICES[chosen].snd();
+  if (face.animate && !REDUCED) {
+    face.animate([{ transform: 'none' },
+                  { transform: 'translateY(-10px) rotate(-6deg)', offset: 0.35 },
+                  { transform: 'translateY(1px) rotate(3deg)', offset: 0.7 },
+                  { transform: 'none' }], { duration: 500, easing: 'ease-out' });
+  }
+  setTipText(text, nextHint());
+  if (++faceTaps === 3) eggFound('chatter');
+}
+elTipFace.addEventListener('click', function () { faceTap(elTipFace, elTipMsg); });
+elPauseFace.addEventListener('click', function () { faceTap(elPauseFace, elPauseTip); });
+
+/* A1 «Щекотно!»: tap the same hero in the picker five times within three
+   seconds and it giggles, hops and spins. */
+var tickleKind = null, tickleN = 0, tickleT0 = 0;
+/** The portrait's name label speaks for a moment, then comes back. */
+function pickSay(btn, text) {
+  var n = btn.querySelector('.nm');
+  if (!n) return;
+  clearTimeout(n.sayT);
+  n.textContent = text;
+  n.classList.add('say');
+  n.sayT = setTimeout(function () {
+    n.textContent = ANIMALS[btn.dataset.kind].name;
+    n.classList.remove('say');
+  }, 1600);
+}
+function tickle(kind, btn) {
+  var t = performance.now();
+  if (kind !== tickleKind || t - tickleT0 > 3000) { tickleKind = kind; tickleN = 0; tickleT0 = t; }
+  if (++tickleN < 5) return;
+  tickleKind = null; tickleN = 0;
+  if (VOICES[kind]) VOICES[kind].snd();
+  var c = btn.querySelector('canvas');
+  if (c && c.animate && !REDUCED) {
+    c.animate([{ transform: 'none' },
+               { transform: 'translateY(-12px) rotate(-10deg)', offset: 0.25 },
+               { transform: 'translateY(-6px) rotate(350deg)', offset: 0.75 },
+               { transform: 'rotate(360deg)' }], { duration: 800, easing: 'ease-in-out' });
+  }
+  pickSay(btn, 'Щекотно!');
+  eggFound('tickle');
+}
+
+/* A3 «Выключатель»: the title is a light switch. Every third click the
+   how-to line under it says so. */
+var elTitle = document.getElementById('title');
+var elTitleLamp = document.getElementById('titleLamp');
+var elHowto = document.getElementById('howto');
+var HOWTO = elHowto.textContent, howtoT = 0, titleFlips = 0;
+elTitle.addEventListener('click', function () {
+  audioInit();
+  elTitleLamp.classList.toggle('off');
+  sndSwitch(0.7);
+  if (++titleFlips % 3) return;
+  elHowto.textContent = 'Правильно! Свет зря не горит.';
+  clearTimeout(howtoT);
+  howtoT = setTimeout(function () { elHowto.textContent = HOWTO; }, 2500);
+  eggFound('title');
+});
+
+/* B1 «Спящий режим»: left alone for SLEEP_AT seconds the hero nods off,
+   the way devices save energy. The next press only wakes it up. */
+var SLEEP_AT = 40;
+function sndYawn() { tone('sine', 520, 240, 0.7, 0.10); tone('sine', 780, 360, 0.6, 0.04, 0.05); }
+function fallAsleep() {
+  hop.sleep = 0.001; hop.zT = 0.5;
+  sndYawn();
+  popup(hop.x, hop.y - KW * 2.6, 'СПЯЩИЙ РЕЖИМ', '#cfe6ff', LABEL_DUR);
+  eggFound('sleep');
+}
+function sleepTick(dt) {
+  hop.sleep += dt;
+  hop.zT -= dt;
+  if (hop.zT <= 0) {
+    hop.zT = 1.1;
+    popup(hop.x + KW * rand(0.3, 0.6), hop.y - KW * 1.5, 'z', '#ffffff', 1.4);
+  }
+}
+function wakeUp() {
+  hop.sleep = 0;
+  hop.sqz = 0.3; hop.sqzV = 0;                   // a startled little squash
+  popup(hop.x, hop.y - KW * 2.2, 'ОЙ! Я НЕ СПЛЮ!', '#ffffff', LABEL_DUR);
+  if (VOICES[chosen]) VOICES[chosen].snd();
+}
+
+/* B4 «Мастер выключателей»: every kind of gadget switched off in one run,
+   plus a power strip wherever the level has them. Strips are counted
+   apart from offByKind - the tip picker and the card's gadget parade
+   read that and have no strip in them. */
+var stripsOff = 0;
+var elMedal = document.getElementById('medal');
+var TIP_MASTER = '*Лампа, телевизор, зарядка и вентилятор* — всё выключено! Дома делай так же.';
+function masterOfSwitches() {
+  var need = ['lamp', 'tv', 'charger', 'fan'];
+  for (var i = 0; i < need.length; i++) if (!offByKind[need[i]]) return false;
+  return LVL.calm || stripsOff > 0;
+}
+/* Date and time eggs read the clock through here, so a test can set it. */
+var clockOverride = null;
+function clockNow() { return clockOverride !== null ? new Date(clockOverride) : new Date(); }
+
+/* C4 «Пора спать»: late in the evening, the first card of the session
+   says it is time to switch this screen off too. No hint on purpose -
+   nobody should be sent to play late to find it. */
+var bedtimeShown = false;
+var TIP_BEDTIME = 'Уже поздно! *Выключи и этот экран* — зверята тоже идут спать 🌙';
+function isLate() { var h = clockNow().getHours(); return h >= 21 || h < 6; }
+
+/* B5 «Бульк-бульк!»: runs in a row that fell before any island. Kept for
+   the session only; any other ending starts the count again. */
+var diverRuns = 0;
+/** Game-over eggs dress the card here, after it has been filled in. */
+function eggsAtGameOver() {
+  var master = masterOfSwitches();
+  elMedal.classList.toggle('hidden', !master);
+  if (master) {
+    setTipText(elTipMsg, TIP_MASTER);
+    eggFound('master');
+  }
+  diverRuns = (!won && lastFall && stonesCleared === 0) ? diverRuns + 1 : 0;
+  if (diverRuns >= 3) {
+    elOverTitle.textContent = 'Бульк-бульк!';
+    elEcoMsg.textContent = 'Там что, жемчуг? Отпускай, когда колечко на островке!';
+    eggFound('diver');
+  }
+  if (!bedtimeShown && isLate()) {               // last, so its tip wins
+    bedtimeShown = true;
+    setTipText(elTipMsg, TIP_BEDTIME);
+    eggFound('bedtime');
+  }
+}
+
+/* ==========================================================================
    9. Input - pointer events ride on the canvas, so overlay buttons never
       double-fire a jump. Keyboard is global.
    ========================================================================== */
@@ -2902,6 +3134,7 @@ function press() {
   if (mode === 'over') { if (overT > 0.45) startGame(); return; }
   if (introT > 0) { skipIntro(); return; }        // a tap skips, not charges
   if (mode === 'play' && phase === 'stand') {
+    if (hop.sleep > 0) { wakeUp(); return; }      // 8b: this press only wakes
     phase = 'charge'; charge = 0; chargeT = 0; eggArmed = false; chargeStart();
   }
 }
@@ -2991,7 +3224,10 @@ function buildPicker() {
     n.className = 'nm';
     n.textContent = ANIMALS[kind].name;
     b.appendChild(c); b.appendChild(n);
-    b.addEventListener('click', function () { audioInit(); setChosen(kind); sndScore(); });
+    b.addEventListener('click', function () {
+      audioInit(); setChosen(kind); sndScore();
+      tickle(kind, b);                           // 8b: five quick taps tickle
+    });
     elPicker.appendChild(b);
     portraits.push({ kind: kind, canvas: c, btn: b });
   });
@@ -3330,7 +3566,7 @@ function update(dt) {
 
   // Idle micro-performances: standing still, the hopper looks around,
   // flicks its tail or bounces on the spot. The dog also lolls its tongue.
-  if (mode === 'play' && phase === 'stand') {
+  if (mode === 'play' && phase === 'stand' && !hop.sleep) {   // asleep: no tricks
     if (hop.actLeft > 0) {
       hop.actLeft -= dt;
       if (hop.actLeft <= 0) { hop.act = null; hop.actT = rand(2.6, 5.5); }
@@ -3347,10 +3583,13 @@ function update(dt) {
   hop.tailPhase += dt * (hop.act === 'tail' ? 3.4 : 1);
   if (hop.speak > 0) hop.speak -= dt;
 
-  // Left alone on a stone, the hopper starts talking to itself.
+  // Left alone on a stone, the hopper starts talking to itself - and in
+  // the end nods off (8b: sleep mode).
   if (mode === 'play' && phase === 'stand') {
     idleT += dt;
-    if (idleT >= voiceAt) {
+    if (hop.sleep > 0) sleepTick(dt);
+    else if (idleT >= SLEEP_AT) fallAsleep();
+    else if (idleT >= voiceAt) {
       speakUp();
       voiceAt = idleT + rand(3.5, 6);
     }
@@ -4892,7 +5131,7 @@ function drawHopper() {
   var bounce = hop.act === 'bounce' ? -Math.abs(Math.sin(pr * TAU)) * KW * 0.18 : 0;
   var opts = {
     t: T, tp: hop.tailPhase, look: look,
-    blink: hop.blink > 0,
+    blink: hop.blink > 0 || hop.sleep > 0,        // 8b: asleep, eyes shut
     squint: phase === 'charge',
     yuck: phase === 'fall',
     tongue: hop.act === 'tongue',
@@ -4983,7 +5222,8 @@ function drawHopper() {
   ctx.globalAlpha = hop.alpha;
   ctx.translate(px, py + bounce);
   ctx.rotate(hop.rot);
-  var idle = (phase === 'stand' && mode === 'play') ? Math.sin(T * 2.6) * 0.022 : 0;
+  var idle = (phase === 'stand' && mode === 'play')
+    ? (hop.sleep ? Math.sin(T * 1.3) * 0.035 : Math.sin(T * 2.6) * 0.022) : 0;  // slow breaths asleep
   var sqz = hop.sqz - (phase === 'charge' ? 0.16 * charge : 0);  // winding up
   ctx.scale(1 - sqz * 0.72 - idle, 1 + sqz + idle);
   animalStamped(ctx, chosen, HERO_W, opts);

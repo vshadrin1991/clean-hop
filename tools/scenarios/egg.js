@@ -43,6 +43,8 @@ up();
 await sleep(100);
 const f = t.finishStone;
 if (!f) fails.push('A: no meadow after the release');
+if (!t.eggsFound || !t.eggsFound['secret-jump'])
+  fails.push('A: the secret jump was not noted as found');
 else if (promised && Math.abs(f.x - promised.x) > 1)
   fails.push('A: meadow at ' + Math.round(f.x) + ', the aim pointed at ' + Math.round(promised.x));
 const reached = await until(() => t.won, 4000);

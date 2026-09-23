@@ -131,9 +131,27 @@ window.__t = {
   get chargeT() { return __get(function () { return chargeT; }); },
   set chargeT(v) { chargeT = v; },
   eggTarget: function () { return __get(function () { return eggTarget(); }); },
-  startGame: function () { __get(function () { startGame(); }); }
+  startGame: function () { __get(function () { startGame(); }); },
+  /* eggs-*.js probes: the v9.5 Easter eggs. Names a later task defines
+     read as undefined until it lands - __get swallows the ReferenceError */
+  get eggsFound() { return __get(function () { return eggsFound; }); },
+  get EGGS() { return __get(function () { return EGGS; }); },
+  eggFound: function (id) { return __get(function () { return eggFound(id); }); },
+  loadEggs: function () { __get(function () { loadEggs(); }); },
+  set clock(v) { __get(function () { clockOverride = v; }); },
+  clockNow: function () { return __get(function () { return clockNow(); }); },
+  isLate: function () { return __get(function () { return isLate(); }); },
+  fallIn: function (why) { __get(function () { fallIn(why); }); },
+  get stripsOff() { return __get(function () { return stripsOff; }); },
+  set stripsOff(v) { __get(function () { stripsOff = v; }); },
+  get idleT() { return __get(function () { return idleT; }); },
+  set idleT(v) { __get(function () { idleT = v; }); }
 };
 var INTRO_ON = /[#&]intro/.test(location.hash);
+/* scenarios run at any hour: pin the egg clock to midday so the bedtime tip
+   never replaces the tip a scenario expects - egg-bedtime.js moves it.
+   Older game versions have no clockOverride: the ReferenceError is caught */
+try { clockOverride = new Date(2026, 8, 23, 12, 0).getTime(); } catch (e) {}
 /* render() timing, measured the same way on every game version */
 var __renderMs = -1;
 try {
