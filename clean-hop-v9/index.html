@@ -229,6 +229,14 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   font-size:10px;font-weight:800;line-height:16px;text-align:center;
 }
 .pick[aria-checked="true"] .nm{color:var(--ink)}
+/* D1: a hero who has reached the finish wears a green ring, so the hunt for
+   the owlet shows at a glance. Placed after the selected rule on purpose:
+   a selected champion keeps its yellow fill, shadow and tick, but the ring
+   turns green. --leaf-dk, not --leaf: 3.6:1 on both card colours */
+.pick.won{border-color:var(--leaf-dk)}
+/* D1: the owlet joins as a lone seventh card - it sits under the middle
+   column, centred like the locked «?» it replaces */
+.pick[data-kind="owlet"]{grid-column:2}
 .pick:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 @media (max-width:340px){ .pick canvas{width:50px;height:50px} }
 
@@ -450,7 +458,7 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   .picker{grid-template-columns:repeat(6,1fr)}
   /* a seventh hero (the owlet, or his locked «?») joins the row */
   .picker:has(> .pick:nth-child(7)){grid-template-columns:repeat(7,1fr)}
-  .pick.locked{grid-column:auto;justify-self:stretch;width:auto}
+  .pick.locked,.pick[data-kind="owlet"]{grid-column:auto;justify-self:stretch;width:auto}
   .pick canvas{width:40px;height:40px}
   .pick .nm{font-size:9px;padding:1px 6px}
   /* the over card: result on the left, what the hero says on the right.
@@ -3944,8 +3952,12 @@ function buildPicker() {
   portraits = [];
   ORDER.forEach(function (kind) {
     var b = document.createElement('button');
-    b.className = 'pick';
+    b.className = winsSet[kind] ? 'pick won' : 'pick';   // D1: finished once
     b.type = 'button';
+    if (winsSet[kind]) {                         // the ring, said out loud too
+      b.setAttribute('aria-label', ANIMALS[kind].name + ' — финиш пройден');
+      b.title = 'Финиш пройден!';
+    }
     b.setAttribute('role', 'radio');
     b.setAttribute('aria-checked', kind === chosen ? 'true' : 'false');
     b.dataset.kind = kind;
