@@ -4,14 +4,8 @@
     {
       "name": "clean-hop-v9",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8719", "--directory", "/Users/vitalyshadrin/Projects/milana/clean-hop/clean-hop-v9"],
-      "port": 8719
-    },
-    {
-      "name": "clean-hop-v9-test",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8720", "--directory", "/private/tmp/claude-501/-Users-vitalyshadrin-Projects-milana-clean-hop-clean-hop-v7/1fbbbe95-5a6e-42ff-b180-68e6ff9d12a0/scratchpad/testbuild"],
-      "port": 8720
+      "runtimeArgs": ["-m", "http.server", "8934", "--directory", "/Users/vitalyshadrin/Projects/milana/clean-hop/clean-hop-v9"],
+      "port": 8934
     }
   ]
 }

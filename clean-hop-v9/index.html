@@ -395,6 +395,22 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   transition:color .12s ease,text-shadow .12s ease}
 #title .lamp.off{color:#9aa6a0;text-shadow:none}
 .badge.medal{background:#7ee06a;color:#1b4a24}
+/* 8b: the sun's little stand-in on the menu card (A4), the day banner (C2),
+   the locked hero slot (D1) and the choir's confetti (A2) */
+#sunBtn{position:absolute;top:8px;right:10px;width:40px;height:40px;border-radius:50%;
+  border:none;background:transparent;cursor:pointer;font-size:22px;line-height:1;
+  color:#d99a00;opacity:.75;transition:transform .15s ease,opacity .15s ease}
+#sunBtn:hover{opacity:1;transform:scale(1.12) rotate(12deg)}
+#sunBtn:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.daybanner{display:inline-block;align-self:center;margin:8px auto 2px;
+  background:var(--volt);color:var(--ink);border-radius:999px;
+  font-size:12.5px;font-weight:800;letter-spacing:.04em;padding:5px 14px}
+.daybanner.hidden{display:none}
+.pick.locked{grid-column:1/-1;justify-self:center;width:calc((100% - 16px)/3);
+  cursor:help;opacity:.85}
+.pick.locked:hover{transform:none;box-shadow:none}
+.pick.locked canvas{filter:saturate(0) brightness(.9)}
+#menu.choir .confetti{display:block}
 
 /* short screens: phones held sideways, small phones upright, and laptop
    windows that are not maximised. The card shrinks so its body rarely
@@ -406,6 +422,7 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   .howto{margin-top:6px;font-size:11.5px}
   .sectionlabel{margin:10px 0 6px}
   .picker{gap:6px}
+  .pick.locked{width:calc((100% - 12px)/3)}
   .pick{padding:6px 4px 5px;border-radius:16px}
   .pick canvas{width:46px;height:46px}
   .dial-name{font-size:15px}
@@ -431,6 +448,9 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   .tagline,.howto{display:none}
   h1{font-size:22px}
   .picker{grid-template-columns:repeat(6,1fr)}
+  /* a seventh hero (the owlet, or his locked «?») joins the row */
+  .picker:has(> .pick:nth-child(7)){grid-template-columns:repeat(7,1fr)}
+  .pick.locked{grid-column:auto;justify-self:stretch;width:auto}
   .pick canvas{width:40px;height:40px}
   .pick .nm{font-size:9px;padding:1px 6px}
   /* the over card: result on the left, what the hero says on the right.
@@ -512,10 +532,13 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
   <!-- ---------- start screen / character select ---------- -->
   <div class="overlay" id="menu">
     <div class="card">
-      <div class="cbody">
+      <button class="sunbtn" id="sunBtn" type="button" aria-label="Солнышко">☀</button>
+      <div class="confetti" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="cbody"><div id="menuFit">
         <h1 id="title"><span class="lamp" id="titleLamp">Энерго</span><em>прыжок</em></h1>
         <p class="tagline">Помоги зверятам сберечь больше энергии &mdash; береги Планету!</p>
         <p class="howto" id="howto">Прыгай на островки и выключай всё, что работает зря!</p>
+        <p class="daybanner hidden" id="dayBanner"></p>
 
         <p class="sectionlabel" id="pickLabel">Выбери героя</p>
         <div class="picker" id="picker" role="radiogroup" aria-labelledby="pickLabel"></div>
@@ -532,7 +555,7 @@ h2{font-size:clamp(26px,7.6vw,34px);font-weight:800;letter-spacing:-.01em;color:
             <i style="left:0%"></i><i style="left:33%"></i><i style="left:67%"></i><i style="left:100%"></i>
           </div>
         </div>
-      </div>
+      </div></div>
       <div class="cfoot">
         <button class="btn" id="playBtn">Начать игру</button>
         <p class="keys" id="keysMenu">Держи <kbd>Пробел</kbd> &middot; отпусти для прыжка</p>
@@ -773,6 +796,11 @@ function sndSwitch(vol) {
 function sndTvOff()      { noiseBurst(0.20, 0.07, 3200, 500, 0.04); }
 function sndFanOff()     { tone('sawtooth', 190, 55, 0.45, 0.035, 0.04); }
 function sndChargerOff() { tone('sine', 1250, 1250, 0.05, 0.06, 0.05); }
+/* A cooling iron: a short steam hiss, then a soft ping as the lamp dies. */
+function sndIronOff() {
+  noiseBurst(0.30, 0.09, 5200, 1100, 0.02);
+  tone('sine', 720, 460, 0.18, 0.09, 0.05);
+}
 /* A power strip goes quiet: a clack, then its hum winding down. Caught: a zap. */
 function sndStripOff() { noiseBurst(0.04, 0.14, 5000, 1800); tone('sine', 300, 70, 0.5, 0.06, 0.05); }
 function sndZap()      { noiseBurst(0.16, 0.16, 8000, 2500); tone('square', 110, 55, 0.28, 0.05); }
@@ -786,7 +814,11 @@ var GADGETS = {
   charger: { sprite: 'gadget-charger', hB: 0.45, label: 'ЗАРЯДКА ВЫКЛ!',    snd: sndChargerOff,
              plugX: -0.14, plugY: 0.06 },   // the post's left side
   fan:     { sprite: 'gadget-fan',     hB: 0.90, label: 'ВЕНТИЛЯТОР ВЫКЛ!', snd: sndFanOff,
-             plugX: -0.30, plugY: 0.03 }    // the rim of the base ellipse
+             plugX: -0.30, plugY: 0.03 },   // the rim of the base ellipse
+  iron:    { sprite: 'gadget-iron',    hB: 0.80, label: 'УТЮГ ВЫКЛ!',       snd: sndIronOff,
+             plugX: -0.44, plugY: 0.07 },   // the cord guard's tip at the heel
+  garland: { sprite: 'gadget-garland', hB: 0.95, label: 'ГИРЛЯНДА ВЫКЛ!',   snd: sndChargerOff,
+             plugX: -0.24, plugY: 0.03 }    // the left pole's foot
 };
 var GADGET_KINDS = ['lamp', 'lamp', 'tv', 'charger', 'fan'];   // lamps a bit more often
 function gadgetH(kind) { return Math.max(22 / Z, GADGETS[kind].hB * B); }
@@ -816,7 +848,15 @@ var LIGHT = {
   fan:     { ax: 0.50, ay: 0.65,
              halo: null,
              core: { r: 0.05, a: 0.6 },
-             streak: 0, col: '#7de06a' }
+             streak: 0, col: '#7de06a' },
+  iron:    { ax: 0.42, ay: 0.866,                // the heat lamp on the heel cap
+             halo: null,
+             core: { r: 0.05, a: 0.7 },
+             streak: 0, col: '#ff8a4c' },
+  garland: { ax: 0.50, ay: 0.36,
+             halo: { rx: 0.55, ry: 0.35, a: 0.30 },
+             core: { r: 0.10, a: 0.5 },
+             streak: 0, col: '#ffd873' }
 };
 function lightAt(G, x, base, h) {                // the source, in world coords
   var L = LIGHT[G.kind], w = gadgetW(G.kind);
@@ -863,7 +903,7 @@ function sndOver()    { tone('triangle', 392, 392, 0.16, 0.13, 0.06);
 function sndMeow() {
   if (!A.ctx || A.muted) return;
   var t0 = A.ctx.currentTime, D = 0.62;
-  var jf = 1 + rand(-0.04, 0.04);                // no two meows alike
+  var jf = voicePitch * (1 + rand(-0.04, 0.04)); // no two meows alike
 
   var o = A.ctx.createOscillator();
   o.type = 'sawtooth';
@@ -919,6 +959,7 @@ function sndMeow() {
  */
 function woof(d, f0) {
   if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
   var t0 = A.ctx.currentTime + d;
 
   var o = A.ctx.createOscillator();              // vocal folds
@@ -975,6 +1016,7 @@ function sndBark() { woof(0, 420 + rand(-25, 25)); woof(0.205, 480 + rand(-25, 2
  */
 function quack(d, f0) {
   if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
   var t0 = A.ctx.currentTime + d, D = 0.20;
 
   var o = A.ctx.createOscillator();              // the main reed
@@ -1029,6 +1071,7 @@ function sndQuack() { quack(0, 270 + rand(-14, 14)); quack(0.24, 250 + rand(-14,
  */
 function squeak(d, f0) {
   if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
   var t0 = A.ctx.currentTime + d, D = 0.11;
 
   var o = A.ctx.createOscillator();
@@ -1064,6 +1107,7 @@ function sndSqueak() { squeak(0, 1750 + rand(-70, 70)); squeak(0.17, 1600 + rand
  */
 function yip(d, f0) {
   if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
   var t0 = A.ctx.currentTime + d;
 
   var o = A.ctx.createOscillator();
@@ -1095,6 +1139,7 @@ function sndYip() { yip(0, 560 + rand(-30, 30)); yip(0.17, 620 + rand(-30, 30));
  */
 function murmur(d, f0) {
   if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
   var t0 = A.ctx.currentTime + d, D = 0.09;
 
   var o = A.ctx.createOscillator();
@@ -1115,6 +1160,40 @@ function murmur(d, f0) {
 }
 function sndChatter() { murmur(0, 190 + rand(-12, 12)); murmur(0.11, 175 + rand(-12, 12));
                         murmur(0.22, 200 + rand(-12, 12)); murmur(0.33, 168 + rand(-12, 12)); }
+/**
+ * An owlet's hoot: two soft round notes, the second lower and longer -
+ * a pure sine with a slow vibrato, no rasp at all.
+ */
+function hoot(d, f0) {
+  if (!A.ctx || A.muted) return;
+  f0 *= voicePitch;
+  var t0 = A.ctx.currentTime + d, D = 0.34;
+
+  var o = A.ctx.createOscillator();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(f0 * 1.08, t0);
+  o.frequency.exponentialRampToValueAtTime(f0, t0 + 0.05);
+  o.frequency.exponentialRampToValueAtTime(f0 * 0.80, t0 + D);
+
+  var lfo = A.ctx.createOscillator();            // the gentle quaver
+  lfo.frequency.value = 7;
+  var lfoG = A.ctx.createGain();
+  lfoG.gain.value = f0 * 0.02;
+  lfo.connect(lfoG); lfoG.connect(o.frequency);
+
+  var g = A.ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.11, t0 + 0.05);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + D);
+
+  o.connect(g); g.connect(A.master);
+  o.start(t0); o.stop(t0 + D + 0.05);
+  lfo.start(t0); lfo.stop(t0 + D + 0.05);
+}
+function sndHoot() { hoot(0, 430); hoot(0.44, 380); }
+
+/* Every voice reads this - the menu choir (A2) tunes the whole cast. */
+var voicePitch = 1;
 
 var VOICES = {
   kitten: { snd: sndMeow,    say: 'Мяу!' },
@@ -1122,7 +1201,8 @@ var VOICES = {
   duck:   { snd: sndQuack,   say: 'Кря-кря!' },
   fox:    { snd: sndYip,     say: 'Тяв!' },
   beaver: { snd: sndChatter, say: 'Тр-тр!' },
-  dog:    { snd: sndBark,    say: 'Гав-гав!' }
+  dog:    { snd: sndBark,    say: 'Гав-гав!' },
+  owlet:  { snd: sndHoot,    say: 'Угу-угу!' }
 };
 
 function setMuted(m) {
@@ -1151,9 +1231,11 @@ var ANIMALS = {
   beaver: { name: 'Бобрёнок', fur: '#a97551', fur2: '#8a5c3d', pale: '#e8cba8',
             inner: '#c99a76', nose: '#3d2a1d', eye: '#2b2118', iris: '#5a3f2a' },
   dog:    { name: 'Собачка', fur: '#f6f2e9', fur2: '#1f1c1a', pale: '#fffdf8',
-            inner: '#e8a88e', nose: '#1a1310', eye: '#1f1a14', iris: '#241d16', tan: '#c98d4e' }
+            inner: '#e8a88e', nose: '#1a1310', eye: '#1f1a14', iris: '#241d16', tan: '#c98d4e' },
+  owlet:  { name: 'Совёнок', fur: '#b08a64', fur2: '#7d5c3e', pale: '#f0e2c4',
+            inner: '#a98a66', nose: '#e8a13d', eye: '#241a12', iris: '#d08a2e' }
 };
-var ORDER = ['kitten', 'bunny', 'duck', 'fox', 'beaver', 'dog'];
+var ORDER = ['kitten', 'bunny', 'duck', 'fox', 'beaver', 'dog'];   // + owlet, once found (8b)
 
 /**
  * Difficulty is one dial, 0 (gentlest) to 100 (hardest). Four named waypoints
@@ -1274,6 +1356,7 @@ var SPRITES = {
   'island-lamp': { rim: 1, lit: 1 }, 'gadget-tv': { rim: 1, lit: 1 },
   'gadget-charger': { rim: 1, lit: 1 },
   'gadget-fan': { rim: 1, lit: 1 },
+  'gadget-iron': { rim: 1, lit: 1 }, 'gadget-garland': { rim: 1, lit: 1 },
   'solar-panel': { rim: 1 }, 'pylon': {}
 };
 
@@ -1528,9 +1611,12 @@ function sprC(name, cx, cy, w, o) {
   spr(name, cx - w / 2, cy - h / 2, w, h, o);
 }
 
+function hasWear(o, w) { return !!(o && o.wear && o.wear.indexOf(w) > -1); }
 /**
  * Draw an animal with its FEET at the local origin, facing right.
- * o = { t, blink, squint, yuck, air }
+ * o = { t, blink, squint, yuck, air, wear }
+ * wear is a space-separated list from the easter eggs: 'cape' | 'shades' |
+ * 'hat-knit' | 'hat-party' - all cosmetic, drawn over/under the body.
  */
 function drawAnimal(g, kind, W, o) {
   var C = ANIMALS[kind];
@@ -1597,6 +1683,15 @@ function drawAnimal(g, kind, W, o) {
     g.quadraticCurveTo(-W * 0.14, -W * 0.14, -W * 0.04, -W * 0.09);
     g.closePath(); g.fill();
     g.restore();
+  } else if (kind === 'owlet') {               // a small fan of tail feathers
+    g.fillStyle = C.fur2;
+    for (var tf = 0; tf < 3; tf++) {
+      g.save();
+      g.translate(-W * 0.30, -W * 0.28);
+      g.rotate(-0.55 + tf * 0.26 + (airborne ? -0.08 : Math.sin(tp * 2.4) * 0.05));
+      fillRR(g, -W * 0.30, -W * 0.05, W * 0.32, W * 0.10, W * 0.05);
+      g.restore();
+    }
   } else {                                     // duckling: a little tail flick
     g.fillStyle = C.fur2;
     g.beginPath();
@@ -1606,8 +1701,28 @@ function drawAnimal(g, kind, W, o) {
     g.closePath(); g.fill();
   }
 
+  /* --- cape (8b: B6 reward) - billows out behind while leaping --- */
+  if (hasWear(o, 'cape')) {
+    var fl = Math.sin(tp * 7 + 0.8) * W * 0.06 - (airborne ? W * 0.05 : 0);
+    g.fillStyle = '#d8402f';
+    g.beginPath();
+    g.moveTo(W * 0.10, -W * 0.56);                   // fastened at the neck
+    g.quadraticCurveTo(-W * 0.55, -W * 0.62 + fl, -W * 0.95, -W * 0.34 + fl * 1.7);
+    g.quadraticCurveTo(-W * 0.72, -W * 0.12 + fl, -W * 0.42, -W * 0.06);
+    g.lineTo(-W * 0.30, -W * 0.40);
+    g.closePath(); g.fill();
+    g.fillStyle = '#a82c20';                         // the shadowed underside
+    g.beginPath();
+    g.moveTo(W * 0.02, -W * 0.50);
+    g.quadraticCurveTo(-W * 0.45, -W * 0.50 + fl, -W * 0.80, -W * 0.30 + fl * 1.5);
+    g.quadraticCurveTo(-W * 0.60, -W * 0.16 + fl, -W * 0.36, -W * 0.10);
+    g.lineTo(-W * 0.26, -W * 0.38);
+    g.closePath(); g.fill();
+  }
+
   /* --- feet --- */
-  g.fillStyle = kind === 'duck' ? '#ff9d3d' : kind === 'dog' ? C.pale : C.fur2;
+  g.fillStyle = kind === 'duck' ? '#ff9d3d' : kind === 'owlet' ? '#e8943a'
+              : kind === 'dog' ? C.pale : C.fur2;
   if (!airborne) {
     fillRR(g, -W * 0.30, -W * 0.02, W * 0.22, W * 0.13, W * 0.06);
     fillRR(g, W * 0.08, -W * 0.02, W * 0.22, W * 0.13, W * 0.06);
@@ -1623,12 +1738,13 @@ function drawAnimal(g, kind, W, o) {
     g.fillStyle = C.fur2;
     fillRR(g, -W * 0.33, -W * 0.52, W * 0.30, W * 0.28, W * 0.11);
   }
-  if (kind === 'duck') {                       // folded wing
+  if (kind === 'duck' || kind === 'owlet') {   // folded wing
     g.fillStyle = C.fur2;
     fillRR(g, -W * 0.30, -W * 0.42, W * 0.20, W * 0.26, W * 0.09);
   }
   if (airborne) {                              // legs tuck up, still on show
-    g.fillStyle = kind === 'duck' ? '#ff9d3d' : kind === 'dog' ? C.pale : C.fur2;
+    g.fillStyle = kind === 'duck' ? '#ff9d3d' : kind === 'owlet' ? '#e8943a'
+                : kind === 'dog' ? C.pale : C.fur2;
     fillRR(g, -W * 0.32, -W * 0.12, W * 0.21, W * 0.13, W * 0.06);
     fillRR(g, W * 0.11, -W * 0.10, W * 0.21, W * 0.13, W * 0.06);
   }
@@ -1710,6 +1826,19 @@ function drawAnimal(g, kind, W, o) {
       g.fill();
       g.restore();
     }
+  } else if (kind === 'owlet') {               // feathered ear tufts
+    for (var es = -1; es <= 1; es += 2) {
+      g.save();
+      g.translate(es * hw * 0.58, headY - hh * 0.82);
+      g.rotate(es * 0.22 + Math.sin(tp * 2.1 + es) * 0.03);
+      g.fillStyle = C.fur2;
+      g.beginPath();
+      g.moveTo(-W * 0.08, W * 0.02);
+      g.lineTo(es * W * 0.10, -W * 0.34);      // the tip sweeps outward
+      g.lineTo(W * 0.10, W * 0.02);
+      g.closePath(); g.fill();
+      g.restore();
+    }
   } else {                                     // duckling tuft
     g.strokeStyle = C.fur2; g.lineWidth = W * 0.06; g.lineCap = 'round';
     g.beginPath();
@@ -1759,7 +1888,19 @@ function drawAnimal(g, kind, W, o) {
 
   /* --- the big eyes --- */
   var ey = headY - hh * 0.06, ex = W * 0.20;
-  var erx = W * (kind === 'dog' ? 0.17 : 0.155), ery = W * (kind === 'dog' ? 0.195 : 0.175);
+  var erx = W * (kind === 'dog' ? 0.17 : kind === 'owlet' ? 0.185 : 0.155);
+  var ery = W * (kind === 'dog' ? 0.195 : kind === 'owlet' ? 0.225 : 0.175);
+  if (kind === 'owlet') {                      // the pale facial disc
+    g.fillStyle = C.pale;
+    ellF(g, -ex, ey, erx * 1.55, ery * 1.42);
+    ellF(g, ex, ey, erx * 1.55, ery * 1.42);
+    g.fillStyle = C.fur;                       // a brow wedge splits the discs
+    g.beginPath();
+    g.moveTo(-W * 0.05, ey - ery * 1.6);
+    g.lineTo(W * 0.05, ey - ery * 1.6);
+    g.lineTo(0, ey + ery * 0.5);
+    g.closePath(); g.fill();
+  }
   if (o.yuck) {
     g.strokeStyle = C.eye; g.lineWidth = W * 0.055; g.lineCap = 'round';
     g.beginPath();
@@ -1780,8 +1921,10 @@ function drawAnimal(g, kind, W, o) {
     ellF(g, -ex, ey, erx, ery * sq);
     ellF(g, ex, ey, erx, ery * sq);
     var lx = look * erx * 0.34;                // where the eyes are pointed
-    var irx = kind === 'dog' ? 0.90 : 0.66, iry = kind === 'dog' ? 0.94 : 0.72;
-    var prx = kind === 'dog' ? 0.62 : 0.40, pry = kind === 'dog' ? 0.72 : 0.48;
+    var irx = kind === 'dog' ? 0.90 : kind === 'owlet' ? 0.78 : 0.66;
+    var iry = kind === 'dog' ? 0.94 : kind === 'owlet' ? 0.86 : 0.72;
+    var prx = kind === 'dog' ? 0.62 : kind === 'owlet' ? 0.46 : 0.40;
+    var pry = kind === 'dog' ? 0.72 : kind === 'owlet' ? 0.56 : 0.48;
     g.fillStyle = C.iris;
     ellF(g, -ex + W * 0.012 + lx, ey + ery * 0.06 * sq, erx * irx, ery * iry * sq);
     ellF(g, ex + W * 0.012 + lx, ey + ery * 0.06 * sq, erx * irx, ery * iry * sq);
@@ -1799,6 +1942,20 @@ function drawAnimal(g, kind, W, o) {
     fillRR(g, -W * 0.15, ey + ery * 0.9, W * 0.30, W * 0.15, W * 0.06);
     g.fillStyle = '#e8862a';
     fillRR(g, -W * 0.15, ey + ery * 0.9 + W * 0.095, W * 0.30, W * 0.055, W * 0.025);
+  } else if (kind === 'owlet') {               // a little hooked beak
+    g.fillStyle = C.nose;
+    g.beginPath();
+    g.moveTo(-W * 0.055, ey + ery * 0.45);
+    g.lineTo(W * 0.055, ey + ery * 0.45);
+    g.quadraticCurveTo(W * 0.02, ey + ery * 1.0, 0, ey + ery * 1.08);
+    g.quadraticCurveTo(-W * 0.02, ey + ery * 1.0, -W * 0.055, ey + ery * 0.45);
+    g.closePath(); g.fill();
+    g.fillStyle = '#c07a24';                   // the shadowed tip
+    g.beginPath();
+    g.moveTo(-W * 0.028, ey + ery * 0.82);
+    g.lineTo(W * 0.028, ey + ery * 0.82);
+    g.lineTo(0, ey + ery * 1.10);
+    g.closePath(); g.fill();
   } else {
     g.fillStyle = C.nose;
     g.beginPath();
@@ -1848,6 +2005,43 @@ function drawAnimal(g, kind, W, o) {
     g.moveTo(hw * 0.62, ey + ery * 0.9); g.lineTo(hw * 1.22, ey + ery * 0.55);
     g.moveTo(hw * 0.62, ey + ery * 1.2); g.lineTo(hw * 1.20, ey + ery * 1.4);
     g.stroke();
+  }
+
+  /* --- wear: the easter-egg rewards, sitting on the face and crown --- */
+  if (hasWear(o, 'shades')) {
+    g.fillStyle = '#232a33';
+    fillRR(g, -ex - erx * 1.15, ey - ery * 0.85, erx * 2.3, ery * 1.7, W * 0.05);
+    fillRR(g, ex - erx * 1.15, ey - ery * 0.85, erx * 2.3, ery * 1.7, W * 0.05);
+    g.strokeStyle = '#232a33'; g.lineWidth = W * 0.05; g.lineCap = 'round';
+    g.beginPath();
+    g.moveTo(-ex + erx * 0.9, ey - ery * 0.30);            // the bridge
+    g.lineTo(ex - erx * 0.9, ey - ery * 0.30);
+    g.moveTo(-ex - erx * 1.05, ey - ery * 0.20);           // arm to the ear
+    g.lineTo(-hw * 0.95, ey - ery * 0.44);
+    g.stroke();
+    g.fillStyle = 'rgba(255,255,255,0.35)';                // glints
+    fillRR(g, -ex - erx * 0.60, ey - ery * 0.55, erx * 0.5, ery * 0.3, W * 0.02);
+    fillRR(g, ex - erx * 0.60, ey - ery * 0.55, erx * 0.5, ery * 0.3, W * 0.02);
+  }
+  if (hasWear(o, 'hat-knit')) {
+    var hy2 = headY - hh * 0.70;
+    g.fillStyle = '#d8402f';                               // the cap's dome
+    g.beginPath();
+    g.moveTo(-hw * 0.94, hy2);
+    g.quadraticCurveTo(-hw * 0.92, hy2 - W * 0.30, 0, hy2 - W * 0.34);
+    g.quadraticCurveTo(hw * 0.92, hy2 - W * 0.30, hw * 0.94, hy2);
+    g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(120,30,20,0.35)';                // knit ribs
+    g.lineWidth = Math.max(1, W * 0.018);
+    for (var kr = -2; kr <= 2; kr++) {
+      g.beginPath();
+      g.moveTo(kr * hw * 0.30, hy2 - W * 0.28 + Math.abs(kr) * W * 0.05);
+      g.lineTo(kr * hw * 0.33, hy2 - W * 0.02);
+      g.stroke();
+    }
+    g.fillStyle = '#fff1d8';                               // folded brim
+    fillRR(g, -hw * 0.98, hy2 - W * 0.03, hw * 1.96, W * 0.14, W * 0.06);
+    ellF(g, 0, hy2 - W * 0.36, W * 0.10, W * 0.10);        // pom-pom
   }
 }
 
@@ -1905,7 +2099,8 @@ var hop = {
   onStone: null, offset: 0, blinkT: 2.5, blink: 0, alpha: 1,
   act: null, actLeft: 0, actDur: 1, actT: 3,      // idle micro-performances
   tailPhase: 0, speak: 0,
-  sleep: 0, zT: 0                                 // 8b: sleep mode
+  sleep: 0, zT: 0,                                // 8b: sleep mode
+  cape: false                                     // 8b: B6's reward, per landing
 };
 
 function layout() {
@@ -2184,9 +2379,14 @@ function spawnStone() {
 
   // Something left running in broad daylight: landing here switches it off.
   // Kept off crumblers (they sink away); a power strip always powers one.
-  if (type !== 'crumble' && (s.strip || Math.random() < GADGET_CHANCE)) {
+  // 8b: the iron is a rare thing - about one island in forty, never early;
+  // and in the New Year week one lamp in five is a little garland.
+  var ironHere = s.id >= 8 && Math.random() < 0.025;
+  if (type !== 'crumble' && (s.strip || ironHere || Math.random() < GADGET_CHANCE)) {
     var side = s.strip ? 1 : (Math.random() < 0.5 ? -1 : 1);
-    s.gadget = { kind: pick(GADGET_KINDS), dx: side * rand(0.24, 0.30), on: true,
+    var gk = ironHere ? 'iron' : pick(GADGET_KINDS);
+    if (!ironHere && gk === 'lamp' && isNewYear() && Math.random() < 0.2) gk = 'garland';
+    s.gadget = { kind: gk, dx: side * rand(0.24, 0.30), on: true,
                  glow: 1, wait: 0, ph: rand(0, TAU), speed: 1, spin: 0,
                  wake: introT > 0 ? 0 : 1 };   // asleep until the intro wakes it
   }
@@ -2272,7 +2472,7 @@ function speakUp() {
   var v = VOICES[chosen];
   if (!v) return;
   v.snd();
-  popup(hop.x + KW * 0.55, hop.y - KW * 1.75, v.say, '#ffffff');
+  popup(hop.x + KW * 0.55, hop.y - KW * 1.75, idleLine() || v.say, '#ffffff');  // 8b
   hop.speak = 0.45;
   hop.sqz = 0.13; hop.sqzV = 0;
 }
@@ -2376,6 +2576,8 @@ var TIPS = {
   tv:      ['Никто не смотрит? *Выключи телевизор совсем* — пульт оставляет его дремать.'],
   charger: ['Телефон зарядился? *Вынь зарядку из розетки* — иначе она греется зря.'],
   fan:     ['Уходишь — *выключи вентилятор*. Пустому стулу не жарко!'],
+  iron:    ['Утюг горячий, даже когда не гладит. *Выключил — и он сразу остывает!*'],
+  garland: ['Гирлянда красивая, но ей тоже нужен отдых. *Выключай, когда уходишь!*'],
   strip:   ['*Не втыкай много вилок* в один удлинитель — ему тяжело, и он может заискрить.',
             'Уходишь из дома? *Выключи удлинитель кнопкой* — и все приборы уснут разом.',
             'Искрит розетка? *Не трогай её и позови взрослых!*'],
@@ -2416,7 +2618,7 @@ function paintFace(c) {
   g.clearRect(0, 0, cssW, cssH);
   g.save();
   g.translate(cssW * 0.5, cssH * 0.90);
-  animalStamped(g, chosen, cssW * 0.50, { t: 0 });
+  animalStamped(g, chosen, cssW * 0.50, { t: 0, wear: heroWear(true) });   // 8b
   g.restore();
 }
 function showAdvice(face, who, text, tip) {
@@ -2432,6 +2634,21 @@ function syncMore(overlay) {
   var card = overlay.querySelector('.card'), b = overlay.querySelector('.cbody');
   if (!card || !b) return;
   card.classList.toggle('more', b.scrollTop + b.clientHeight < b.scrollHeight - 2);
+}
+/* The menu never scrolls: when the heroes and the difficulty dial need
+   more room than the screen has, the body zooms down just enough to show
+   them all at once. The footer button keeps its full size. */
+var elMenuFit = document.getElementById('menuFit'), FIT_MIN = 0.5;
+function fitMenu() {
+  var b = elMenu.querySelector('.cbody');
+  if (elMenu.classList.contains('hidden')) return;
+  var z = 1;
+  elMenuFit.style.zoom = '';
+  for (var i = 0; i < 8 && z > FIT_MIN && b.scrollHeight > b.clientHeight + 1; i++) {
+    z = Math.max(FIT_MIN, Math.min(z - 0.01, z * b.clientHeight / b.scrollHeight));
+    elMenuFit.style.zoom = z;
+  }
+  syncMore(elMenu);
 }
 /** Pick the line that matches this run's story. */
 function encouragement(isNew) {
@@ -2481,8 +2698,11 @@ function reset() {
   elCleanFill.style.setProperty('--seg',
     ENERGY_GOAL > 24 ? '100%' : (100 / ENERGY_GOAL) + '%');
   won = false; finishSpawned = false; finishCued = false; finishStone = null;
-  eggArmed = false; eggSecret = false; eggT = 0; hop.egg = null;
+  eggArmed = false; eggSecret = false; eggT = 0; hop.egg = null; hop.cape = false;
   sunBoost = 0; winT = 0; cheerT = 0;
+  bullseyes = 0; shadesOn = false;               // 8b: the rewards are per-run
+  firefly.on = false;                            // 8b: the friend comes fresh
+  choirPos = 0;                                  // 8b: the choir waits in the menu
   elOver.classList.remove('win');
 
   var start = makeStone(VW * 0.26, groundY - Math.max(42, VH * 0.075),
@@ -2575,6 +2795,7 @@ function skipIntro() {
 }
 
 function startGame() {
+  nightStop(); night = 0;                              // 8b: play is always day
   var from = cleanShown;                               // the world on screen
   introT = ((typeof INTRO_ON === 'undefined' || INTRO_ON !== false) &&
             from >= 0.3) ? INTRO : 0;
@@ -2611,11 +2832,15 @@ function toMenu() {
   menuWorld();
   elOver.classList.add('hidden');
   elMenu.classList.remove('hidden');
+  buildPicker();                                 // 8b/D1: new wins may show
+  eggsAtMenu();                                  // 8b: day banner, Earth Hour
+  fitMenu();
 }
 /** The card's little parade: this run's gadgets, lit on the left, dark on
    the right - drawn through the same display-resolution sprite cache. */
 var STRIP_SPR = { lamp: 'island-lamp', tv: 'gadget-tv',
-                  charger: 'gadget-charger', fan: 'gadget-fan' };
+                  charger: 'gadget-charger', fan: 'gadget-fan',
+                  iron: 'gadget-iron', garland: 'gadget-garland' };
 function paintOverStrip() {
   var cv = document.getElementById('overStrip');
   var kinds = [];
@@ -2748,6 +2973,7 @@ function switchOff(s) {
   updateHud();
   checkFinishCue();
   if (s.strip && !s.stripCut) s.stripWait = 0.45;  // a beat later its strip goes too
+  if (G.kind === 'iron') eggFound('iron');           // 8b: the rare find
 }
 
 /** The gadget is off, so its power strip clicks off too - worth two more. */
@@ -2764,6 +2990,7 @@ function stripSwitchOff(s) {
 }
 
 function land(s, top) {
+  var wasEgg = hop.egg;                        // 8b: a cape flies in with it
   hop.egg = null;
   // Landing on the power strip is the miss - jump over it, not into it.
   if (s.strip) {
@@ -2808,9 +3035,11 @@ function land(s, top) {
       sndScore();
     }
     updateHud();
+    shadesStreak(acc);                             // 8b: bullseyes earn the shades
     if (s.gadget && s.gadget.on) s.gadget.wait = 0.2;   // a beat later: click, lights out
   } else {
     sndLand();
+    bullseyes = 0;                                 // 8b: a plain landing ends it
   }
 
   // settle onto the stone so the hopper never dangles off the edge
@@ -2854,6 +3083,12 @@ function land(s, top) {
     winT = 0; cheerT = 0;
     sparkle(hop.x, hop.y - KW * 0.8, '#ffd44a');
     winFlash = 1;
+    if (wasEgg) {                                // 8b/B6: the cape's own line
+      hop.cape = true;                           // it stays on for the cheer
+      popup(hop.x, hop.y - KW * 3.1, 'СУПЕР-ЗВЕРЁК!', '#ffd44a', 2.4);
+      sparkle(hop.x, hop.y - KW * 2.2, '#ff8fb0');
+      eggFound('cape');
+    }
     sndFanfare();
   }
 }
@@ -2933,7 +3168,17 @@ var EGGS = [
   { id: 'sleep', hint: 'Если *долго-долго не прыгать*, я могу задремать…' },
   { id: 'master', hint: 'Выключи за один забег *лампу, телевизор, зарядку и вентилятор* — получишь медаль!' },
   { id: 'diver', hint: 'Упадёшь с самого первого прыжка *три раза подряд* — узнаешь секрет. Бульк!' },
-  { id: 'bedtime', hint: null }
+  { id: 'bedtime', hint: null },
+  { id: 'earth-hour', hint: 'Погладь *солнышко в меню три раза* — увидишь, что прячет день.' },
+  { id: 'choir', hint: 'Нажми зверят в меню *слева направо, по порядку* — они споют!' },
+  { id: 'shades', hint: 'Попади *в самый центр островка* несколько раз подряд — будет круто!' },
+  { id: 'firefly', hint: 'Собери *пять искорок* за один забег — прилетит друг.' },
+  { id: 'cape', hint: 'Супер-зверьку положен плащ — *держи прыжок десять секунд*!' },
+  { id: 'iron', hint: 'Говорят, на островках кто-то забыл *утюг*. Найдёшь — выключи!' },
+  { id: 'earth-hour-real', hint: 'Раз в год весь мир выключает свет на час. *Зайди в игру в этот час*!' },
+  { id: 'energy-day', hint: null },
+  { id: 'new-year', hint: null },
+  { id: 'owlet', hint: '*Победи каждым зверьком* — кто-то новый прилетит в меню.' }
 ];
 var eggsFound = {};
 function loadEggs() {
@@ -3012,7 +3257,7 @@ function pickSay(btn, text) {
   n.textContent = text;
   n.classList.add('say');
   n.sayT = setTimeout(function () {
-    n.textContent = ANIMALS[btn.dataset.kind].name;
+    n.textContent = ANIMALS[btn.dataset.kind] ? ANIMALS[btn.dataset.kind].name : '???';
     n.classList.remove('say');
   }, 1600);
 }
@@ -3084,7 +3329,8 @@ var elMedal = document.getElementById('medal');
 var TIP_MASTER = '*Лампа, телевизор, зарядка и вентилятор* — всё выключено! Дома делай так же.';
 function masterOfSwitches() {
   var need = ['lamp', 'tv', 'charger', 'fan'];
-  for (var i = 0; i < need.length; i++) if (!offByKind[need[i]]) return false;
+  for (var i = 0; i < need.length; i++)
+    if (!offByKind[need[i]] && !(need[i] === 'lamp' && offByKind.garland)) return false;
   return LVL.calm || stripsOff > 0;
 }
 /* Date and time eggs read the clock through here, so a test can set it. */
@@ -3103,6 +3349,14 @@ function isLate() { var h = clockNow().getHours(); return h >= 21 || h < 6; }
 var diverRuns = 0;
 /** Game-over eggs dress the card here, after it has been filled in. */
 function eggsAtGameOver() {
+  /* 8b/D1: a real win (never the secret leap) marks this hero a champion */
+  if (won && !eggSecret) {
+    winsSet[chosen] = true;
+    save(LS_WINS, JSON.stringify(winsSet));
+    owletCheck();
+  }
+  if (won && isNewYear())                          // 8b/C3: the seasonal line
+    elEcoMsg.textContent = 'С Новым годом! Гирлянду тоже выключаем, когда уходим.';
   var master = masterOfSwitches();
   elMedal.classList.toggle('hidden', !master);
   if (master) {
@@ -3120,6 +3374,286 @@ function eggsAtGameOver() {
     setTipText(elTipMsg, TIP_BEDTIME);
     eggFound('bedtime');
   }
+}
+
+/* --------------------------------------------------------------------
+   Phase 2-3. The rest of the catalogue: same rules - cosmetic only,
+   quiet by default, and every date check goes through clockNow().
+   -------------------------------------------------------------------- */
+
+/* Shared pieces: what the hero wears right now (a space-separated list
+   drawAnimal reads), and the calendar helpers all the date eggs share. */
+function heroWear(inPlay) {
+  var w = isNewYear() ? 'hat-knit ' : '';
+  if (inPlay) {
+    if (hop.egg || hop.cape) w += 'cape ';
+    if (shadesOn) w += 'shades ';
+  }
+  return w;
+}
+function isNewYear() {
+  var n = clockNow(), m = n.getMonth(), d = n.getDate();
+  return (m === 11 && d >= 25) || (m === 0 && d <= 10);
+}
+/* 11 ноября - Международный день энергосбережения. */
+function isEnergyDay() {
+  var n = clockNow();
+  return n.getMonth() === 10 && n.getDate() === 11;
+}
+/* The real Earth Hour: the last Saturday of March, 20:30-21:30 local. */
+function earthHourReal() {
+  var n = clockNow();
+  if (n.getMonth() !== 2) return false;
+  var lastSat = 31 - ((new Date(n.getFullYear(), 2, 31).getDay() + 1) % 7);
+  if (n.getDate() !== lastSat) return false;
+  var mins = n.getHours() * 60 + n.getMinutes();
+  return mins >= 20 * 60 + 30 && mins < 21 * 60 + 30;
+}
+
+/* ---- B2 «Крутые очки»: a run of bullseye landings earns sunglasses.
+   The streak counts centre hits on islands not visited yet; any other
+   landing breaks it. The two gentlest roads need one less - they are
+   for little ones. */
+var bullseyes = 0, shadesOn = false;
+function shadesNeed() { return diffValue < 50 ? 3 : 4; }  // Суперпростой и Простой
+function sndShades() {
+  tone('sine', 480, 1500, 0.30, 0.13, 0.02);       // a slide whistle up
+  tone('sine', 1500, 1900, 0.16, 0.10, 0.28);
+}
+function shadesStreak(acc) {
+  if (acc > 0.72) {
+    bullseyes++;
+    if (!shadesOn && bullseyes >= shadesNeed()) {
+      shadesOn = true;
+      popup(hop.x, hop.y - KW * 2.4, 'КРУТО!', '#ffd44a', LABEL_DUR);
+      sndShades();
+      eggFound('shades');
+    }
+  } else bullseyes = 0;
+}
+
+/* ---- B3 «Светлячок»: the fifth spark of a run wakes a little friend.
+   It drifts along behind the hero and, on the meadow, flies to school. */
+var firefly = { on: false, x: 0, y: 0, ph: 0 };
+function fireflyWake() {
+  firefly.on = true;
+  firefly.x = hop.x; firefly.y = hop.y - KW;
+  popup(hop.x, hop.y - KW * 2.0, 'Свет без розетки!', '#ffe98a');
+  eggFound('firefly');
+}
+function updateFirefly(dt) {
+  if (!firefly.on) return;
+  firefly.ph += dt;
+  var tx, ty;
+  if (won && finishStone) {                        // it knows where it lives
+    tx = finishStone.x + finishStone.w * 0.12;
+    ty = stoneTop(finishStone) - finishStone.w * 0.5;
+  } else {
+    tx = hop.x - KW * 1.15;
+    ty = hop.y - KW * (1.05 + Math.sin(firefly.ph * 2.3) * 0.22);
+  }
+  var k = Math.min(1, dt * 3.2);
+  firefly.x += (tx - firefly.x) * k;
+  firefly.y += (ty - firefly.y) * k;
+}
+function drawFirefly() {
+  if (!firefly.on) return;
+  var fx = firefly.x - camX, fy = firefly.y;
+  var blink = 0.45 + 0.55 * Math.max(0, Math.sin(firefly.ph * 2.6));
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';        // the glow additive, like light
+  var r = KW * (0.20 + 0.30 * blink);
+  var gg = ctx.createRadialGradient(fx, fy, 0, fx, fy, r * 3);
+  gg.addColorStop(0, 'rgba(255,236,140,' + (0.6 * blink) + ')');
+  gg.addColorStop(1, 'rgba(255,236,140,0)');
+  ctx.fillStyle = gg;
+  ellF(ctx, fx, fy, r * 3, r * 3);
+  ctx.restore();
+  ctx.fillStyle = '#3d4a3a';
+  ellF(ctx, fx, fy, KW * 0.075, KW * 0.11);          // the little body
+  var wfl = Math.sin(firefly.ph * 30) * KW * 0.05;
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';          // beating wings
+  ellF(ctx, fx - KW * 0.07, fy - KW * 0.10 + wfl, KW * 0.085, KW * 0.045);
+  ellF(ctx, fx + KW * 0.07, fy - KW * 0.10 - wfl, KW * 0.085, KW * 0.045);
+}
+
+/* ---- A2 «Хор зверят»: the picker portraits tapped left to right inside
+   five seconds sing up a scale, then all together. Each voice is pitched
+   through the shared voicePitch multiplier, like notes on a ladder. ---- */
+var choirPos = 0, choirT0 = 0;
+var SCALE = [1, 9 / 8, 5 / 4, 4 / 3, 3 / 2, 5 / 3, 2];  // do re mi fa sol la ti
+function choirTap(kind, btn) {
+  var i = ORDER.indexOf(kind), now = performance.now();
+  if (now - choirT0 > 5000) choirPos = 0;              // too slow - start over
+  if (i === choirPos) {
+    if (choirPos === 0) choirT0 = now;
+    voicePitch = SCALE[i]; VOICES[kind].snd(); voicePitch = 1;
+    pickSay(btn, '♪');
+    if (++choirPos >= ORDER.length) choirSing();
+    return true;
+  }
+  choirPos = 0;
+  if (i === 0) {                                       // tapping the first
+    choirPos = 1; choirT0 = now;                       // starts the count again
+    voicePitch = SCALE[0]; VOICES[kind].snd(); voicePitch = 1;
+    pickSay(btn, '♪');
+  }
+  return false;
+}
+function choirSing() {
+  eggFound('choir');
+  var step = 260;
+  for (var i = 0; i < ORDER.length; i++) {             // up the scale, one by one
+    (function (k, p, d) {
+      setTimeout(function () {
+        if (mode !== 'menu') return;
+        voicePitch = p; VOICES[k].snd(); voicePitch = 1;
+      }, d);
+    })(ORDER[i], SCALE[i], i * step);
+  }
+  setTimeout(function () {                             // and now, all together
+    if (mode !== 'menu') return;
+    if (A.ctx && A.master) A.master.gain.value = 0.5 * 0.55;   // duck the chorus
+    for (var i = 0; i < ORDER.length; i++) VOICES[ORDER[i]].snd();
+    setTimeout(function () { setMuted(A.muted); }, 1000);      // restore the level
+  }, ORDER.length * step + 80);
+  elMenu.classList.add('choir');
+  setTimeout(function () { elMenu.classList.remove('choir'); }, 3200);
+}
+
+/* ---- A4 «Час Земли» + C1: the menu's secret night. Tap the sun (or its
+   little stand-in on the card) three times and dusk falls; the world's
+   lights wake, then go out one by one, and the stars come out. On the
+   real Earth Hour the menu opens like this by itself. A tap, or twelve
+   seconds, brings the morning back. ---- */
+var night = 0, nightTarget = 0, nightSeq = 0, nightT = 0, nightAuto = false;
+var nightLine = '';
+var sunTaps = 0, sunTapT = 0;
+/* The card's own little sun, for screens where the sky's one is covered. */
+var elSunBtn = document.getElementById('sunBtn');
+if (elSunBtn) elSunBtn.addEventListener('click', function () { audioInit(); sunTap(); });
+var NIGHT = {
+  skyTop: '#0d1526', skyMid: '#1c2b48', skyLow: '#3a4a66', horizon: '#56607e',
+  sun: '#e8e4d0', cloud: '#31405e', cloudSh: '#222e46', cloudHi: '#445574',
+  ridge: '#243049', far: '#2d3b54', near: '#35435c', city: '#2b3850',
+  sludgeHi: '#30405a', sludgeMid: '#273650', sludgeLo: '#1b2740',
+  foam: '#48587a', waveHi: '#3d4e6e',
+  rock: '#494f5f', rockEdge: '#383e4e', moss: '#46594e', mossHi: '#587062',
+  rim: '#0a0f1e'
+};
+var STARS = null;
+function sunTap() {
+  if (mode !== 'menu') return;
+  if (nightSeq) { if (nightT > 0.6) nightStop(); return; }
+  var now = performance.now();
+  if (now - sunTapT > 1800) sunTaps = 0;
+  sunTapT = now;
+  if (++sunTaps >= 3) { sunTaps = 0; nightGo(false); }
+}
+function nightGo(auto) {
+  nightSeq = 1; nightT = 0; nightTarget = 1; nightAuto = !!auto;
+  nightLine = auto ? 'Сегодня Час Земли!'
+                   : 'Выключили свет — и стало видно звёзды!';
+  /* the lights' cue sheet: on at dusk, then off in a wave, left to right */
+  var ls = factories.concat(shore).sort(function (a, b) { return a.x - b.x; });
+  for (var i = 0; i < ls.length; i++) ls[i].nightOffAt = 2.2 + i * 0.16;
+  eggFound(auto ? 'earth-hour-real' : 'earth-hour');
+}
+function nightStop() { nightSeq = 0; nightTarget = 0; nightAuto = false; }
+/* Stars twinkle in while a crescent moon rises opposite where the sun was. */
+function drawNightSky() {
+  if (!STARS) {
+    STARS = [];
+    for (var i = 0; i < 90; i++)
+      STARS.push({ x: Math.random(), y: Math.random() * 0.52,
+                   r: 0.7 + Math.random() * 1.5,
+                   sp: 0.5 + Math.random() * 2.2, ph: Math.random() * TAU });
+  }
+  for (var i = 0; i < STARS.length; i++) {
+    var st = STARS[i], tw = 0.55 + 0.45 * Math.sin(T * st.sp + st.ph);
+    ctx.fillStyle = 'rgba(232,242,255,' + (night * tw * 0.9) + ')';
+    ctx.beginPath();
+    ctx.arc(st.x * VW, st.y * VH, st.r, 0, TAU);
+    ctx.fill();
+  }
+  var mx = VW * 0.16, my = VH * (0.30 - night * 0.18), mr = VH * 0.042;
+  ctx.globalAlpha = night;
+  ctx.fillStyle = '#f2eed8';
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, TAU); ctx.fill();
+  ctx.fillStyle = P.skyTop;                          // the bite of the crescent
+  ctx.beginPath(); ctx.arc(mx - mr * 0.45, my - mr * 0.18, mr * 0.82, 0, TAU); ctx.fill();
+  ctx.globalAlpha = 1;
+  if (nightSeq && nightLine) {
+    var la = clamp((night - 0.45) * 2.4, 0, 1);
+    if (la > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = la;
+      signFont(nightLine, VH * 0.034, VW * 0.86);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = 'rgba(10,16,30,0.9)'; ctx.shadowBlur = 10;
+      ctx.fillStyle = '#e8f2ff';
+      ctx.fillText(nightLine, VW * 0.5, VH * 0.10);
+      ctx.restore();
+    }
+  }
+}
+
+/* ---- D1 «Совёнок»: a seventh hero who only appears to champions.
+   Winning once with each of the six adds him to the picker; from three
+   wins on, a locked «?» slot hints that someone else is coming. Wins are
+   remembered apart from the eggs, so losing the file costs only him. */
+var LS_WINS = 'cleanHop.wins.v1';
+var winsSet = {};
+function loadWins() {
+  winsSet = {};
+  try {
+    var w = JSON.parse(localStorage.getItem(LS_WINS) || '{}');
+    for (var k in w) if (ANIMALS[k]) winsSet[k] = true;
+  } catch (e) {}
+}
+function winsCount() {
+  var n = 0;
+  for (var i = 0; i < BASE_ORDER.length; i++) if (winsSet[BASE_ORDER[i]]) n++;
+  return n;
+}
+var BASE_ORDER = ORDER.slice();
+function owletIn() { return ORDER.indexOf('owlet') > -1; }
+/* Unlocks the owlet the moment the set is complete. Runs at the top of
+   buildPicker too, so the picker's shape always matches the record. */
+function owletCheck() {
+  if (!owletIn() && winsCount() >= BASE_ORDER.length) {
+    ORDER.push('owlet');
+    eggFound('owlet');
+    return true;
+  }
+  return false;
+}
+loadWins();
+
+/* ---- C2 + C3 hooks that run each time the menu opens: the day banner,
+   the real Earth Hour's automatic night, and the New Year hello. ---- */
+var elDayBanner = document.getElementById('dayBanner');
+function eggsAtMenu() {
+  if (isEnergyDay()) {
+    elDayBanner.textContent = '11 ноября — День энергосбережения!';
+    elDayBanner.classList.remove('hidden');
+    eggFound('energy-day');
+  } else elDayBanner.classList.add('hidden');
+  if (earthHourReal() && !nightSeq) nightGo(true);
+  if (isNewYear()) eggFound('new-year');
+}
+
+/* The hero's idle line, bent by the eggs: a greeting on the day itself,
+   and the owlet says the quiet thing it knows. Returns null = use v.say. */
+var dayGreet = '';
+function idleLine() {
+  if (isEnergyDay() && dayGreet !== clockNow().toDateString()) {
+    dayGreet = clockNow().toDateString();
+    return 'С Днём энергосбережения!';
+  }
+  if (chosen === 'owlet' && Math.random() < 0.5)
+    return 'Совёнок видит в темноте — ему лампа не нужна!';
+  return null;
 }
 
 /* ==========================================================================
@@ -3150,7 +3684,13 @@ function cancelPress() {
 
 canvas.addEventListener('pointerdown', function (e) {
   e.preventDefault();
-  if (mode === 'menu') return;                 // the picker owns the start screen
+  if (mode === 'menu') {                          // 8b: the secret sun lives here
+    if (nightSeq) { if (nightT > 0.6) nightStop(); return; }
+    var dx = e.clientX - VW * 0.82, dy = e.clientY - VH * 0.14;
+    var rr = Math.max(26, VW * 0.045) * 2.6;      // generous: little fingers
+    if (dx * dx + dy * dy < rr * rr) sunTap();
+    return;
+  }
   press();
 }, { passive: false });
 window.addEventListener('pointerup', function () { release(); });
@@ -3210,6 +3750,7 @@ window.addEventListener('orientationchange', function () { setTimeout(layout, 12
 /* ---- character picker ---- */
 var portraits = [];
 function buildPicker() {
+  owletCheck();                                  // 8b/D1: the set may be complete
   elPicker.innerHTML = '';
   portraits = [];
   ORDER.forEach(function (kind) {
@@ -3227,11 +3768,50 @@ function buildPicker() {
     b.addEventListener('click', function () {
       audioInit(); setChosen(kind); sndScore();
       tickle(kind, b);                           // 8b: five quick taps tickle
+      choirTap(kind, b);                         // 8b: left-to-right choir
     });
     elPicker.appendChild(b);
     portraits.push({ kind: kind, canvas: c, btn: b });
   });
+  /* 8b/D1: once the search is on, a locked slot shows someone is hiding */
+  if (!owletIn() && winsCount() >= 3) {
+    var lb = document.createElement('button');
+    lb.className = 'pick locked';
+    lb.type = 'button';
+    lb.setAttribute('role', 'radio');
+    lb.setAttribute('aria-checked', 'false');
+    lb.setAttribute('aria-disabled', 'true');
+    lb.setAttribute('aria-label', 'Секретный герой — победи каждым зверьком');
+    lb.title = 'Победи каждым зверьком — и кто-то новый прилетит в меню!';
+    lb.addEventListener('click', function () {
+      audioInit();
+      pickSay(lb, 'Победи всех!');
+      elHowto.textContent = 'Победи каждым зверьком — и кто-то новый прилетит в меню!';
+      clearTimeout(howtoT);
+      howtoT = setTimeout(function () { elHowto.textContent = HOWTO; }, 2600);
+    });
+    var lc = document.createElement('canvas');
+    var ln = document.createElement('span');
+    ln.className = 'nm';
+    ln.textContent = '???';
+    lb.appendChild(lc); lb.appendChild(ln);
+    elPicker.appendChild(lb);
+    paintLocked(lc);
+  }
   paintPortraits();
+}
+/* The locked slot's silhouette - the owlet's shape, without giving it away. */
+function paintLocked(c) {
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var cssW = c.clientWidth || 52, cssH = c.clientHeight || 52;
+  c.width = Math.round(cssW * dpr); c.height = Math.round(cssH * dpr);
+  var g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, cssW, cssH);
+  g.save();
+  g.translate(cssW * 0.5, cssH * 0.90);
+  animalStamped(g, 'owlet', cssW * 0.50, { t: 0, sil: true });
+  g.restore();
 }
 /* ---- difficulty dial ---- */
 function buildDifficulty() {
@@ -3288,9 +3868,11 @@ function paintPortraits() {
     g.clearRect(0, 0, cssW, cssH);
     g.save();
     g.translate(cssW * 0.5, cssH * 0.90);
-    animalStamped(g, portraits[i].kind, cssW * 0.50, { t: 0 });
+    animalStamped(g, portraits[i].kind, cssW * 0.50, { t: 0, wear: heroWear(false) });
     g.restore();
   }
+  var lc = elPicker.querySelector('.pick.locked canvas');
+  if (lc) paintLocked(lc);                       // the silhouette too
 }
 
 /* ==========================================================================
@@ -3333,9 +3915,21 @@ function update(dt) {
   cleanShown += (clean - cleanShown) * (1 - Math.exp(-cEase * dt));
   if (won) sunBoost = Math.min(1, sunBoost + dt * 0.75);
 
+  /* 8b: the menu's secret night - dusk eases in and out, and the sequence
+     ends itself after twelve seconds (a tap ends it sooner). */
+  var nRate = REDUCED ? 8 : (nightTarget > night ? 0.9 : 1.3);
+  if (nightTarget > night) night = Math.min(nightTarget, night + dt * nRate);
+  else if (nightTarget < night) night = Math.max(nightTarget, night - dt * nRate);
+  if (nightSeq) {
+    nightT += dt;
+    if (!nightAuto && nightT > 12) nightStop();
+  }
+  updateFirefly(dt);                                 // 8b: the little friend drifts
+
   for (var i = 0; i < clouds.length; i++) clouds[i].x -= clouds[i].spd * dt;
   for (var fi = 0; fi < factories.length; fi++) {            // lights out, one by one
     var fa = factories[fi], want = clean >= fa.offAt ? 0 : 1;
+    if (nightSeq) want = (nightT > 0.9 && nightT < (fa.nightOffAt || 0)) ? 1 : 0;
     if (tIntro >= 0) {                                 // the intro's cascade
       if (tIntro < fa.onAt) want = -1;                 // dark until its cue
       else if (!fa.ignited) { fa.ignited = 1; fa.onT = REDUCED ? 0 : 0.2; }
@@ -3358,11 +3952,13 @@ function update(dt) {
         var wv = want < 0 ? 0 : want;
         var rate = (want === 0 && fa.blinked) ? 2.5 : 6;
         fa.lightOn += (wv - fa.lightOn) * Math.min(1, dt * rate);
+        if (want === 1) fa.blinked = 0;              // lit again: the blink re-arms
       }
     }
   }
   for (var si = 0; si < shore.length; si++) {                // street lamps the same
     var so = shore[si], wantL = clean >= so.offAt ? 0 : 1;
+    if (nightSeq) wantL = (nightT > 0.9 && nightT < (so.nightOffAt || 0)) ? 1 : 0;
     if (tIntro >= 0) {
       if (tIntro < so.onAt) wantL = -1;
       else if (!so.ignited) { so.ignited = 1; so.onT = REDUCED ? 0 : 0.2; }
@@ -3381,6 +3977,7 @@ function update(dt) {
         if (so.blinkT <= 0) so.lightOn = 0;
       } else {
         so.lightOn += ((wantL < 0 ? 0 : wantL) - so.lightOn) * Math.min(1, dt * 6);
+        if (wantL === 1) so.blinked = 0;             // lit again: the blink re-arms
       }
     }
   }
@@ -3488,6 +4085,7 @@ function update(dt) {
         if (dx * dx + dy * dy < (o.r + KW * 0.42) * (o.r + KW * 0.42)) {
           o.taken = true;
           leaves++;
+          if (leaves === 5 && !firefly.on) fireflyWake();   // 8b: a friend wakes
           score += 3;
           popup(o.x, o.y - 8, 'ИСКОРКА +3', '#ffc93c');
           flyScore(o.x, o.y, '+3', '#ffc93c');
@@ -3647,6 +4245,9 @@ function palette() {
   P.day      = lerp(1, 0.5, c);                  // lights dim in full sun
   P.rim      = mix('#2b2a38', '#1f3b3a', c);
   P.shadow   = colA(mix('#1e1c28', '#14323c', c), lerp(0.35, 0.25, c));
+  if (night > 0.01) {                            // 8b: the menu's secret night
+    for (var nk in NIGHT) P[nk] = mix(P[nk], NIGHT[nk], night);
+  }
   if (P.rim !== cssRim) {                        // HUD borders track the palette
     cssRim = P.rim;
     document.documentElement.style.setProperty('--rim', colA(P.rim, 0.5));
@@ -3674,11 +4275,12 @@ function drawSky() {
   ctx.fillStyle = hg;
   ctx.fillRect(0, groundY - VH * 0.22, VW, VH * 0.22 + 1);
 
-  var sx = VW * 0.82, sy = VH * 0.14;
+  var sx = VW * 0.82, sy = VH * 0.14 + night * VH * 0.34;   // 8b: it can set
   var sr = Math.max(26, VW * 0.045) * (1 + 0.38 * sunBoost);
   var reach = 3.2 + 1.1 * sunBoost;
 
-  ctx.globalAlpha = clamp(0.35 + 0.4 * cleanShown + 0.28 * sunBoost, 0, 1);
+  ctx.globalAlpha = clamp(0.35 + 0.4 * cleanShown + 0.28 * sunBoost, 0, 1)
+                    * (1 - night * 0.92);
   var halo = ctx.createRadialGradient(sx, sy, sr * 0.6, sx, sy, sr * reach);
   halo.addColorStop(0, 'rgba(255,240,190,0.6)');
   halo.addColorStop(1, 'rgba(255,240,190,0)');
@@ -3690,7 +4292,7 @@ function drawSky() {
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(T * 0.16);
-    ctx.globalAlpha = 0.20 * sunBoost;
+    ctx.globalAlpha = 0.20 * sunBoost * (1 - night);
     ctx.fillStyle = '#fff0b4';
     for (var ry = 0; ry < 12; ry++) {
       ctx.rotate(TAU / 12);
@@ -3709,8 +4311,12 @@ function drawSky() {
   disc.addColorStop(0, '#fffdf0');                 // hot centre, soft edge
   disc.addColorStop(0.6, sCol);
   disc.addColorStop(1, colA(sCol, 0.8));
+  ctx.globalAlpha = 1 - night * 0.92;              // it slips below the skyline
   ctx.fillStyle = disc;
   ellF(ctx, sx, sy, sr, sr);
+  ctx.globalAlpha = 1;
+
+  if (night > 0.02) drawNightSky();                // 8b: stars, moon, the line
 }
 
 function drawClouds() {
@@ -4073,15 +4679,23 @@ function drawGodRays() {
 function drawMotes() {
   var span = VW * 2;
   /* the same pool reads as falling grey ash while dirty, rising warm
-     pollen once clean */
+     pollen once clean - or, in the New Year week (8b/C3), lazy snow */
   var up = cleanShown > 0.5;
-  ctx.fillStyle = mix('#9a9aa2', '#ffe9a3', cleanShown);
+  var snow = up && isNewYear();
+  ctx.fillStyle = snow ? '#ffffff' : mix('#9a9aa2', '#ffe9a3', cleanShown);
   for (var i = 0; i < motes.length; i++) {
     if (QUALITY < 2 && (i & 1)) continue;          // lean tiers run half the motes
     var m = motes[i];
     var x = m.x - camX * 0.5;
     x = ((x + 100) % span + span) % span - 100;
     if (x < -20 || x > VW + 20) continue;
+    if (snow) {
+      var fy = ((m.y + T * m.rise * 26) % (groundY + 30)) - 10;
+      x += Math.sin(T * m.sp + m.ph * TAU) * 14;      // a lazy sideways sway
+      ctx.globalAlpha = clamp(1 - fy / (groundY + 30), 0.15, 1) * 0.8;
+      ellF(ctx, x, fy, m.s * 1.35, m.s * 1.35);
+      continue;
+    }
     var cyc = ((T * m.rise / (VH * 0.6)) + m.ph) % 1;
     var y = m.y + (up ? -1 : 1) * cyc * VH * 0.6 + Math.sin(T * m.sp + m.ph * TAU) * 9;
     ctx.globalAlpha = Math.sin(cyc * Math.PI) * 0.5;
@@ -4575,6 +5189,8 @@ function drawGadget(s, px, top) {
   if (G.kind === 'lamp') drawLamp(s, G, x, base, h, g);
   else if (G.kind === 'tv') drawTV(G, x, base, h, g);
   else if (G.kind === 'charger') drawCharger(G, x, base, h, g);
+  else if (G.kind === 'iron') drawIron(s, G, x, base, h, g);
+  else if (G.kind === 'garland') drawGarland(G, x, base, h, g);
   else drawFan(G, x, base, h, g);
   ctx.restore();
 
@@ -4655,6 +5271,29 @@ function drawCharger(G, x, base, h, g) {
   ctx.moveTo(cx + out + w * 0.16, cy);
   ctx.quadraticCurveTo(cx + out + w * 0.6, cy + h * 0.3, cx + w * 0.4, base - 1);
   ctx.stroke();
+}
+
+/** 8b/B7: the forgotten iron, parked upright on its heel - hot while on,
+   steaming faintly off the soleplate (its right edge) once off. */
+function drawIron(s, G, x, base, h, g) {
+  var w = h * 44 / 64;
+  sprB('gadget-iron', x, base, w, { lit: g });
+  if (!G.on && G.offT && T - G.offT < 1.1) {          // a wisp of cooling steam
+    var st = T - G.offT;
+    ctx.globalAlpha = (1 - st / 1.1) * 0.55;
+    ctx.fillStyle = '#eef4f6';
+    ellF(ctx, x + w * (0.44 + st * 0.10), base - h * (0.50 + st * 0.35),
+         w * 0.12 * (1 + st), w * 0.085 * (1 + st));
+    ellF(ctx, x + w * (0.40 + st * 0.06), base - h * (0.74 + st * 0.30),
+         w * 0.09 * (1 + st), w * 0.065 * (1 + st));
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** 8b/C3: a string of lights on two poles - the New Year stand-in for a
+   lamp. All the colour lives in the lit layer; off, it is just dark bulbs. */
+function drawGarland(G, x, base, h, g) {
+  sprB('gadget-garland', x, base, h * 56 / 64, { lit: g });
 }
 
 /** A fan spinning in an empty room: blades coast to a stop after the click. */
@@ -5054,6 +5693,11 @@ function animalStamped(g, kind, W, opts) {
   rg.fillStyle = P.rim || '#2b2a38';
   rg.fillRect(0, 0, px, px);
   rg.globalCompositeOperation = 'source-over';
+  if (opts && opts.sil) {                               // the locked "?" hero
+    g.globalAlpha *= 0.8;
+    g.drawImage(_heroR, -CS / 2, -(CS - 4), CS, CS);
+    return;
+  }
   var o = 1.5;
   g.save();
   g.globalAlpha *= 0.6;
@@ -5136,7 +5780,8 @@ function drawHopper() {
     yuck: phase === 'fall',
     tongue: hop.act === 'tongue',
     speak: hop.speak > 0,
-    air: phase === 'air' || phase === 'fall'
+    air: phase === 'air' || phase === 'fall',
+    wear: heroWear(true)                        // 8b: cape mid-leap, shades, hat
   };
 
   /* Reflection in the sludge. Painted mirrored into a scratch canvas, then
@@ -5626,6 +6271,7 @@ function render() {
   drawItems();
   drawMotes();
   drawHopper();               // before the tint, so a sinking hopper goes under it
+  drawFirefly();              // 8b: the friend rides above it
   drawSludgeTint();
   drawSurface();
   drawEffects();
@@ -5718,6 +6364,10 @@ setDifficulty(diffValue);
 layout();
 reset();
 menuWorld();
+eggsAtMenu();                                    // 8b: day banner, Earth Hour
+fitMenu();
+window.addEventListener('resize', fitMenu);
+if (document.fonts) document.fonts.ready.then(fitMenu);   // the real font's lines
 setMuted(A.muted);
 updateHud();
 requestAnimationFrame(frame);

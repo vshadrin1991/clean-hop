@@ -6,7 +6,7 @@ import json, pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SCENARIO = ROOT / 'tools/scenarios/fits.js'
-VIEWPORTS = [(320, 568), (360, 640), (390, 844), (430, 932),
+VIEWPORTS = [(320, 568), (360, 640), (375, 667), (390, 844), (430, 932),
              (568, 320), (640, 360), (844, 390), (932, 430),
              (1280, 600), (1366, 650), (1512, 860), (1920, 1080)]
 
@@ -29,7 +29,8 @@ for w, h in VIEWPORTS:
         all_fails.append('%dx%d: %s' % (w, h, (r.stdout + r.stderr).strip()[-200:]))
         continue
     rows.append(('%dx%d' % (w, h),
-                 '%s (%s)' % (res['menu']['card'], res['menu']['mode']),
+                 '%s (%s, tall %s)' % (res['menu']['card'], res['menu']['mode'],
+                                       res['menu'].get('tall')),
                  str(res['menu']['play']['b']),
                  '%s%% %s' % (res['hud']['pct'], res['hud']['btn']),
                  str(res['over']['again']['b']),

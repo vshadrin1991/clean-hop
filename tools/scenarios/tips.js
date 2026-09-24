@@ -32,7 +32,8 @@ for (let run = 0; run < 6 && tvs < 2; run++) {
     } else if (!(await step())) break;
   }
   // a run can stall in 'play' when only strips or non-tv gadget islands are
-  // left unvisited - land the finish or a crumbler to end it, then restart
+  // left unvisited - land the finish or a crumbler to end it, then restart;
+  // with nothing legal to land on at all, just fall in the water
   if (tvs < 2 && t.mode === 'play') {
     const e = t.stones.find(s => !s.visited && s.type === 'finish')
           || t.stones.find(s => !s.visited && s.type === 'crumble');
@@ -40,6 +41,9 @@ for (let run = 0; run < 6 && tvs < 2; run++) {
       t.hop.x = e.x;
       t.land(e, t.stoneTop(e));
       await new Promise(r => setTimeout(r, 3600));
+    } else {
+      t.fallIn('stall');
+      await new Promise(r => setTimeout(r, 1600));
     }
   }
   if (t.mode === 'over' && tvs < 2) {

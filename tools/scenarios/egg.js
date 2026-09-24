@@ -51,6 +51,9 @@ const reached = await until(() => t.won, 4000);
 out.A.flight = { won: t.won, phase: t.phase, lastFall: t.lastFall };
 if (!reached) fails.push('A: never reached the meadow (' + JSON.stringify(out.A.flight) + ')');
 else if (t.hop.onStone !== f) fails.push('A: won, but not standing on the meadow');
+out.A.cape = t.hop.cape;                                 // 8b/B6: Супер-зверёк
+if (reached && !t.hop.cape) fails.push('A: no cape on the meadow');
+if (!t.eggsFound || !t.eggsFound['cape']) fails.push('A: the cape was not noted');
 await until(() => t.mode === 'over', 6000);
 out.A.title = $('overTitle').textContent;
 out.A.best = $('finalBest').textContent;

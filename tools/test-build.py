@@ -145,7 +145,38 @@ window.__t = {
   get stripsOff() { return __get(function () { return stripsOff; }); },
   set stripsOff(v) { __get(function () { stripsOff = v; }); },
   get idleT() { return __get(function () { return idleT; }); },
-  set idleT(v) { __get(function () { idleT = v; }); }
+  set idleT(v) { __get(function () { idleT = v; }); },
+  /* v9.6/v9.7 probes: the phase 2-3 Easter eggs */
+  get night() { return __get(function () { return night; }); },
+  get nightSeq() { return __get(function () { return nightSeq; }); },
+  get nightLine() { return __get(function () { return nightLine; }); },
+  sunTap: function () { __get(function () { sunTap(); }); },
+  nightStop: function () { __get(function () { nightStop(); }); },
+  earthHourReal: function () { return __get(function () { return earthHourReal(); }); },
+  isNewYear: function () { return __get(function () { return isNewYear(); }); },
+  isEnergyDay: function () { return __get(function () { return isEnergyDay(); }); },
+  eggsAtMenu: function () { __get(function () { return eggsAtMenu(); }); },
+  heroWear: function (p) { return __get(function () { return heroWear(p); }); },
+  get bullseyes() { return __get(function () { return bullseyes; }); },
+  get shadesOn() { return __get(function () { return shadesOn; }); },
+  get firefly() { return __get(function () { return firefly; }); },
+  get ORDER() { return __get(function () { return ORDER; }); },
+  get winsSet() { return __get(function () { return winsSet; }); },
+  set winsSet(v) { __get(function () { winsSet = v; }); },
+  winsCount: function () { return __get(function () { return winsCount(); }); },
+  owletIn: function () { return __get(function () { return owletIn(); }); },
+  buildPicker: function () { __get(function () { buildPicker(); }); },
+  get choirPos() { return __get(function () { return choirPos; }); },
+  get chosen() { return __get(function () { return chosen; }); },
+  speakUp: function (k, o) { __get(function () { speakUp(k, o); }); },
+  makeIron: function (s) { return __get(function () {
+    if (!s) return null;
+    s.gadget = { kind: 'iron', on: true, glow: 1, dx: 0.25, ph: 0,
+                 speed: 1, spin: 0, wait: 0 };
+    return s.gadget; }); },
+  spawnItemOnHero: function () { return __get(function () {
+    var it = { x: hop.x, y: hop.y - KW * 0.62, r: 12, taken: false };
+    items.push(it); return it; }); }
 };
 var INTRO_ON = /[#&]intro/.test(location.hash);
 /* scenarios run at any hour: pin the egg clock to midday so the bedtime tip

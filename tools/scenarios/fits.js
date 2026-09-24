@@ -15,21 +15,39 @@ const coarse = matchMedia('(pointer: coarse)').matches;
 for (let i = 0; i < 60 && !t.spritesReady; i++) await sleep(100);
 await sleep(300);
 
-/* f1 + f2: the menu's button is on screen, big enough, and the body of the
-   card can reach the picker and the dial (either it fits, or it scrolls) */
+/* f1 + f2: the menu's button is on screen, big enough, and the whole card
+   fits with no scrolling - every hero and the difficulty dial in view at
+   once (v9.6: the menu never scrolls) */
 const menuCard = document.querySelector('#menu .card');
 const play = R(document.getElementById('playBtn'));
 out.menu = { card: R(menuCard).h, play };
 if (!inView(play)) fails.push('f1: «Начать игру» outside the screen (bottom ' + play.b + ' of ' + innerHeight + ')');
 if (play.h < 40) fails.push('f1: play button only ' + play.h + 'px tall');
 const body = menuCard.querySelector('.cbody');
-const cardFits = R(menuCard).h <= innerHeight - 32;
-const scrolls = !!body && body.scrollHeight > body.clientHeight;
-const reachable = cardFits || scrolls;
-out.menu.mode = cardFits ? 'fits' : (scrolls ? 'scrolls' : 'clipped');
-if (!reachable) fails.push('f2: the card is taller than the screen and does not scroll');
-if (!inView(R(document.getElementById('diffRange'))) && !scrolls)
-  fails.push('f2: the difficulty slider cannot be reached');
+const menuFits = tag => {
+  const scrolls = body.scrollHeight > body.clientHeight + 1;
+  const dial = R(document.getElementById('diffRange')), b = R(body);
+  if (scrolls) fails.push('f2' + tag + ': the menu scrolls (' + body.scrollHeight + ' in ' + body.clientHeight + ')');
+  if (!inView(dial) || dial.b > b.b + 1)
+    fails.push('f2' + tag + ': the difficulty slider is cut off (bottom ' + dial.b + ', body ends ' + b.b + ')');
+  return scrolls ? 'scrolls' : 'fits';
+};
+out.menu.mode = menuFits('');
+/* the tallest menu there is: the day banner and a third row of heroes
+   (the locked «?» slot / the owlet) */
+const banner = document.getElementById('dayBanner');
+banner.textContent = '11 ноября — День энергосбережения!';
+banner.classList.remove('hidden');
+const extra = document.querySelector('#picker .pick').cloneNode(true);
+extra.classList.add('locked');
+document.getElementById('picker').appendChild(extra);
+dispatchEvent(new Event('resize'));
+await sleep(150);
+out.menu.tall = menuFits(' (banner + 7th hero)');
+extra.remove();
+banner.classList.add('hidden');
+dispatchEvent(new Event('resize'));
+await sleep(100);
 
 /* f3: the control hint matches the input the device has */
 const keys = (document.getElementById('keysMenu') ||
