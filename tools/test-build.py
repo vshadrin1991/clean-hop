@@ -152,6 +152,13 @@ window.__t = {
   get nightLine() { return __get(function () { return nightLine; }); },
   sunTap: function () { __get(function () { sunTap(); }); },
   nightStop: function () { __get(function () { nightStop(); }); },
+  get nightT() { return __get(function () { return nightT; }); },
+  sunPos: function () { return __get(function () { return sunPos(); }); },
+  moonPos: function () { return __get(function () { return moonPos(); }); },
+  get REDUCED() { return __get(function () { return REDUCED; }); },
+  set REDUCED(v) { __get(function () { REDUCED = v; }); },
+  get nightSparks() { return __get(function () { return nightSparks; }); },
+  nightSparkPos: function (p) { return __get(function () { return nightSparkPos(p); }); },
   earthHourReal: function () { return __get(function () { return earthHourReal(); }); },
   isNewYear: function () { return __get(function () { return isNewYear(); }); },
   isEnergyDay: function () { return __get(function () { return isEnergyDay(); }); },
@@ -160,6 +167,13 @@ window.__t = {
   get bullseyes() { return __get(function () { return bullseyes; }); },
   get shadesOn() { return __get(function () { return shadesOn; }); },
   get firefly() { return __get(function () { return firefly; }); },
+  /* firefly-glow.js probes: its light all around it */
+  fireflyWake: function () { __get(function () { fireflyWake(); }); },
+  fireflyAura: function (lit, ph) { return __get(function () { return fireflyAura(lit, ph); }); },
+  spyFirefly: function (on) {
+    var got = __fireflySpy;
+    __fireflySpy = on ? [] : null;
+    return got; },
   get ORDER() { return __get(function () { return ORDER; }); },
   get winsSet() { return __get(function () { return winsSet; }); },
   set winsSet(v) { __get(function () { winsSet = v; }); },
@@ -176,7 +190,13 @@ window.__t = {
     return s.gadget; }); },
   spawnItemOnHero: function () { return __get(function () {
     var it = { x: hop.x, y: hop.y - KW * 0.62, r: 12, taken: false };
-    items.push(it); return it; }); }
+    items.push(it); return it; }); },
+  /* spark-float.js probes: the collectible sparks float up and down */
+  sparkY: function (o) { return __get(function () { return sparkY(o); }); },
+  spySparks: function (on) {
+    var got = __sparkSpy;
+    __sparkSpy = on ? [] : null;
+    return got; }
 };
 var INTRO_ON = /[#&]intro/.test(location.hash);
 /* scenarios run at any hour: pin the egg clock to midday so the bedtime tip
@@ -192,6 +212,28 @@ try {
     __origRender();
     var __d = performance.now() - __t0;
     __renderMs = __renderMs < 0 ? __d : __renderMs * 0.9 + __d * 0.1;
+  };
+} catch (e) {}
+/* spark-float.js: every sun spark drawn while the spy is on. drawSpark is
+   a function binding inside the game's IIFE, so it can be swapped here */
+var __sparkSpy = null;
+try {
+  var __origDrawSpark = drawSpark;
+  drawSpark = function (x, y, r) {
+    if (__sparkSpy) __sparkSpy.push({ x: x, y: y, r: r });
+    return __origDrawSpark.apply(this, arguments);
+  };
+} catch (e) {}
+/* firefly-glow.js: every firefly light drawn while the spy is on, with the
+   body's own place and the flash level at that moment. fireflyLight is a
+   function binding inside the game's IIFE, so it can be swapped here */
+var __fireflySpy = null;
+try {
+  var __origFireflyLight = fireflyLight;
+  fireflyLight = function (x, y, r) {
+    if (__fireflySpy) __fireflySpy.push({ x: x, y: y, r: r, T: T,
+      bx: firefly.x - camX, by: firefly.y, lit: fireflyGlow(firefly.fc) });
+    return __origFireflyLight.apply(this, arguments);
   };
 } catch (e) {}
 /* #fps: a tiny live meter for performance runs */
