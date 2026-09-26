@@ -3650,7 +3650,7 @@ var EGGS = [
   { id: 'swim', hint: 'Когда вода станет чистой, *упасть в неё* совсем не страшно…' },
   { id: 'fireworks', hint: 'Дойди до финиша на уровне *«Сложный»* — будет салют!' },
   { id: 'jubilee', hint: 'Сыграй *десять игр* — в меню будет праздник!' },
-  { id: 'penguin', hint: 'Играй почаще — на *двадцатую игру* приплывёт новый друг!' }
+  { id: 'penguin', hint: 'Дойди до финиша *двадцать раз* — приплывёт новый друг!' }
 ];
 var eggsFound = {};
 function loadEggs() {
@@ -3824,6 +3824,7 @@ var diverRuns = 0;
 function eggsAtGameOver() {
   /* 8b/D1: a real win (never the secret leap) marks this hero a champion */
   if (won && !eggSecret) {
+    finishes++; save(LS_FINISHES, String(finishes));   // v10: toward the penguin
     winsSet[chosen] = true;
     save(LS_WINS, JSON.stringify(winsSet));
     owletCheck();
@@ -3856,8 +3857,8 @@ function eggsAtGameOver() {
     elEcoMsg.textContent = 'Там что, жемчуг? Отпускай, когда колечко на островке!';
     eggFound('diver');
   }
-  if (penguinCheck())                            // v10: the 20th game - the last secret hero
-    elEcoMsg.textContent = 'Это была ' + PENGUIN_RUNS + '-я игра — в меню тебя ждёт Пингвинёнок!';
+  if (penguinCheck())                            // v10: the 20th finish - the last secret hero
+    elEcoMsg.textContent = 'Это был ' + PENGUIN_RUNS + '-й финиш — в меню тебя ждёт Пингвинёнок!';
   if (!bedtimeShown && isLate()) {               // last, so its tip wins
     bedtimeShown = true;
     setTipText(elTipMsg, TIP_BEDTIME);
@@ -4334,17 +4335,21 @@ try {
   jubileeSeen = parseInt(localStorage.getItem(LS_JUB) || '0', 10) || 0;
 } catch (e) {}
 
-/* ---- v10 «Пингвинёнок»: the ninth and last secret hero. Twenty games
-   played - any level, any ending, the same count as «Юбилей» - and a
-   penguin chick swims into the picker. From the 10th a locked «?» counts. ---- */
+/* ---- v10 «Пингвинёнок»: the ninth and last secret hero. Twenty real
+   finishes - any level, any hero, never the secret leap - and a penguin
+   chick swims into the picker. From the 10th a locked «?» counts. A penguin
+   already found (by the old twenty-games rule) stays. ---- */
 var PENGUIN_RUNS = 20, PENGUIN_HINT_AT = 10;
+var LS_FINISHES = 'cleanHop.finishes.v1';
+var finishes = 0;
+try { finishes = parseInt(localStorage.getItem(LS_FINISHES) || '0', 10) || 0; } catch (e) {}
 /* Set once the page's first picker exists: a penguin added after that has
    just arrived (the party); one added by the very first build was here already. */
 var pickerBuilt = false, penguinNew = false;
 function penguinIn() { return ORDER.indexOf('penguin') > -1; }
-/** Adds the penguin once twenty games are played. True when it just joined. */
+/** Adds the penguin once the finish is reached twenty times. True when it just joined. */
 function penguinCheck() {
-  if (!penguinIn() && runsPlayed >= PENGUIN_RUNS) {
+  if (!penguinIn() && (finishes >= PENGUIN_RUNS || eggsFound.penguin)) {
     ORDER.push('penguin');
     penguinNew = pickerBuilt;
     eggFound('penguin');                         // false (no toast) if already noted
@@ -4507,7 +4512,7 @@ var portraits = [];
 function buildPicker() {
   owletCheck();                                  // 8b/D1: the set may be complete
   unicornCheck();                                // v10: every spark on «Средний»+
-  penguinCheck();                                // v10: twenty games played
+  penguinCheck();                                // v10: twenty finishes
   ORDER.sort(function (a, b) { return HERO_RANK.indexOf(a) - HERO_RANK.indexOf(b); });
   elPicker.innerHTML = '';
   portraits = [];
@@ -4539,13 +4544,13 @@ function buildPicker() {
   if (!owletIn() && winsCount() >= 3)
     lockedCard('owlet', '???', 'Секретный герой — победи каждым зверьком',
                'Победи всех!', 'Победи каждым зверьком — и кто-то новый прилетит в меню!');
-  /* v10: halfway to twenty games, the penguin's shadow starts counting */
-  if (!penguinIn() && runsPlayed >= PENGUIN_HINT_AT) {
-    var left = PENGUIN_RUNS - runsPlayed;
-    lockedCard('penguin', runsPlayed + '/' + PENGUIN_RUNS,
-               'Секретный герой — сыграно ' + runsPlayed + ' из ' + PENGUIN_RUNS + ' игр',
+  /* v10: halfway to twenty finishes, the penguin's shadow starts counting */
+  if (!penguinIn() && finishes >= PENGUIN_HINT_AT) {
+    var left = PENGUIN_RUNS - finishes;
+    lockedCard('penguin', finishes + '/' + PENGUIN_RUNS,
+               'Секретный герой — финишей ' + finishes + ' из ' + PENGUIN_RUNS,
                'Осталось ' + left + '!',
-               'Играй дальше: осталось ' + left + ' — и приплывёт новый друг!');
+               'Доходи до финиша: осталось ' + left + ' — и приплывёт новый друг!');
   }
   paintPortraits();
   pickerBuilt = true;                            // v10: later penguins have just arrived
