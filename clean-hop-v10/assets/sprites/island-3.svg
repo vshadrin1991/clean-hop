@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="170" viewBox="0 0 240 170">
+  <defs>
+    <linearGradient id="soil" gradientUnits="userSpaceOnUse" x1="0" y1="22" x2="0" y2="150">
+      <stop offset="0" stop-color="#4fb574"/>
+      <stop offset="0.062" stop-color="#4fb574"/>
+      <stop offset="0.083" stop-color="#c29462"/>
+      <stop offset="0.55" stop-color="#946a44"/>
+      <stop offset="1" stop-color="#6a4b31" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="lip" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a2818" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#3a2818" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="body"><path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z"/></clipPath>
+    <clipPath id="below"><rect x="0" y="30" width="240" height="140"/></clipPath>
+    <clipPath id="sun"><rect x="150" y="30" width="90" height="140"/></clipPath>
+  </defs>
+  <path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z" fill="url(#soil)"/>
+  <g clip-path="url(#below)"><g clip-path="url(#body)">
+    <g>
+      <path d="M30 60 Q110 74 202 58 M42 100 Q96 116 160 102" stroke="#6e4f33" stroke-width="6" opacity=".45" fill="none" stroke-linecap="round"/>
+      <path d="M30 60 Q110 74 202 58 M42 100 Q96 116 160 102" transform="translate(0 -5)" stroke="#d9ad78" stroke-width="2.5" opacity=".55" fill="none" stroke-linecap="round"/>
+      <ellipse cx="50" cy="56" rx="7" ry="5" fill="#a39d93" stroke="#6e5238" stroke-width="1.2"/>
+      <ellipse cx="51.8" cy="54.5" rx="3.1" ry="1.8" fill="#e0dbd2" opacity=".8"/>
+      <ellipse cx="150" cy="54" rx="8" ry="6" fill="#a39d93" stroke="#6e5238" stroke-width="1.2"/>
+      <ellipse cx="152.0" cy="52.2" rx="3.6" ry="2.1" fill="#e0dbd2" opacity=".8"/>
+      <ellipse cx="84" cy="96" rx="6" ry="4.5" fill="#a39d93" stroke="#6e5238" stroke-width="1.2"/>
+      <ellipse cx="85.5" cy="94.7" rx="2.7" ry="1.6" fill="#e0dbd2" opacity=".8"/>
+      <ellipse cx="176" cy="76" rx="6" ry="4" fill="#a39d93" stroke="#6e5238" stroke-width="1.2"/>
+      <ellipse cx="177.5" cy="74.8" rx="2.7" ry="1.4" fill="#e0dbd2" opacity=".8"/>
+      <ellipse cx="70" cy="124" rx="4.5" ry="3.5" fill="#a39d93" stroke="#6e5238" stroke-width="1.2"/>
+      <ellipse cx="71.1" cy="123.0" rx="2.0" ry="1.2" fill="#e0dbd2" opacity=".8"/>
+    </g>
+    <rect x="0" y="28" width="240" height="16" fill="url(#lip)"/>
+    <path d="M0 30 L108 30 Q92 96 112 170 L0 170 Z" fill="#3a2818" opacity=".28"/>
+    <path d="M150 30 L240 30 L240 170 L168 170 Q186 96 150 30 Z" fill="#ffd79a" opacity=".22"/>
+    <g clip-path="url(#sun)"><path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z" fill="none" stroke="#ffe1a0" stroke-width="7" opacity=".6"/></g>
+  </g></g>
+  <g>
+    <path d="M8 22 Q4 8 20 7 Q38 2 58 7 Q78 1 100 6 Q122 0 142 6 Q162 1 182 7 Q200 2 218 8 Q234 10 232 24 L229 32 Q218 26 207 34 Q194 27 181 35 Q168 28 154 36 Q141 29 127 36 Q113 30 99 36 Q85 30 71 35 Q57 29 43 34 Q29 28 17 34 Q9 30 8 22 Z" fill="#4fb574"/>
+    <path d="M8 21 Q5 10 20 9 Q38 4 58 9 Q78 3 100 8 Q122 2 142 8 Q162 3 182 9 Q200 4 218 10 Q232 12 231 22 Q188 27 120 27 Q48 27 8 21 Z" fill="#5fd35a"/>
+    <path d="M34 12 Q76 5 120 6 Q166 5 206 12 Q164 9 120 9 Q74 9 34 12 Z" fill="#9cf27d" opacity="0.85"/>
+    <path d="M32 32 q-5 9 -2 17 M38 34 q-3 7 0 12 M108 34 q-4 9 -1 15 M114 35 q-2 6 0 11 M202 32 q5 8 2 15 M196 34 q3 6 1 11" stroke="#4fb574" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

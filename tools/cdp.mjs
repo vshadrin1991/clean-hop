@@ -87,4 +87,6 @@ for (const job of spec.jobs) {
   }
 }
 ws.close();
-process.exit(0);
+// a pipe takes stdout asynchronously - exit only once it has all drained,
+// or a big result (a face-sheet PNG) is cut off at 64 KB
+process.stdout.write('', () => process.exit(0));

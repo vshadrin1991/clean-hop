@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="64" viewBox="0 0 56 64">
+  <defs>
+    <linearGradient id="pole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7d9484"/><stop offset="0.45" stop-color="#57705f"/><stop offset="1" stop-color="#3d5247"/>
+    </linearGradient>
+  </defs>
+  <!-- two little poles and a sagging wire of dark bulbs -->
+  <ellipse cx="28" cy="62" rx="24" ry="3" fill="#57705f" opacity="0.5"/>
+  <rect x="6" y="13" width="4" height="48" rx="2" fill="url(#pole)"/>
+  <rect x="46" y="13" width="4" height="48" rx="2" fill="url(#pole)"/>
+  <rect x="4" y="59" width="8" height="3.4" rx="1.4" fill="#3d5247"/>
+  <rect x="44" y="59" width="8" height="3.4" rx="1.4" fill="#3d5247"/>
+  <path d="M8 16 Q28 34 48 16" fill="none" stroke="#4e6350" stroke-width="1.6"/>
+  <!-- the plug tail from the left pole's foot -->
+  <path d="M6 60 Q0 62 -2 60" fill="none" stroke="#4e6350" stroke-width="1.6"/>
+  <!-- bulbs, dark while off -->
+  <circle cx="12.4" cy="20" r="3" fill="#4e6350"/>
+  <circle cx="20" cy="24.9" r="3" fill="#4e6350"/>
+  <circle cx="28" cy="26.6" r="3" fill="#4e6350"/>
+  <circle cx="36" cy="24.9" r="3" fill="#4e6350"/>
+  <circle cx="43.6" cy="20" r="3" fill="#4e6350"/>
+</svg>

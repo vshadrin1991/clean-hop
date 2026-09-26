@@ -4,6 +4,9 @@
 //      (it used to hang below it as a grey slab)
 //   2. every island's grass lid (sprite rows 0-27) is grass - no brown
 //      pixels on it (island-5 used to carry the roots of a buried stump)
+//   3. v10: the soil under the lid is warm earth (mean r-b >= 30)
+//   4. v10: islands are lit from the upper right, where the sun is; the
+//      -m twins are mirrored shapes with the same light
 //   python3 tools/run-scenario.py tools/scenarios/art.js
 const t = __t;
 const fails = [];
@@ -43,9 +46,11 @@ for (const n of ['cloud-1', 'cloud-2', 'cloud-3']) {
   if (outside > 12) fails.push(n + ': the shade adds ' + outside + ' px outside the cloud');
 }
 
-/* 2. islands: the grass lid holds no brown pixels */
-for (let k = 1; k <= 5; k++) {
-  const n = 'island-' + k;
+/* 2-4. islands, both twins: the grass lid holds no brown pixels (2), the
+   soil under it is warm earth (3), and it is lit from the upper right,
+   where the game's sun is (4) */
+for (let k = 1; k <= 5; k++) for (const tw of ['', '-m']) {
+  const n = 'island-' + k + tw;
   const src = t.spriteSrc(n);
   if (!src) { fails.push(n + ': no inline sprite (run without --no-inline)'); continue; }
   const W = 240, H = 170, px = await pixels(src, W, H);
@@ -54,8 +59,21 @@ for (let k = 1; k <= 5; k++) {
     const i = (y * W + x) * 4, r = px[i], g = px[i + 1], b = px[i + 2], a = px[i + 3];
     if (a > 128 && r > g + 12 && r > b + 12) brown++;
   }
-  out[n] = brown;
+  let warm = 0, wn = 0, lL = 0, nL = 0, lR = 0, nR = 0;
+  for (let y = 44; y <= 96; y++) for (let x = 0; x < W; x++) {
+    const i = (y * W + x) * 4, r = px[i], g = px[i + 1], b = px[i + 2], a = px[i + 3];
+    if (a <= 200) continue;
+    warm += r - b; wn++;
+    const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (x >= 20 && x <= 80) { lL += L; nL++; }
+    if (x >= 160 && x <= 220) { lR += L; nR++; }
+  }
+  const soil = wn ? warm / wn : 0;
+  const light = (nR ? lR / nR : 0) - (nL ? lL / nL : 0);
+  out[n] = { brown, soil: Math.round(soil), light: Math.round(light) };
   if (brown > 0) fails.push(n + ': ' + brown + ' brown px on the grass lid');
+  if (soil < 30) fails.push(n + ': soil not warm (mean r-b ' + soil.toFixed(1) + ', want >= 30)');
+  if (light < 8) fails.push(n + ': lit from the wrong side (right-left ' + light.toFixed(1) + ', want >= 8)');
 }
 
 ({ ...out, fails, pass: fails.length === 0 })

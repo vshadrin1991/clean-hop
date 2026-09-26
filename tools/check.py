@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""Static checks for the v9 game folder. Run from the project root:
+"""Static checks for a game folder (default clean-hop-v10). Run from the project root:
     python3 tools/check.py
+    python3 tools/check.py --game clean-hop-v9
 Prints OK, or every problem found and exits 1."""
 import ast, pathlib, re, subprocess, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GAME = ROOT / 'clean-hop-v9'
+GAME = ROOT / 'clean-hop-v10'
+if '--game' in sys.argv:
+    GAME = ROOT / sys.argv[sys.argv.index('--game') + 1]
 problems = []
 
 html = (GAME / 'index.html').read_text(encoding='utf-8')

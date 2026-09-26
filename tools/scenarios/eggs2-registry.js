@@ -1,10 +1,11 @@
-// v9.6/v9.7 registry: the catalogue's full eighteen eggs, in order.
+// v9.6-v10 registry: the catalogue's eggs, in order.
 //   python3 tools/run-scenario.py tools/scenarios/eggs2-registry.js
 const t = __t;
 const fails = [], out = {};
 const IDS = ['secret-jump', 'chatter', 'tickle', 'title', 'sleep', 'master',
              'diver', 'bedtime', 'earth-hour', 'choir', 'shades', 'firefly',
-             'cape', 'iron', 'earth-hour-real', 'energy-day', 'new-year', 'owlet'];
+             'cape', 'iron', 'earth-hour-real', 'energy-day', 'new-year', 'owlet',
+             /* v10 */ 'unicorn', 'dizzy', 'swim', 'fireworks', 'jubilee', 'penguin'];
 
 out.count = t.EGGS ? t.EGGS.length : null;
 out.ids = t.EGGS ? t.EGGS.map(function (e) { return e.id; }) : null;

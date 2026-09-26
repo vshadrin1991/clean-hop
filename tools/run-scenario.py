@@ -3,6 +3,7 @@
 headless Chrome (via the DevTools protocol) and print its result object:
     python3 tools/run-scenario.py tools/scenarios/energy-model.js
     python3 tools/run-scenario.py tools/scenarios/visual.js --size 390x844
+    python3 tools/run-scenario.py tools/scenarios/look.js --game clean-hop-v9
 The scenario file stays verbatim - it runs as an awaited async expression,
 so top-level await and the trailing ( ... ) result literal both work."""
 import json, os, pathlib, subprocess, sys, tempfile
@@ -28,6 +29,8 @@ build_args = [str(ROOT / 'tools/test-build.py')]
 if '--no-inline' in sys.argv:
     build_args.append('--no-inline')
     build_dir = 'clean-hop-test-file'
+if '--game' in sys.argv:                       # --game clean-hop-v9: an older copy
+    build_args += ['--game', sys.argv[sys.argv.index('--game') + 1]]
 # the scenario ends in a bare ( ... ) result expression - return it
 i = scenario.rfind('\n(')
 if i < 0:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Screenshot harness for before/after review:
     python3 tools/shots.py --game clean-hop-v8 --tag before
-    python3 tools/shots.py                          # v9, tagged 'v9'
+    python3 tools/shots.py                          # v10, tagged 'clean-hop-v10'
 Builds the instrumented copy via test-build.py (which understands the
 #shot=<clean>,<seed> hash), then captures every viewport x clean level
 through headless Chrome's DevTools protocol - Emulation gives the true CSS
@@ -19,7 +19,7 @@ OUT = pathlib.Path(os.environ.get(
     'CLEAN_HOP_SHOTS', pathlib.Path(tempfile.gettempdir()) / 'clean-hop-shots'))
 
 ap = argparse.ArgumentParser()
-ap.add_argument('--game', default='clean-hop-v9',
+ap.add_argument('--game', default='clean-hop-v10',
                 help='game folder under the project root')
 ap.add_argument('--tag', default=None,
                 help='name for this shot set (default: the game folder)')

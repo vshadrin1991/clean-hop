@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Build an instrumented copy of the game for scripted browser checks:
-    python3 tools/test-build.py [--game clean-hop-v9] -> $TMPDIR/clean-hop-test/
+    python3 tools/test-build.py [--game clean-hop-v10] -> $TMPDIR/clean-hop-test/
     python3 tools/test-build.py --no-inline           -> $TMPDIR/clean-hop-test-file/
 Exposes window.__t and skips the service worker, so a test run never
 touches the real offline cache. --no-inline skips the DATA_SPRITES table:
@@ -15,7 +15,7 @@ islands, forces clean = cleanShown = <clean>, then stops time and marks
 import base64, json, os, pathlib, sys, tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GAME = ROOT / 'clean-hop-v9'
+GAME = ROOT / 'clean-hop-v10'
 if '--game' in sys.argv:
     GAME = ROOT / sys.argv[sys.argv.index('--game') + 1]
 NO_INLINE = '--no-inline' in sys.argv
@@ -72,6 +72,46 @@ window.__t = {
            (typeof Z !== 'undefined' ? Z : 1); }); },
   get fps() { return __get(function () { return fpsAvg; }); },
   get quality() { return __get(function () { return QUALITY; }); },
+  set quality(v) { QUALITY = v; },
+  /* v10 probes: living water (water.js) */
+  render: function () { render(); },
+  get padsShown() { return __get(function () { return padsShown; }); },
+  get fishShown() { return __get(function () { return fishShown; }); },
+  get padRects() { return __get(function () { return padRects; }); },
+  /* v10 probes: hero jump pose (jump.js) */
+  get charge() { return __get(function () { return charge; }); },
+  jumpPose: function (ph, ch, vy, v0) { return __get(function () {
+    return jumpPose(ph, ch, vy, v0); }); },
+  jumpWith: function (p) { return __get(function () {
+    phase = 'charge'; charge = p; doJump(); return hop.sqz; }); },
+  /* v10 probes: the focus face (face.js) */
+  focusFace: function (f, ch, armed) { return __get(function () {
+    return focusFace(f, ch, armed); }); },
+  heroOpts: function () { return __get(function () { return heroOpts(); }); },
+  get ANIMALS() { return __get(function () { return ANIMALS; }); },
+  lidEdge: function (f, u) { return __get(function () { return lidEdge(f, u); }); },
+  /* one animal on a fresh 2W x 2W canvas, its feet at (W, 1.9 W) */
+  paintAnimal: function (kind, opts, W) { return __get(function () {
+    var c = document.createElement('canvas');
+    c.width = c.height = W * 2;
+    var g = c.getContext('2d');
+    g.translate(W, W * 1.9);
+    drawAnimal(g, kind, W, opts);
+    return c; }); },
+  /* v10 probes: the unicorn (egg-unicorn.js) */
+  get sparksMade() { return __get(function () { return sparksMade; }); },
+  set sparksMade(v) { __get(function () { sparksMade = v; }); },
+  set won(v) { won = v; },
+  set eggSecret(v) { eggSecret = v; },
+  setDifficulty: function (v) { __get(function () { setDifficulty(v); }); },
+  toMenu: function () { __get(function () { toMenu(); }); },
+  set cleanShown(v) { cleanShown = v; },          // v10 probe: egg-swim.js
+  /* v10 probes: egg-fireworks.js */
+  spawnFinish: function () { return __get(function () { return spawnFinish(); }); },
+  get fireworksT() { return __get(function () { return fireworksT; }); },
+  get fireworkBursts() { return __get(function () { return fireworkBursts; }); },
+  get runsPlayed() { return __get(function () { return runsPlayed; }); },   // v10: egg-jubilee.js
+  set runsPlayed(v) { __get(function () { runsPlayed = v; }); },
   get renderMs() { return __get(function () { return __renderMs; }); },
   /* lights.js probes: did the gadget lit layers load, and is a switched-off
      gadget actually dark this frame */
@@ -136,6 +176,9 @@ window.__t = {
      read as undefined until it lands - __get swallows the ReferenceError */
   get eggsFound() { return __get(function () { return eggsFound; }); },
   get EGGS() { return __get(function () { return EGGS; }); },
+  get SCALE() { return __get(function () { return SCALE; }); },   // v10: egg-penguin.js
+  get pickerBuilt() { return __get(function () { return pickerBuilt; }); },
+  set pickerBuilt(v) { __get(function () { pickerBuilt = v; }); },
   eggFound: function (id) { return __get(function () { return eggFound(id); }); },
   loadEggs: function () { __get(function () { loadEggs(); }); },
   set clock(v) { __get(function () { clockOverride = v; }); },
@@ -182,7 +225,16 @@ window.__t = {
   buildPicker: function () { __get(function () { buildPicker(); }); },
   get choirPos() { return __get(function () { return choirPos; }); },
   get chosen() { return __get(function () { return chosen; }); },
-  speakUp: function (k, o) { __get(function () { speakUp(k, o); }); },
+  speakUp: function (k, o) { return __get(function () { return speakUp(k, o); }); },
+  /* v10 probes: the hero's words (speech.js) */
+  sayDur: function (s) { return __get(function () { return sayDur(s); }); },
+  heroSay: function (s, c, ox, oy) { return __get(function () { return heroSay(s, c, ox, oy); }); },
+  get voiceAt() { return __get(function () { return voiceAt; }); },
+  set voiceAt(v) { __get(function () { voiceAt = v; }); },
+  sayScreenBox: function (o) { return __get(function () {
+    var L = sayLayout(o), s = function (x) { return VW / 2 + (x - VW / 2) * Z; };
+    return { left: s(L.x - L.w / 2), right: s(L.x + L.w / 2), cx: s(L.x),
+             ownCx: s(o.x - camX), lines: L.lines.length, vw: VW }; }); },
   makeIron: function (s) { return __get(function () {
     if (!s) return null;
     s.gadget = { kind: 'iron', on: true, glow: 1, dx: 0.25, ph: 0,

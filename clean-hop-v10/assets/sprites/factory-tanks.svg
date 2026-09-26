@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="220" viewBox="0 0 480 220">
+  <defs>
+    <linearGradient id="tank" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9cc4b0"/><stop offset="0.35" stop-color="#7fae95"/><stop offset="1" stop-color="#5d8570"/>
+    </linearGradient>
+    <linearGradient id="dome" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a8d0bc"/><stop offset="1" stop-color="#7fae95"/>
+    </linearGradient>
+    <linearGradient id="vent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8fbca4"/><stop offset="0.5" stop-color="#7fae95"/><stop offset="1" stop-color="#54796a"/>
+    </linearGradient>
+    <linearGradient id="hutK" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7ba68f"/><stop offset="1" stop-color="#5d8570"/>
+    </linearGradient>
+    <linearGradient id="glassK" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2fbff"/><stop offset="1" stop-color="#a9cede"/>
+    </linearGradient>
+  </defs>
+
+  <!-- storage tanks -->
+  <g>
+    <rect x="24" y="120" width="62" height="100" fill="url(#tank)"/>
+    <rect x="24" y="120" width="8" height="100" fill="#b8d8c8" opacity="0.45"/>
+    <ellipse cx="55" cy="120" rx="31" ry="12" fill="url(#dome)"/>
+    <ellipse cx="55" cy="120" rx="31" ry="12" fill="none" stroke="#5d8570" stroke-width="2"/>
+    <ellipse cx="55" cy="118" rx="22" ry="7" fill="#b8d8c8" opacity="0.6"/>
+    <rect x="24" y="150" width="62" height="7" fill="#6b9a82"/>
+    <rect x="24" y="150" width="62" height="2.5" fill="#8fbfa8"/>
+    <path d="M24 176 H86 M24 200 H86" stroke="#5d8570" stroke-width="1.2" opacity="0.35"/>
+  </g>
+  <g>
+    <rect x="102" y="104" width="62" height="116" fill="url(#tank)"/>
+    <rect x="102" y="104" width="8" height="116" fill="#b8d8c8" opacity="0.45"/>
+    <ellipse cx="133" cy="104" rx="31" ry="12" fill="url(#dome)"/>
+    <ellipse cx="133" cy="104" rx="31" ry="12" fill="none" stroke="#5d8570" stroke-width="2"/>
+    <ellipse cx="133" cy="102" rx="22" ry="7" fill="#b8d8c8" opacity="0.6"/>
+    <rect x="102" y="140" width="62" height="7" fill="#6b9a82"/>
+    <rect x="102" y="140" width="62" height="2.5" fill="#8fbfa8"/>
+    <path d="M102 168 H164 M102 192 H164" stroke="#5d8570" stroke-width="1.2" opacity="0.35"/>
+  </g>
+  <g>
+    <rect x="180" y="120" width="62" height="100" fill="url(#tank)"/>
+    <rect x="180" y="120" width="8" height="100" fill="#b8d8c8" opacity="0.45"/>
+    <ellipse cx="211" cy="120" rx="31" ry="12" fill="url(#dome)"/>
+    <ellipse cx="211" cy="120" rx="31" ry="12" fill="none" stroke="#5d8570" stroke-width="2"/>
+    <ellipse cx="211" cy="118" rx="22" ry="7" fill="#b8d8c8" opacity="0.6"/>
+    <rect x="180" y="150" width="62" height="7" fill="#6b9a82"/>
+    <rect x="180" y="150" width="62" height="2.5" fill="#8fbfa8"/>
+    <path d="M180 176 H242 M180 200 H242" stroke="#5d8570" stroke-width="1.2" opacity="0.35"/>
+  </g>
+
+  <!-- pipe manifold + walkway railing -->
+  <path d="M40 168 L40 158 M118 168 L118 158 M196 168 L196 158" stroke="#54796a" stroke-width="4"/>
+  <path d="M40 160 H196" stroke="#6b9a82" stroke-width="5"/>
+  <rect x="10" y="176" width="250" height="9" fill="#6b9a82"/>
+  <rect x="10" y="176" width="250" height="3" fill="#8fbfa8"/>
+  <rect x="18" y="185" width="6" height="35" fill="#54796a"/>
+  <rect x="86" y="185" width="6" height="35" fill="#54796a"/>
+  <rect x="154" y="185" width="6" height="35" fill="#54796a"/>
+  <rect x="222" y="185" width="6" height="35" fill="#54796a"/>
+  <path d="M242 180 Q300 170 320 120" stroke="#54796a" stroke-width="10" fill="none"/>
+  <path d="M242 180 Q300 170 320 120" stroke="#6b9a82" stroke-width="8" fill="none"/>
+  <path d="M246 176 Q298 166 316 120" stroke="#8fbfa8" stroke-width="2" fill="none" opacity="0.8"/>
+
+  <!-- vent stack: FMETA stack at x~322, top y~25 -->
+  <rect x="316" y="30" width="12" height="190" fill="url(#vent)"/>
+  <rect x="316" y="30" width="3.5" height="190" fill="#b8d8c8" opacity="0.5"/>
+  <rect x="310" y="26" width="24" height="8" rx="3" fill="url(#vent)"/>
+  <rect x="310" y="26" width="24" height="3" rx="1.5" fill="#a8d0bc"/>
+  <g stroke="#54796a" stroke-width="1.5" opacity="0.55">
+    <path d="M316 52 H328 M316 78 H328 M316 104 H328 M316 130 H328 M316 156 H328 M316 182 H328"/>
+  </g>
+  <path d="M328 44 L352 44 L352 60" stroke="#54796a" stroke-width="4" fill="none"/>
+
+  <!-- control hut: FMETA panes -->
+  <rect x="380" y="160" width="60" height="60" fill="url(#hutK)"/>
+  <rect x="380" y="160" width="60" height="5" fill="#8fbfa8"/>
+  <rect x="380" y="160" width="5" height="60" fill="#9cc4b0" opacity="0.5"/>
+  <rect x="388" y="176" width="18" height="18" rx="2" fill="url(#glassK)" stroke="#4a6d5c" stroke-width="1.5"/>
+  <rect x="412" y="176" width="18" height="18" rx="2" fill="url(#glassK)" stroke="#4a6d5c" stroke-width="1.5"/>
+  <path d="M397 176 V194 M388 185 H406 M421 176 V194 M412 185 H430" stroke="#4a6d5c" stroke-width="1"/>
+  <rect x="440" y="196" width="22" height="24" rx="3" fill="#54796a"/>
+</svg>

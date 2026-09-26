@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="140" viewBox="0 0 120 140">
+  <defs>
+    <linearGradient id="trk" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#637a66"/><stop offset="0.45" stop-color="#4e6350"/><stop offset="1" stop-color="#37473c"/>
+    </linearGradient>
+    <radialGradient id="leafLo" cx="0.4" cy="0.3" r="1">
+      <stop offset="0" stop-color="#4f9660"/><stop offset="0.6" stop-color="#3d7d52"/><stop offset="1" stop-color="#2e6541"/>
+    </radialGradient>
+    <radialGradient id="leafHi" cx="0.35" cy="0.3" r="1">
+      <stop offset="0" stop-color="#6ab478"/><stop offset="0.55" stop-color="#4f9660"/><stop offset="1" stop-color="#3d7d52"/>
+    </radialGradient>
+  </defs>
+  <!-- trunk, tapered with root flare and a branch fork -->
+  <path d="M52 138 L68 138 L65 96 L74 76 L68 72 L62 88 L58 70 L52 73 L57 96 Z" fill="url(#trk)"/>
+  <path d="M52 138 L58 138 L58 96 L54 76 L52 78 L55 96 Z" fill="#7e9484" opacity="0.4"/>
+  <path d="M60 100 Q64 96 66 92" stroke="#37473c" stroke-width="1.5" fill="none" opacity="0.5"/>
+  <!-- canopy: shaded lobes then lit crowns -->
+  <ellipse cx="34" cy="54" rx="30" ry="26" fill="url(#leafLo)"/>
+  <ellipse cx="88" cy="58" rx="26" ry="22" fill="url(#leafLo)"/>
+  <ellipse cx="60" cy="62" rx="30" ry="20" fill="url(#leafLo)"/>
+  <ellipse cx="60" cy="34" rx="33" ry="28" fill="url(#leafHi)"/>
+  <ellipse cx="40" cy="44" rx="17" ry="14" fill="url(#leafHi)" opacity="0.85"/>
+  <ellipse cx="82" cy="42" rx="15" ry="12" fill="url(#leafHi)" opacity="0.85"/>
+  <!-- leaf-cluster hints -->
+  <g stroke="#2e6541" stroke-width="1.5" fill="none" opacity="0.45">
+    <path d="M30 62 Q38 68 46 64"/>
+    <path d="M70 70 Q80 75 90 70"/>
+    <path d="M48 26 Q58 20 70 24"/>
+  </g>
+  <g fill="#8fd19a" opacity="0.55">
+    <ellipse cx="48" cy="26" rx="8" ry="5"/>
+    <ellipse cx="74" cy="30" rx="7" ry="4.5"/>
+    <ellipse cx="34" cy="48" rx="6" ry="4"/>
+  </g>
+</svg>
