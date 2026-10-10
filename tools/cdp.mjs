@@ -8,6 +8,7 @@
        "out": "/tmp/x.png", "ready": "<js expr polling true>" }
      { "type": "eval", "url": "file://.../_scenario.html", "w": 1280,
        "h": 720, "expr": "(async () => { ... })()", "id": "world" }
+     Any job may add "fresh": true - the page starts with an empty localStorage.
 
    Emulation.setDeviceMetricsOverride gives a true CSS viewport (no window
    minimums), Page.captureScreenshot returns real pixels, and Runtime.evaluate
@@ -41,6 +42,12 @@ for (const job of spec.jobs) {
     const { sessionId } = await send('Target.attachToTarget', { targetId, flatten: true });
     await send('Page.enable', {}, sessionId);
     await send('Runtime.enable', {}, sessionId);
+    /* fresh: start from an empty save - every file:// page shares one
+       localStorage, so a long shot run would play its tenth game and an
+       egg's «Секрет найден!» toast would land in the later screenshots */
+    if (job.fresh)
+      await send('Page.addScriptToEvaluateOnNewDocument',
+        { source: 'try { localStorage.clear(); } catch (e) {}' }, sessionId);
     if (job.w) {
       await send('Emulation.setDeviceMetricsOverride', {
         width: job.w, height: job.h,

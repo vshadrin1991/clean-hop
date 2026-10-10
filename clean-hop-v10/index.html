@@ -156,6 +156,13 @@ canvas#game{display:block;width:100%;height:100%;touch-action:none;cursor:pointe
   .meter-wrap .capw{display:none}
 }
 
+/* v10.3: a narrow upright phone (an iPhone SE 1st gen, small Androids)
+   drops the pill words too - the coin and the trophy say it - so the
+   pause button stays on screen */
+@media (max-width:374px){
+  .pill .lbl{display:none}
+}
+
 /* ---------------- overlays ---------------- */
 .overlay{
   position:absolute;inset:0;display:flex;
@@ -1459,6 +1466,7 @@ var SPRITES = {
   'shore-pine': { grime: 1 }, 'shore-bush': { grime: 1 },
   'shore-bench': { grime: 1 }, 'shore-poles': { grime: 1 },
   'fg-grass': { grime: 1 }, 'fg-cattails': { grime: 1 }, 'sun-spark': {},
+  'balloon': {},                                 // v10: the clean sky's balloon
   'island-lamp': { rim: 1, lit: 1 }, 'gadget-tv': { rim: 1, lit: 1 },
   'gadget-charger': { rim: 1, lit: 1 },
   'gadget-fan': { rim: 1, lit: 1 },
@@ -2370,6 +2378,7 @@ function drawAnimal(g, kind, W, o) {
 var VW = 0, VH = 0, DPR = 1, groundY = 0;
 var KW = 0, U = 0, Z = 1, MIN_D = 0, MAX_D = 0;
 var B = 0, T_OR = 0;                            // B: the hero's drawn height, the one ruler
+var SU = 0;                                     // v10: the background's ruler (layout)
 var HERO_W = 0;                                 // the animal's drawn width
 
 var stones = [], items = [], parts = [], ripples = [], pops = [], clouds = [];
@@ -2428,8 +2437,13 @@ var hop = {
 
 function layout() {
   var prevGround = groundY, prevDPR = DPR;
+  var prevVW = VW, prevMaxD = MAX_D;               // v10.3: what did this resize change?
   VW = Math.max(300, window.innerWidth);
   VH = Math.max(380, window.innerHeight);
+  /* v10: the background's ruler. Wide screens keep VH; an upright phone
+     uses its width instead, so the far works stay in landscape proportion
+     to the hero instead of towering over the islands */
+  SU = Math.min(VH, VW * 1.1);
   DPR = Math.min(2, window.devicePixelRatio || 1);
   if (QUALITY === 0) DPR = Math.min(DPR, 1.5);     // leanest tier renders softer
   if (prevDPR !== DPR) clearSpriteCaches();   // device-pixel keys are stale
@@ -2465,13 +2479,53 @@ function layout() {
     hop.y += dy;
     lastTop += dy;
   }
-  buildClouds();
-  buildFactories();
-  buildForeground();
-  buildMotes();
-  buildShore();
+  /* v10.3: the scenery is laid out across the width - rebuild it only when
+     the width changed. A QUALITY drop, a repeated resize event or a phone
+     toolbar sliding in must not reshuffle the factories mid-run */
+  if (VW !== prevVW) {
+    buildClouds();
+    buildFactories();
+    buildForeground();
+    buildMotes();
+    buildShore();
+  }
   measureScorePill();
   paintPortraits();
+  if (prevMaxD && Math.abs(MAX_D / prevMaxD - 1) > 0.01) courseChanged();
+}
+
+/** v10.3: the screen turned mid-run. The jump's reach (MIN_D..MAX_D) and
+    the island sizes ride on the screen, so the islands built ahead were
+    made for the old one: out of reach after a turn to upright, overshot
+    after a turn to sideways. Rebuild them from the island the hero stands
+    on - mid-air, as soon as it lands. */
+var courseStale = false;
+function courseChanged() {
+  if (mode === 'menu') { reset(); menuWorld(); return; }
+  if (mode !== 'play' || won) return;
+  if (phase === 'charge') cancelPress();           // the release must not jump
+  courseStale = true;
+  if (phase === 'stand') rebuildCourse();
+}
+function rebuildCourse() {
+  courseStale = false;
+  var cur = hop.onStone;
+  if (!cur || cur.type === 'finish') return;
+  var keep = [];
+  for (var i = 0; i < stones.length; i++)
+    if (stones[i] === cur || stones[i].ax < cur.ax) keep.push(stones[i]);
+  stones = keep;
+  var ki = [];
+  for (var j = 0; j < items.length; j++) if (items[j].x < cur.ax) ki.push(items[j]);
+  items = ki;
+  if (finishStone && finishStone !== cur) {
+    finishStone = null; finishSpawned = false;   // finishCued stays: no second cheer
+  }
+  if (stripHint && stones.indexOf(stripHint.s) < 0) {   // its strip is gone:
+    stripHint = null; stripHintSeen = false;            // hint the next one instead
+  }
+  lastX = cur.ax; lastTop = cur.baseY; lastW = cur.w; lastWasCrumble = false;
+  while (!finishSpawned && lastX < camX + VW * 1.9) spawnStone();
 }
 
 function buildClouds() {
@@ -3059,6 +3113,7 @@ function updateHud() {
 function reset() {
   stones.length = 0; items.length = 0; parts.length = 0;
   ripples.length = 0; pops.length = 0;
+  courseStale = false;                             // v10.3: a new run starts square
   score = 0; stonesCleared = 0; leaves = 0; energy = 0; offByKind = {}; stripsOff = 0; sparksMade = 0;
   T = 0; stoneId = 0; lastWasCrumble = false;
   fallT = 0; overT = 0; shake = 0; charge = 0;
@@ -4921,6 +4976,7 @@ function update(dt) {
       if (fallT > 1.25) gameOver();
     }
 
+    if (courseStale && phase === 'stand') rebuildCourse();   // v10.3: landed after a turn
     while (!finishSpawned && lastX < camX + VW * 1.9) spawnStone();
 
     if (stones.length > 26) {
@@ -5136,6 +5192,18 @@ function drawSky() {
   if (night > 0.02) drawNightSky();                // 8b: stars, moon, the line
 }
 
+/** v10: the clean sky's hot-air balloon - where it is this frame, or null
+    while the air is still dirty (and at the menu's secret night). It drifts
+    right, a slow crossing per wrap, and never takes a tap. */
+function balloonAt() {
+  var a = clamp((cleanShown - 0.6) / 0.2, 0, 1) * (1 - night);
+  if (a <= 0.01) return null;
+  var span = VW * 2.6, w = Math.max(26, SU * 0.075);
+  var x = VW * 0.3 - camX * 0.10 + T * 9;
+  x = ((x + 200) % span + span) % span - 200;
+  return { x: x, y: groundY * 0.30 + Math.sin(T * 0.5) * 4, w: w, a: a };
+}
+
 function drawClouds() {
   var span = VW * 2.6;
 
@@ -5159,6 +5227,11 @@ function drawClouds() {
     var cy = c.y + Math.sin(T * c.bobS + c.ph) * c.bobA;
     sprC('cloud-' + (i % 3 + 1), x, cy, c.ext * u * 2.05 * breathe, { a: c.a });
   }
+
+  /* v10: a hot-air balloon drifts over once the air is clean */
+  var bal = balloonAt();
+  if (bal && bal.x > -bal.w * 2 && bal.x < VW + bal.w * 2)
+    sprC('balloon', bal.x, bal.y, bal.w, { a: bal.a });
 
   /* birds come back once the air is properly clean */
   if (cleanShown > 0.6 && QUALITY >= 2) {
@@ -5190,17 +5263,17 @@ function drawClouds() {
 
 /** A hazy treeline far behind the works - the deepest layer before the sky. */
 function drawDistantRidge() {
-  var base = groundY - VH * 0.15;
+  var base = groundY - SU * 0.15;
   ctx.fillStyle = haze(P.ridge, 0.15);
   ctx.globalAlpha = 0.55;
   ctx.beginPath();
-  ctx.moveTo(-4, base + VH * 0.12);
+  ctx.moveTo(-4, base + SU * 0.12);
   for (var sx = -4; sx <= VW + 24; sx += 24) {
     var wx = (camX * 0.02 + sx) * 0.0032;
-    ctx.lineTo(sx, base - VH * 0.055 * (0.45 + 0.32 * Math.sin(wx)
+    ctx.lineTo(sx, base - SU * 0.055 * (0.45 + 0.32 * Math.sin(wx)
                + 0.23 * Math.sin(wx * 2.3 + 1.7)));
   }
-  ctx.lineTo(VW + 4, base + VH * 0.12);
+  ctx.lineTo(VW + 4, base + SU * 0.12);
   ctx.closePath();
   ctx.fill();
 
@@ -5210,7 +5283,7 @@ function drawDistantRidge() {
     for (var i = 0; i < 14; i++) {
       var px = ((i * 173 + 40 - camX * 0.02) % (VW + 140) + VW + 140) % (VW + 140) - 70;
       var wx2 = (camX * 0.02 + px) * 0.0032;
-      var ry = base - VH * 0.055 * (0.45 + 0.32 * Math.sin(wx2)
+      var ry = base - SU * 0.055 * (0.45 + 0.32 * Math.sin(wx2)
                  + 0.23 * Math.sin(wx2 * 2.3 + 1.7));
       var ph = 5 + (i % 3) * 2.4;
       ctx.beginPath();
@@ -5224,11 +5297,11 @@ function drawDistantRidge() {
   ctx.globalAlpha = 1;
 
   /* its base melts into the sky - aerial haze */
-  var hz = ctx.createLinearGradient(0, base - VH * 0.09, 0, base + VH * 0.13);
+  var hz = ctx.createLinearGradient(0, base - SU * 0.09, 0, base + SU * 0.13);
   hz.addColorStop(0, colA(P.skyLow, 0));
   hz.addColorStop(1, colA(P.skyLow, 0.8));
   ctx.fillStyle = hz;
-  ctx.fillRect(0, base - VH * 0.09, VW, VH * 0.23);
+  ctx.fillRect(0, base - SU * 0.09, VW, SU * 0.23);
 }
 
 /** A rising column of puffs: dark smoke from stacks, pale steam from towers. */
@@ -5272,7 +5345,7 @@ function drawSolar(x, base, u, amount, hz) {
 /** A hazier, smaller band further back - depth without extra detail.
     The pylons live here too (z = 0.25): shorter, two thin wires. */
 /* pylon sprite is 40x120: never crowd pylons closer than 4 widths */
-function pylonStep() { return Math.max(VW * 0.55, VH * 0.22 / 3 * 4); }
+function pylonStep() { return Math.max(VW * 0.55, SU * 0.22 / 3 * 4); }
 /** Screen x of every pylon the power line needs this frame, left → right.
    The loop runs one pylon past the right edge so the last wire always
    leaves the screen instead of ending in mid-air. */
@@ -5285,21 +5358,21 @@ function pylonXs() {
 }
 
 function drawFarWorks() {
-  var par = 0.035, base = groundY - VH * 0.058, span = VW * 1.7;
+  var par = 0.035, base = groundY - SU * 0.058, span = VW * 1.7;
   var hz = hazeAmt(0.25);
   var fade = 0.30 + 0.14 * (1 - cleanShown);
   for (var i = 0; i < 11; i++) {
     var x = i * (span / 11) + 26 - camX * par;
     x = ((x + 220) % span + span) % span - 220;
     if (x < -200 || x > VW + 200) continue;
-    var u = VH * 0.026 * (0.78 + (i % 3) * 0.24);
+    var u = SU * 0.026 * (0.78 + (i % 3) * 0.24);
     var tower = i % 3 === 0;
     sprB(tower ? 'farwork-1' : 'farwork-2', x + u, base, u * (tower ? 2.0 : 2.6),
          { a: fade, haze: hz });
   }
 
   /* power lines feeding the town: pulses hurry while demand is high */
-  var ph = VH * 0.22, pw = ph / 3;               // pylon sprite is 40x120
+  var ph = SU * 0.22, pw = ph / 3;               // pylon sprite is 40x120
   var pstep = pylonStep();
   var pulseV = 0.25 + 0.75 * (1 - cleanShown);
   var prev = null, xs = pylonXs();
@@ -5347,8 +5420,8 @@ function drawSmog() {
   if (amt < 0.02) return;
   var span = VW * 1.9;
   for (var i = 0; i < 3; i++) {
-    var y = groundY - VH * (0.17 - i * 0.045) + Math.sin(T * 0.10 + i * 2.0) * 5;
-    var rw = VW * (0.45 + 0.10 * i), rh = VH * (0.030 + 0.007 * i);
+    var y = groundY - SU * (0.17 - i * 0.045) + Math.sin(T * 0.10 + i * 2.0) * 5;
+    var rw = VW * (0.45 + 0.10 * i), rh = SU * (0.030 + 0.007 * i);
     for (var b = 0; b < 2; b++) {
       var ph = ((T * (0.006 + i * 0.0022) + i * 0.37 + b * 0.53) % 1 + 1) % 1;
       var x = ph * span - span * 0.30;
@@ -5444,7 +5517,7 @@ function drawFactory(f, x, base, u, body, trim, smoke, hz) {
 }
 
 function drawSkyline() {
-  var par = 0.07, base = groundY - VH * 0.062;
+  var par = 0.07, base = groundY - SU * 0.062;
   var span = VW * 2.2;
   var smoke = 1 - cleanShown;
   var body = haze(P.city, 0.5);
@@ -5465,7 +5538,7 @@ function drawSkyline() {
     var x = f.x - camX * par;
     x = ((x + 320) % span + span) % span - 320;
     if (x < -300 || x > VW + 300) continue;
-    drawFactory(f, x, base, VH * 0.040 * f.s, body, trim, smoke, hz);
+    drawFactory(f, x, base, SU * 0.040 * f.s, body, trim, smoke, hz);
   }
 }
 
@@ -5522,6 +5595,14 @@ function drawMotes() {
 }
 
 /** The nearest layer of all - big, soft, and faster than everything behind. */
+/** v10.3: the foreground reeds' size (before each reed's own scale).
+    Every screen with VW >= VH keeps the v10 rule exactly (groundY >= 0.66 VH
+    there); an upright phone has a tall water band, so the reeds grow with
+    it and the bottom corners stay framed. */
+function reedU() {
+  return clamp(Math.max(Math.min(VW, VH) * 0.117, (VH - groundY) * 0.30), 36, 99);
+}
+
 function drawForeground() {
   var span = VW * 2.2;
   var reedCol = mix(P.sludgeLo, P.near, 0.35);   // reeds sit in the water colour
@@ -5530,7 +5611,7 @@ function drawForeground() {
     var x = f.x - camX * 1.35;
     x = ((x + 320) % span + span) % span - 320;
     if (x < -180 || x > VW + 180) continue;
-    var u = clamp(Math.min(VW, VH) * 0.117, 36, 99) * f.s;
+    var u = reedU() * f.s;
     var base = VH + u * 0.1;
     var sway = Math.sin(T * 0.9 + f.ph) * 0.05;
     /* they frame the bottom corners: full strength at the edges, a ghost
@@ -5548,7 +5629,7 @@ function streetLampGlow(o) { return 0.46 * o.lightOn; }
 
 function drawShore() {
   var par = 0.32, span = VW * 1.9;
-  var base = groundY - VH * 0.040;
+  var base = groundY - SU * 0.040;
   var hz = hazeAmt(0.8);
 
   for (var i = 0; i < shore.length; i++) {
@@ -5556,7 +5637,7 @@ function drawShore() {
     var x = o.x - camX * par;
     x = ((x + 240) % span + span) % span - 240;
     if (x < -140 || x > VW + 140) continue;
-    var u = VH * 0.055 * o.s;
+    var u = SU * 0.055 * o.s;
     var sway = Math.sin(T * 0.8 + o.seed) * 0.04;
 
     if (o.kind === 'lamp') {
@@ -5644,6 +5725,17 @@ function drawHills(par, amp, base, color, seed) {
   ctx.stroke();
 }
 
+/** v10.3: oily slick i (0..4) this frame - world centre, x-radius and
+    strength. Sized by the hero ruler U: an upright phone got flat plates
+    two thirds of the screen wide. Only a trace stays once the water is clean. */
+function slickAt(i) {
+  var x = ((i * 233 - camX * 0.5) % (VW + 300) + VW + 300) % (VW + 300) - 150;
+  return { x: x + Math.sin(T * 0.6 + i) * U * 0.25,
+           y: groundY + U * (0.45 + (i % 3) * 0.5),
+           rx: U * (0.7 + (i % 3) * 0.2),
+           a: 0.30 * (1 - cleanShown * 0.8) };
+}
+
 function drawSludge() {
   var g = ctx.createLinearGradient(0, groundY, 0, VH);
   g.addColorStop(0, P.sludgeHi);
@@ -5667,15 +5759,26 @@ function drawSludge() {
   ctx.fillStyle = hz;
   ctx.fillRect(0, groundY, VW, VH * 0.14);
 
-  // oily sheen - slow drifting iridescent blobs, dulled as the land recovers
-  ctx.globalAlpha = 0.16 * (1 - cleanShown * 0.65);
-  for (var i = 0; i < 6; i++) {
-    var x = ((i * 233 - camX * 0.5) % (VW + 300) + VW + 300) % (VW + 300) - 150;
-    var y = groundY + 22 + (i % 3) * 26;
-    ctx.fillStyle = i % 2 ? '#9d7be0' : '#63d1c0';
-    ellF(ctx, x + Math.sin(T * 0.6 + i) * 14, y, 60 + i * 9, 11 + (i % 3) * 3);
+  /* v10.3: oily slicks - soft discs with a rainbow rim, flattened by the
+     view; they dull as the land recovers */
+  for (var i = 0; i < 5; i++) {
+    var sl = slickAt(i);
+    if (sl.a < 0.01) break;
+    ctx.save();
+    ctx.translate(sl.x, sl.y);
+    ctx.scale(1, 0.2);
+    var og = ctx.createRadialGradient(0, 0, sl.rx * 0.15, 0, 0, sl.rx);
+    og.addColorStop(0, colA('#63d1c0', sl.a * 0.45));
+    og.addColorStop(0.55, colA('#63d1c0', sl.a));
+    og.addColorStop(0.75, colA('#9d7be0', sl.a));
+    og.addColorStop(0.9, colA('#ffd36b', sl.a * 0.6));
+    og.addColorStop(1, colA('#9d7be0', 0));
+    ctx.fillStyle = og;
+    ctx.beginPath();
+    ctx.arc(0, 0, sl.rx, 0, TAU);
+    ctx.fill();
+    ctx.restore();
   }
-  ctx.globalAlpha = 1;
 }
 
 /* v10: clear water comes alive. Little fish shadows glide under the surface
@@ -5823,13 +5926,15 @@ function drawMeadow(s, px, top, w, h) {
 
   /* the bank - a wide island sprite, its keel lost under the waterline */
   var ws = w * 1.04, hs = Math.max(h / 0.87, ws * 0.42);
-  if (QUALITY >= 2)                                // scenery reflections shed first
-    sprReflection('island-2', px - ws / 2, top - hs * 0.1294, ws, hs,
-      clamp((groundY - top + hs * 0.1294) / hs, 0, 0.6), { clean: 1 });
-  spr('island-2', px - ws / 2, top - hs * 0.1294, ws, hs, { clean: 1 });
+  /* v10: meets the water like every island; scenery reflections shed
+     first, so the bank mirrors only at QUALITY 2 */
+  drawIslandBody('island-2', px - ws / 2, top - hs * 0.1294, ws, hs, 1, 0.6, 2);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.22)';       // waterline
-  ellF(ctx, px, groundY, hw * 0.94, Math.max(3, w * 0.02));
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';      // waterline: a crisp ring, no veil
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(px, groundY, hw * 0.94, Math.max(3, w * 0.02), 0, 0.1, Math.PI - 0.1);
+  ctx.stroke();
 
   /* grass along the rim */
   for (var g = 0; g < 8; g++) {
@@ -5940,11 +6045,11 @@ function islandHalfAt(w, f) {
 function drawStartExtras(s, px, top, w, h) {
   /* the jetty, reaching out towards the first jump */
   var jx = px + w * 0.32, jw = w * 0.30;
-  var jh = (groundY - top) + VH * 0.062 + 8;
-  if (QUALITY >= 2)
-    sprReflection('jetty', jx, top - 5, jw, jh,
-      clamp((groundY - top + 5) / jh, 0, 0.5), {});
-  spr('jetty', jx, top - 5, jw, jh);
+  /* v10.3: its legs go under the water like the islands' keels, U/2 deep
+     on every screen (sized by VH they sank 52 px on a tall phone); the
+     mirror still shows only at QUALITY 2 */
+  var jh = (groundY - top) + U * 0.5 + 8;
+  drawIslandBody('jetty', jx, top - 5, jw, jh, 1, 0.5, 2);
 
   /* signpost pointing the way onward */
   var sgx = px + w * 0.22;
@@ -6397,15 +6502,10 @@ function drawStone(s) {
      keeps its light on the sun side (a flipped sprite would not) */
   var isl = 'island-' + (s.id % 5 + 1) + ((s.id % 2) === 1 ? '-m' : '');
 
-  /* reflection in the sludge: the island mirrored, tinted and rippled */
-  if (QUALITY >= 1)
-    sprReflection(isl, px - ws / 2, top - hs * 0.1294, ws, hs,
-      clamp((groundY - top + hs * 0.1294) / hs, 0, 0.62),
-      { clean: cleanShown * (1 - polluted * 0.85) });
-
-  /* the island darkens with grime as a crumble fuse burns */
-  spr(isl, px - ws / 2, top - hs * 0.1294, ws, hs,
-      { clean: cleanShown * (1 - polluted * 0.85) });
+  /* v10: seen through the water below the line, mirrored on it, solid
+     above it. The island darkens with grime as a crumble fuse burns. */
+  drawIslandBody(isl, px - ws / 2, top - hs * 0.1294, ws, hs,
+                 cleanShown * (1 - polluted * 0.85), 0.62, 1);
 
   /* contact shadows: whatever stands on the grass sits IN it, not floats */
   ctx.fillStyle = P.shadow;
@@ -6430,23 +6530,17 @@ function drawStone(s) {
   }
   ctx.stroke();
 
-  /* the keel melts into the water instead of ending on a hard edge */
-  ctx.save();
-  ctx.beginPath();
-  ctx.ellipse(px, top + h * 0.52, wh * 1.05, h * 0.6, 0, 0, TAU);
-  ctx.clip();
-  var kf = ctx.createLinearGradient(0, groundY - 4, 0, groundY + h * 0.7);
-  kf.addColorStop(0, 'rgba(40,28,18,0)');          // v10: warm murk under warm earth
-  kf.addColorStop(1, 'rgba(40,28,18,' + (0.5 - cleanShown * 0.16) + ')');
-  ctx.fillStyle = kf;
-  ctx.fillRect(px - wh * 1.1, groundY - 4, wh * 2.2, h * 0.8);
-  ctx.restore();
-
-  /* waterline: a soft outer halo of foam, then the crisp ring on top */
-  ctx.fillStyle = colA(P.foam, 0.35);
-  ellF(ctx, px, groundY + 1, wh * 1.28, Math.max(3, w * 0.06));
-  ctx.fillStyle = colA(P.foam, 0.14);
-  ellF(ctx, px, groundY + 1, wh * 1.12, Math.max(3, w * 0.05));
+  /* waterline: one ripple lapping outwards, then the crisp ring on top.
+     v10: no foam halo - it lay across the island like a pane of glass */
+  if (!REDUCED) {
+    var lap = ((T + s.id * 0.77) % 2.6) / 2.6;
+    ctx.strokeStyle = colA(P.foam, 0.45 * (1 - lap));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(px, groundY + 1, wh * (1.02 + lap * 0.22),
+                Math.max(2.5, w * 0.035) * (1 + lap * 0.6), 0, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+  }
   ctx.strokeStyle = colA(P.foam, 0.8);
   ctx.lineWidth = 2;
   ctx.beginPath();
@@ -6682,6 +6776,66 @@ function sprReflection(name, x, y, w, h, frac, o) {
   ctx.restore();
 }
 
+/** v10: the rows of a sprite below the waterline, seen through the water:
+    tinted toward the water colour, laid in wavering strips that fade with
+    depth. x, y, w, h are the whole sprite box, as for spr(). */
+function sprSubmerged(name, x, y, w, h, o) {
+  var cut = Math.max(0, groundY + 1 - y);        // sprite rows above the water
+  if (cut >= h - 2 || w < 12) return;
+  o = o || {};
+  var e = sprGet(ctx, name, w, h, o);
+  if (!e) return;
+  var rw = Math.ceil(w), rh = Math.max(8, Math.ceil(h - cut));
+  var rc = reflCanvas(rw, rh), rg = rc.getContext('2d');
+  rg.setTransform(1, 0, 0, 1, 0, 0);
+  rg.globalCompositeOperation = 'source-over';
+  rg.globalAlpha = 1;
+  rg.clearRect(0, 0, rw, rh);
+  var cl = o.clean === undefined ? cleanShown : o.clean;
+  var sy = e.c.height * (cut / h), sh = e.c.height - sy;
+  if (e.d && cl < 1) rg.drawImage(e.d, 0, sy, e.d.width, sh, 0, 0, rw, rh);
+  rg.globalAlpha = e.d ? cl : 1;
+  if (rg.globalAlpha > 0) rg.drawImage(e.c, 0, sy, e.c.width, sh, 0, 0, rw, rh);
+
+  /* sink it into the water colour - source-atop touches only the sprite */
+  rg.globalCompositeOperation = 'source-atop';
+  rg.globalAlpha = 0.6;
+  var tg = rg.createLinearGradient(0, 0, 0, rh);
+  tg.addColorStop(0, P.sludgeHi);
+  tg.addColorStop(1, P.sludgeLo);
+  rg.fillStyle = tg;
+  rg.fillRect(0, 0, rw, rh);
+  rg.globalCompositeOperation = 'source-over';
+  rg.globalAlpha = 1;
+
+  var N = QUALITY >= 1 ? 6 : 1, sh2 = rh / N;
+  var sa = lerp(0.30, 0.50, cleanShown);           // clearer water shows more
+  for (var i = 0; i < N; i++) {
+    ctx.globalAlpha = sa * (1 - (i / N) * 0.7);
+    ctx.drawImage(rc, 0, i * sh2, rw, sh2,
+                  x + Math.sin(T * 1.9 + i * 1.1 + x * 0.013) * (0.5 + i * 0.35),
+                  y + cut + i * sh2, rw, sh2 + 0.5);
+  }
+  ctx.globalAlpha = 1;
+}
+
+/** v10: an island sprite meeting the water - seen through the water below
+    the waterline, mirrored on the surface (from QUALITY reflQ up, the
+    mirror capped at reflMax of the sprite), and solid only above the line.
+    Every island and the finish bank go through here. */
+function drawIslandBody(name, x, y, w, h, clean, reflMax, reflQ) {
+  sprSubmerged(name, x, y, w, h, { clean: clean });
+  if (QUALITY >= reflQ)
+    sprReflection(name, x, y, w, h, clamp((groundY - y) / h, 0, reflMax),
+                  { clean: clean });
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x - w, y - h, w * 3, Math.max(0, groundY + 1 - (y - h)));
+  ctx.clip();
+  spr(name, x, y, w, h, { clean: clean });
+  ctx.restore();
+}
+
 /** What the hero's face and body show this frame - drawHopper's options
     for drawAnimal. v10: the focus face takes the eyes while the jump is held. */
 function heroOpts() {
@@ -6867,6 +7021,55 @@ function heroH() {
     }
   }
   return bot > top ? bot - top : HERO_W;
+}
+
+/* v10.3: the far shore mirrored in the water. grabHorizon() copies the
+   finished background band just above the waterline (screen space, before
+   the hero plane zooms) upside down into a scratch canvas, tinted toward
+   the water; drawHorizonMirror() lays it under the line in swaying strips
+   that fade with depth. drawImage only - game code never reads pixels,
+   so a double-clicked (file://) game keeps working. */
+var _mirCan = null, mirH = 0;
+function grabHorizon() {
+  mirH = 0;
+  if (QUALITY < 1) return;                         // the leanest tier sheds it
+  var mh = Math.round(Math.min(groundY * 0.45, (VH - groundY) * 0.80));
+  if (mh < 12) return;
+  var cw = canvas.width, ch = Math.round(mh * DPR);
+  if (!_mirCan) _mirCan = document.createElement('canvas');
+  if (_mirCan.width !== cw) _mirCan.width = cw;
+  if (_mirCan.height !== ch) _mirCan.height = ch;
+  var mg = _mirCan.getContext('2d');
+  mg.setTransform(1, 0, 0, -1, 0, ch);             // flipped: row 0 = the waterline
+  mg.globalCompositeOperation = 'copy';
+  mg.globalAlpha = 1;
+  mg.drawImage(canvas, 0, Math.round((groundY - mh) * DPR), cw, ch, 0, 0, cw, ch);
+  mg.setTransform(1, 0, 0, 1, 0, 0);
+  mg.globalCompositeOperation = 'source-atop';     // sink it into the water colour
+  mg.globalAlpha = 0.5;
+  var tg = mg.createLinearGradient(0, 0, 0, ch);
+  tg.addColorStop(0, P.sludgeHi);
+  tg.addColorStop(1, P.sludgeLo);
+  mg.fillStyle = tg;
+  mg.fillRect(0, 0, cw, ch);
+  mg.globalCompositeOperation = 'source-over';
+  mg.globalAlpha = 1;
+  mirH = mh;
+}
+function drawHorizonMirror() {
+  if (!mirH) return;
+  ctx.save();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);          // screen space, like the background
+  var N = QUALITY >= 2 ? 8 : 4, sh = mirH / N, grow = 1.2;
+  var a = lerp(0.30, 0.55, cleanShown);            // clearer water, clearer mirror
+  for (var i = 0; i < N; i++) {
+    var dy = groundY + 1 + i * sh * grow;
+    if (dy > VH) break;
+    ctx.globalAlpha = a * (1 - (i / N) * 0.8);
+    ctx.drawImage(_mirCan, 0, i * sh * DPR, _mirCan.width, sh * DPR,
+                  Math.sin(T * 1.6 + i * 0.9) * (0.5 + i * 0.45), dy, VW, sh * grow + 0.6);
+  }
+  ctx.restore();
 }
 
 function drawSludgeTint() {
@@ -7215,10 +7418,11 @@ function render() {
   drawDistantRidge();
   drawFarWorks();
   drawSmog();
-  drawHills(0.10, VH * 0.16, groundY + 2, haze(P.far, 0.35), 0.8);
+  drawHills(0.10, SU * 0.16, groundY + 2, haze(P.far, 0.35), 0.8);
   drawSkyline();
-  drawHills(0.22, VH * 0.11, groundY + 2, haze(P.near, 0.65), 2.6);
+  drawHills(0.22, SU * 0.11, groundY + 2, haze(P.near, 0.65), 2.6);
   drawShore();
+  grabHorizon();              // v10.3: the far shore, before the hero plane draws
 
   /* the hero plane zooms around the waterline: Z scales the world between
      the background and the vignette, so phone-portrait islands fill the
@@ -7229,6 +7433,7 @@ function render() {
   ctx.translate(-VW / 2, -groundY);
   drawSludge();
   drawFish();                 // v10: under the surface, beneath the reflections
+  drawHorizonMirror();        // v10.3: the far shore upside down in the water
   for (var i = 0; i < stones.length; i++) drawStone(stones[i]);
   drawPads();                 // v10: on the surface, in front of the keels
   drawItems();

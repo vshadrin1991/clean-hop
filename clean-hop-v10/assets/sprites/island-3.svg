@@ -13,7 +13,21 @@
     </linearGradient>
     <clipPath id="body"><path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z"/></clipPath>
     <clipPath id="below"><rect x="0" y="30" width="240" height="140"/></clipPath>
-    <clipPath id="sun"><rect x="150" y="30" width="90" height="140"/></clipPath>
+    <linearGradient id="side" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="240" y2="0">
+      <stop offset="0" stop-color="#3a2818" stop-opacity=".32"/>
+      <stop offset=".3" stop-color="#3a2818" stop-opacity=".2"/>
+      <stop offset=".47" stop-color="#3a2818" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#ffd79a" stop-opacity="0"/>
+      <stop offset=".72" stop-color="#ffd79a" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ffd79a" stop-opacity=".26"/>
+    </linearGradient>
+    <linearGradient id="rimfade" gradientUnits="userSpaceOnUse" x1="120" y1="0" x2="215" y2="0">
+      <stop offset="0" stop-color="#000000"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <mask id="sunside" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height="170">
+      <rect width="240" height="170" fill="url(#rimfade)"/>
+    </mask>
   </defs>
   <path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z" fill="url(#soil)"/>
   <g clip-path="url(#below)"><g clip-path="url(#body)">
@@ -32,9 +46,8 @@
       <ellipse cx="71.1" cy="123.0" rx="2.0" ry="1.2" fill="#e0dbd2" opacity=".8"/>
     </g>
     <rect x="0" y="28" width="240" height="16" fill="url(#lip)"/>
-    <path d="M0 30 L108 30 Q92 96 112 170 L0 170 Z" fill="#3a2818" opacity=".28"/>
-    <path d="M150 30 L240 30 L240 170 L168 170 Q186 96 150 30 Z" fill="#ffd79a" opacity=".22"/>
-    <g clip-path="url(#sun)"><path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z" fill="none" stroke="#ffe1a0" stroke-width="7" opacity=".6"/></g>
+    <rect x="0" y="30" width="240" height="140" fill="url(#side)"/>
+    <g mask="url(#sunside)"><path d="M10 22 L230 22 Q224 56 198 82 Q168 112 82 150 Q46 132 28 98 Q4 64 10 22 Z" fill="none" stroke="#ffe1a0" stroke-width="7" opacity=".6"/></g>
   </g></g>
   <g>
     <path d="M8 22 Q4 8 20 7 Q38 2 58 7 Q78 1 100 6 Q122 0 142 6 Q162 1 182 7 Q200 2 218 8 Q234 10 232 24 L229 32 Q218 26 207 34 Q194 27 181 35 Q168 28 154 36 Q141 29 127 36 Q113 30 99 36 Q85 30 71 35 Q57 29 43 34 Q29 28 17 34 Q9 30 8 22 Z" fill="#4fb574"/>

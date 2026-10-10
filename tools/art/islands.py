@@ -7,7 +7,9 @@ game's island geometry (drawStone's 0.1294 / 0.8706, islandHalfAt) still
 fits. The -m twin is the same island mirrored, but its light still comes
 from the upper right where the game's sun is - the game draws the twin
 instead of flipping the sprite. Everything under the lid is clipped to
-y >= 30, so no soil pixel ever reaches the lid rows 0-27."""
+y >= 30, so no soil pixel ever reaches the lid rows 0-27.
+The light is one soft side gradient plus a rim that fades in towards
+the sun, both outside the mirror transform."""
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -115,7 +117,21 @@ def svg(isl, mirrored):
     </linearGradient>
     <clipPath id="body"><path d="{keel}"{geo}/></clipPath>
     <clipPath id="below"><rect x="0" y="30" width="240" height="140"/></clipPath>
-    <clipPath id="sun"><rect x="150" y="30" width="90" height="140"/></clipPath>
+    <linearGradient id="side" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="240" y2="0">
+      <stop offset="0" stop-color="#3a2818" stop-opacity=".32"/>
+      <stop offset=".3" stop-color="#3a2818" stop-opacity=".2"/>
+      <stop offset=".47" stop-color="#3a2818" stop-opacity="0"/>
+      <stop offset=".55" stop-color="#ffd79a" stop-opacity="0"/>
+      <stop offset=".72" stop-color="#ffd79a" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#ffd79a" stop-opacity=".26"/>
+    </linearGradient>
+    <linearGradient id="rimfade" gradientUnits="userSpaceOnUse" x1="120" y1="0" x2="215" y2="0">
+      <stop offset="0" stop-color="#000000"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <mask id="sunside" maskUnits="userSpaceOnUse" x="0" y="0" width="240" height="170">
+      <rect width="240" height="170" fill="url(#rimfade)"/>
+    </mask>
   </defs>
   <path d="{keel}" fill="url(#soil)"{geo}/>
   <g clip-path="url(#below)"><g clip-path="url(#body)">
@@ -125,9 +141,8 @@ def svg(isl, mirrored):
       {pebbles}
     </g>
     <rect x="0" y="28" width="240" height="16" fill="url(#lip)"/>
-    <path d="M0 30 L108 30 Q92 96 112 170 L0 170 Z" fill="#3a2818" opacity=".28"/>
-    <path d="M150 30 L240 30 L240 170 L168 170 Q186 96 150 30 Z" fill="#ffd79a" opacity=".22"/>
-    <g clip-path="url(#sun)"><path d="{keel}"{geo} fill="none" stroke="#ffe1a0" stroke-width="7" opacity=".6"/></g>
+    <rect x="0" y="30" width="240" height="140" fill="url(#side)"/>
+    <g mask="url(#sunside)"><path d="{keel}"{geo} fill="none" stroke="#ffe1a0" stroke-width="7" opacity=".6"/></g>
   </g></g>
   <g{geo}>
     <path d="{lid}" fill="#4fb574"/>

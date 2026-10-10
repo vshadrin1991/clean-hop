@@ -12,12 +12,13 @@ if '--game' in sys.argv:
 problems = []
 
 html = (GAME / 'index.html').read_text(encoding='utf-8')
-script = re.findall(r'<script>(.*?)</script>', html, re.S)[-1]
-with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as f:
-    f.write(script)
-r = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
-if r.returncode:
-    problems.append('script syntax:\n' + r.stderr)
+# every <script> block - [-1] alone was only the service-worker one
+for script in re.findall(r'<script>(.*?)</script>', html, re.S):
+    with tempfile.NamedTemporaryFile('w', suffix='.js', delete=False) as f:
+        f.write(script)
+    r = subprocess.run(['node', '--check', f.name], capture_output=True, text=True)
+    if r.returncode:
+        problems.append('script syntax:\n' + r.stderr)
 
 # every sprite the game asks for exists and is cached for offline play
 block = re.search(r'var SPRITES = \{(.*?)\n\};', html, re.S).group(1)
@@ -106,6 +107,38 @@ else:
             problems.append('tip needs exactly one *action*: ' + tip)
         if len(tip.replace('*', '')) > 80:
             problems.append('tip over 80 characters: ' + tip)
+
+# v10+: checks below only apply from this version on (--game v9 skips them)
+m = re.search(r'-v(\d+)$', GAME.name)
+VER = int(m.group(1)) if m else 0
+
+# island light is soft - one sideways gradient and a rim light that
+# fades in towards the sun through an untransformed mask (so the mirrored
+# twins stay lit on the right), never hard-edged wedges
+if VER >= 10:
+    for p in sorted((GAME / 'assets/sprites').glob('island-[0-9]*.svg')):
+        st = p.read_text(encoding='utf-8')
+        if 'fill="url(#side)"' not in st or '<g mask="url(#sunside)">' not in st:
+            problems.append('island light is not the soft v10 gradient: ' + p.name)
+        if 'url(#sun)' in st or 'L108 30' in st:
+            problems.append('island still has a hard-edged light wedge: ' + p.name)
+
+# every island sprite meets the water through drawIslandBody - no other
+# code paints a whole island over its own submerged part (the finish
+# meadow's bank is an island-2 too). Searches `html`: `script`
+# above is the last <script>, the service-worker one, not the game.
+if VER >= 10:
+    direct = re.findall(r"\bspr\((?:isl\b|'island-)", html)
+    if direct:
+        problems.append('island sprite drawn whole, not via drawIslandBody: %d call(s)' % len(direct))
+    if len(re.findall(r'\bdrawIslandBody\(', html)) < 3:       # definition + 2 callers
+        problems.append('drawIslandBody must serve both drawStone and drawMeadow')
+
+# v10.3: the start jetty meets the water like the islands, at a depth by
+# the hero's ruler - never drawn whole, never sized by the screen height
+if VER >= 10:
+    if re.search(r"\bspr\('jetty'", html) or 'VH * 0.062' in html:
+        problems.append('jetty drawn whole or sized by VH, not via drawIslandBody')
 
 print('\n'.join(problems) if problems else 'OK')
 sys.exit(1 if problems else 0)

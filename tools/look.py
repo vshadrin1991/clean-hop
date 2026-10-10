@@ -1,19 +1,26 @@
 #!/usr/bin/env python3
-"""v10 look guard. Renders the same frozen #shot scene in the old and the
-new game and checks the v10 graphics goals with numbers:
-    python3 tools/look.py                  # every rule
-    python3 tools/look.py --only island    # island | water | perf
-Rules (v10 against clean-hop-v9, same seed, same screen):
-  island  soil warmth (mean r-b) at clean 1 rises by >= 12
+"""Look guard. Renders the same frozen #shot scene in an old and the new
+game and checks the graphics goals with numbers:
+    python3 tools/look.py                          # every rule, old = clean-hop-v9
+    python3 tools/look.py --old "$TMPDIR/ch-base"  # against a saved baseline
+    python3 tools/look.py --only island            # island | water | perf
+Rules (new against old, same seed, same screen):
   island  light (right third - left third luminance) >= +3 at clean 0 and 1
-  water   detail (luminance sd, lower water) at clean 1 >= 1.25x v9
-  water   detail at clean 0 >= 0.9x v9 (no regression)
-  perf    render() ms at 390x844, CPU x4: v10 <= 2x v9 + 0.3, QUALITY held
+  island  warmth (mean r-b of the soil) >= old - 5: the earth stays warm
+  water   veil (soil just above the waterline minus soil under the lid)
+          <= 0: no pale stripe where an island meets the water
+  water   detail (luminance sd, lower water) >= 0.9x old: no regression
+  water   brightness (mean luminance, lower water) <= old + 15: the
+          v10.3 mirror must not wash the water out
+  perf    render() ms at 390x844, CPU x4, median of 3 runs each:
+          new <= 1.25x old + 0.3, QUALITY held
+  seam and under print for information only.
 Exits 1 when any rule fails."""
 import json, pathlib, subprocess, sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OLD, NEW = 'clean-hop-v9', 'clean-hop-v10'
+OLD = sys.argv[sys.argv.index('--old') + 1] if '--old' in sys.argv else 'clean-hop-v9'
+NEW = 'clean-hop-v10'
 SIZES = ['1280x720', '390x844', '844x390']
 only = sys.argv[sys.argv.index('--only') + 1] if '--only' in sys.argv else None
 
@@ -29,42 +36,59 @@ def run(scenario, game, *args):
                                           (r.stdout + r.stderr)[-400:]))
 
 
+def pair(a, b):
+    return '%s>%s' % (a, b)
+
+
 fails = []
 if only in (None, 'island', 'water'):
-    print('%-12s %-15s %-15s %-15s' % ('scene', 'warm v9>v10', 'light v9>v10', 'water sd v9>v10'))
+    print('%-12s %-13s %-13s %-13s %-13s %-13s' % (
+        'scene', 'light', 'seam', 'veil', 'under', 'water sd'))
     for size in SIZES:
         for c in (0, 1):
             a = run('look.js', OLD, '--size', size, '--url', 'shot=%d,7' % c)
             b = run('look.js', NEW, '--size', size, '--url', 'shot=%d,7' % c)
             tag = '%s c%d' % (size, c)
-            print('%-12s %-15s %-15s %-15s' % (tag,
-                  '%s>%s' % (a['island']['warm'], b['island']['warm']),
-                  '%s>%s' % (a['island']['light'], b['island']['light']),
-                  '%s>%s' % (a['water']['sd'], b['water']['sd'])))
             if not a['islands'] or not b['islands']:
                 fails.append(tag + ': no island fully on screen to measure')
                 continue
+            ai, bi, aw, bw = a['island'], b['island'], a['water'], b['water']
+            print('%-12s %-13s %-13s %-13s %-13s %-13s' % (tag,
+                  pair(ai['light'], bi['light']), pair(ai['seam'], bi['seam']),
+                  pair(aw['veil'], bw['veil']), pair(aw['under'], bw['under']),
+                  pair(aw['sd'], bw['sd'])))
             if only in (None, 'island'):
-                if c == 1 and b['island']['warm'] < a['island']['warm'] + 12:
-                    fails.append('%s: island warmth %s (want >= %s)' % (
-                        tag, b['island']['warm'], a['island']['warm'] + 12))
-                if b['island']['light'] < 3:
+                if bi['light'] < 3:
                     fails.append('%s: islands lit from the wrong side (%s, want >= +3)' % (
-                        tag, b['island']['light']))
+                        tag, bi['light']))
+                if bi['warm'] < ai['warm'] - 5:
+                    fails.append('%s: soil warmth %s (want >= %s)' % (
+                        tag, bi['warm'], ai['warm'] - 5))
             if only in (None, 'water'):
-                want = a['water']['sd'] * (1.25 if c == 1 else 0.9)
-                if b['water']['sd'] < want:
+                if bw['veil'] is not None and bw['veil'] > 0:
+                    fails.append('%s: pale veil at the waterline %s (want <= 0)' % (
+                        tag, bw['veil']))
+                if bw['sd'] < aw['sd'] * 0.9:
                     fails.append('%s: water detail %s (want >= %.1f)' % (
-                        tag, b['water']['sd'], want))
+                        tag, bw['sd'], aw['sd'] * 0.9))
+                if bw['lum'] > aw['lum'] + 15:
+                    fails.append('%s: water washed out %s (want <= %.1f)' % (
+                        tag, bw['lum'], aw['lum'] + 15))
+def perf(game):
+    """median of three runs - one headless run swings by +-50 %"""
+    rs = [run('perf.js', game, '--size', '390x844', '--cpu', '4') for _ in range(3)]
+    return {'renderMs': sorted(r['renderMs'] for r in rs)[1],
+            'quality': min(r['quality'] for r in rs)}
+
+
 if only in (None, 'perf'):
-    a = run('perf.js', OLD, '--size', '390x844', '--cpu', '4')
-    b = run('perf.js', NEW, '--size', '390x844', '--cpu', '4')
-    print('perf 390x844 cpu4: v9 %s ms (q%s)  v10 %s ms (q%s)' % (
+    a, b = perf(OLD), perf(NEW)
+    print('perf 390x844 cpu4 (median of 3): old %s ms (q%s)  new %s ms (q%s)' % (
         a['renderMs'], a['quality'], b['renderMs'], b['quality']))
     if b['quality'] < a['quality']:
-        fails.append('perf: v10 dropped to QUALITY %s (v9 held %s)' % (b['quality'], a['quality']))
-    if b['renderMs'] > a['renderMs'] * 2 + 0.3:
-        fails.append('perf: render %s ms (want <= %.2f)' % (b['renderMs'], a['renderMs'] * 2 + 0.3))
+        fails.append('perf: new dropped to QUALITY %s (old held %s)' % (b['quality'], a['quality']))
+    if b['renderMs'] > a['renderMs'] * 1.25 + 0.3:
+        fails.append('perf: render %s ms (want <= %.2f)' % (b['renderMs'], a['renderMs'] * 1.25 + 0.3))
 if fails:
     print('\nFAIL\n' + '\n'.join('  ' + f for f in fails))
     sys.exit(1)

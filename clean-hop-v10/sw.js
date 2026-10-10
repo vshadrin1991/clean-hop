@@ -1,10 +1,11 @@
 /* Энергопрыжок - offline copy of the game.
    Every file is served from the device first. When any file changes, bump
    VERSION so installed copies pick up the update on their next online visit. */
-var VERSION = 'clean-hop-v10-5';
+var VERSION = 'clean-hop-v10-10';
 var FILES = [
   './', 'index.html', 'manifest.webmanifest',
   'icon-180.png', 'icon-192.png', 'icon-512.png',
+  'assets/sprites/balloon.svg',
   'assets/sprites/cattail.svg', 'assets/sprites/cirrus.svg',
   'assets/sprites/cloud-1.svg', 'assets/sprites/cloud-2.svg',
   'assets/sprites/cloud-3.svg', 'assets/sprites/deco-berrybush.svg',

@@ -13,24 +13,24 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import chrome
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-VIEWPORTS = [(390, 844), (844, 390), (1280, 720)]
+VIEWPORTS = [(390, 844), (320, 568), (844, 390), (1280, 720)]
 CLEANS = [0, 0.5, 1]
 OUT = pathlib.Path(os.environ.get(
     'CLEAN_HOP_SHOTS', pathlib.Path(tempfile.gettempdir()) / 'clean-hop-shots'))
 
 ap = argparse.ArgumentParser()
 ap.add_argument('--game', default='clean-hop-v10',
-                help='game folder under the project root')
+                help='game folder under the project root, or an absolute path')
 ap.add_argument('--tag', default=None,
                 help='name for this shot set (default: the game folder)')
 ap.add_argument('--dpr', type=float, default=1, help='device scale factor')
 ap.add_argument('--cpu', type=int, default=0, help='CPU throttle rate (e.g. 6)')
 ap.add_argument('--url-extra', default='', help='extra hash params, e.g. fps')
 args = ap.parse_args()
-tag = args.tag or args.game
+tag = args.tag or pathlib.Path(args.game).name
 
 # an instrumented copy of just this game, so v8 and v9 can both be shot
-test_dir = pathlib.Path(tempfile.gettempdir()) / ('clean-hop-test-' + args.game)
+test_dir = pathlib.Path(tempfile.gettempdir()) / ('clean-hop-test-' + pathlib.Path(args.game).name)
 env = dict(os.environ, CLEAN_HOP_TEST=str(test_dir))
 subprocess.run([sys.executable, str(ROOT / 'tools/test-build.py'),
                 '--game', args.game], check=True, env=env, capture_output=True)
@@ -45,7 +45,7 @@ for (w, h) in VIEWPORTS:
         png = dest / ('%dx%d_c%s.png' % (w, h, c))
         jobs.append({
             'type': 'shot', 'w': w, 'h': h, 'dsf': args.dpr,
-            'cpu': args.cpu or 0, 'ready': ready,
+            'cpu': args.cpu or 0, 'ready': ready, 'fresh': True,
             'url': '%s#shot=%s,7%s' % (base, c,
                                        ('&' + args.url_extra) if args.url_extra else ''),
             'out': str(png)})

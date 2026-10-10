@@ -23,11 +23,15 @@ OUT = pathlib.Path(os.environ.get('CLEAN_HOP_TEST',
                    pathlib.Path(tempfile.gettempdir()) /
                    ('clean-hop-test-file' if NO_INLINE else 'clean-hop-test')))
 OUT.mkdir(parents=True, exist_ok=True)
-if not (OUT / 'assets').exists():
-    (OUT / 'assets').symlink_to(GAME / 'assets')
-elif os.readlink(str(OUT / 'assets')) != str(GAME / 'assets'):
-    (OUT / 'assets').unlink()
-    (OUT / 'assets').symlink_to(GAME / 'assets')
+# a symlink left over from a deleted game folder dangles: exists() is False
+# but symlink_to would still fail - compare the link target, not the path
+assets = OUT / 'assets'
+if assets.is_symlink():
+    if os.readlink(str(assets)) != str(GAME / 'assets'):
+        assets.unlink()
+        assets.symlink_to(GAME / 'assets')
+elif not assets.exists():
+    assets.symlink_to(GAME / 'assets')
 
 HOOK = '''
 function __get(f) { try { return f(); } catch (e) { return undefined; } }
@@ -57,6 +61,7 @@ window.__t = {
   get KW() { return KW; }, get groundY() { return groundY; },
   /* sizes.js probes: the one-ruler spec + live DOM texts */
   get B() { return __get(function () { return B; }); },
+  get SU() { return __get(function () { return SU; }); },     // v10: bg-scale.js
   get HERO_W() { return __get(function () { return HERO_W; }); },
   gadgetH: function (k) { return __get(function () { return gadgetH(k); }); },
   get MIN_D() { return __get(function () { return MIN_D; }); },
@@ -75,6 +80,9 @@ window.__t = {
   set quality(v) { QUALITY = v; },
   /* v10 probes: living water (water.js) */
   render: function () { render(); },
+  get mirH() { return __get(function () { return mirH; }); },     // v10.3: mirror.js
+  slickAt: function (i) { return __get(function () { return slickAt(i); }); },  // v10.3: water-bits.js
+  reedU: function () { return __get(function () { return reedU(); }); },
   get padsShown() { return __get(function () { return padsShown; }); },
   get fishShown() { return __get(function () { return fishShown; }); },
   get padRects() { return __get(function () { return padRects; }); },
@@ -191,6 +199,8 @@ window.__t = {
   set idleT(v) { __get(function () { idleT = v; }); },
   /* v9.6/v9.7 probes: the phase 2-3 Easter eggs */
   get night() { return __get(function () { return night; }); },
+  set night(v) { __get(function () { night = v; }); },          // v10: balloon.js
+  balloonAt: function () { return __get(function () { return balloonAt(); }); },
   get nightSeq() { return __get(function () { return nightSeq; }); },
   get nightLine() { return __get(function () { return nightLine; }); },
   sunTap: function () { __get(function () { sunTap(); }); },

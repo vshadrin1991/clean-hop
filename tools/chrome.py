@@ -18,6 +18,7 @@ def launch():
     prof = tempfile.mkdtemp(prefix='clean-hop-chrome-')
     proc = subprocess.Popen(
         [CHROME, '--headless=new', '--mute-audio',
+         '--allow-file-access-from-files',      # file:// sprites must not taint the canvas
          '--remote-debugging-port=%d' % port,
          '--user-data-dir=' + prof, 'about:blank'],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
